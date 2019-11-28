@@ -1,10 +1,8 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 #import "RCTDisplayLink.h"
@@ -89,6 +87,11 @@
   [_jsDisplayLink addToRunLoop:runLoop forMode:NSRunLoopCommonModes];
 }
 
+- (void)dealloc
+{
+  [self invalidate];
+}
+
 - (void)invalidate
 {
   [_jsDisplayLink invalidate];
@@ -114,12 +117,15 @@
   for (RCTModuleData *moduleData in _frameUpdateObservers) {
     id<RCTFrameUpdateObserver> observer = (id<RCTFrameUpdateObserver>)moduleData.instance;
     if (!observer.paused) {
-      RCTProfileBeginFlowEvent();
-
-      [self dispatchBlock:^{
-        RCTProfileEndFlowEvent();
+      if (moduleData.methodQueue) {
+        RCTProfileBeginFlowEvent();
+        [self dispatchBlock:^{
+          RCTProfileEndFlowEvent();
+          [observer didUpdateFrame:frameUpdate];
+        } queue:moduleData.methodQueue];
+      } else {
         [observer didUpdateFrame:frameUpdate];
-      } queue:moduleData.methodQueue];
+      }
     }
   }
 

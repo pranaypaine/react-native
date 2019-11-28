@@ -1,16 +1,16 @@
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @format
+ * @emails oncall+react_native
  */
+
 'use strict';
 
-jest.unmock('normalizeColor');
-
-var normalizeColor = require('normalizeColor');
+const normalizeColor = require('../../Color/normalizeColor');
 
 describe('normalizeColor', function() {
   it('should accept only spec compliant colors', function() {
@@ -28,7 +28,7 @@ describe('normalizeColor', function() {
     expect(normalizeColor(0xffffffff + 1)).toBe(null);
   });
 
-  it('should temporarly accept floating point values for rgb', function() {
+  it('should temporarily accept floating point values for rgb', function() {
     expect(normalizeColor('rgb(1.1, 2.1, 3.1)')).toBe(0x010203ff);
     expect(normalizeColor('rgba(1.1, 2.1, 3.1, 1.0)')).toBe(0x010203ff);
   });
@@ -124,7 +124,7 @@ describe('normalizeColor', function() {
     expect(normalizeColor(0x01234567)).toBe(0x01234567);
   });
 
-  it('should return the same color when it\'s already normalized', function() {
+  it("should return the same color when it's already normalized", function() {
     const normalizedColor = normalizeColor('red') || 0;
     expect(normalizeColor(normalizedColor)).toBe(normalizedColor);
   });

@@ -1,29 +1,23 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.react.views.art;
 
-import javax.annotation.Nullable;
-
+import androidx.annotation.Nullable;
 import com.facebook.react.bridge.ReadableArray;
-import com.facebook.react.uimanager.ReactStylesDiffMap;
 
-/**
- * Contains static helper methods for accessing props.
- */
+/** Contains static helper methods for accessing props. */
 /* package */ class PropHelper {
 
   /**
    * Converts {@link ReadableArray} to an array of {@code float}. Returns newly created array.
    *
    * @return a {@code float[]} if converted successfully, or {@code null} if {@param value} was
-   * {@code null}.
+   *     {@code null}.
    */
   /*package*/ static @Nullable float[] toFloatArray(@Nullable ReadableArray value) {
     if (value != null) {

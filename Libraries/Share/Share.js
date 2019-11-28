@@ -1,29 +1,43 @@
 /**
- * Copyright (c) 2016-present, Facebook, Inc.
- * All rights reserved.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *
- * @providesModule Share
+ * @format
  * @flow
  */
+
 'use strict';
 
-const Platform = require('Platform');
-const {
-  ActionSheetManager,
-  ShareModule
-} = require('NativeModules');
-const invariant = require('fbjs/lib/invariant');
-const processColor = require('processColor');
+const Platform = require('../Utilities/Platform');
 
-type Content = { title?: string, message: string } | { title?: string, url: string };
-type Options = { dialogTitle?: string, excludeActivityTypes?: Array<string>, tintColor?: string };
+const invariant = require('invariant');
+const processColor = require('../StyleSheet/processColor');
+
+import NativeActionSheetManager from '../ActionSheetIOS/NativeActionSheetManager';
+import NativeShareModule from './NativeShareModule';
+
+type Content =
+  | {
+      title?: string,
+      message: string,
+      ...
+    }
+  | {
+      title?: string,
+      url: string,
+      ...
+    };
+type Options = {
+  dialogTitle?: string,
+  excludedActivityTypes?: Array<string>,
+  tintColor?: string,
+  subject?: string,
+  ...
+};
 
 class Share {
-
   /**
    * Open a dialog to share text content.
    *
@@ -48,51 +62,77 @@ class Share {
    *
    * #### iOS
    *
-   * - `excludedActivityTypes`
-   * - `tintColor`
+   *  - `subject` - a subject to share via email
+   *  - `excludedActivityTypes`
+   *  - `tintColor`
    *
    * #### Android
    *
-   * - `dialogTitle`
+   *  - `dialogTitle`
    *
    */
   static share(content: Content, options: Options = {}): Promise<Object> {
     invariant(
       typeof content === 'object' && content !== null,
-      'Content must a valid object'
+      'Content to share must be a valid object',
     );
     invariant(
       typeof content.url === 'string' || typeof content.message === 'string',
-      'At least one of URL and message is required'
+      'At least one of URL and message is required',
     );
     invariant(
       typeof options === 'object' && options !== null,
-      'Options must be a valid object'
+      'Options must be a valid object',
     );
 
     if (Platform.OS === 'android') {
       invariant(
-        !content.title || typeof content.title === 'string',
-        'Invalid title: title should be a string.'
+        NativeShareModule,
+        'ShareModule should be registered on Android.',
       );
-      return ShareModule.share(content, options.dialogTitle);
+      invariant(
+        !content.title || typeof content.title === 'string',
+        'Invalid title: title should be a string.',
+      );
+
+      const newContent = {
+        title: content.title,
+        message:
+          typeof content.message === 'string' ? content.message : undefined,
+      };
+
+      return NativeShareModule.share(newContent, options.dialogTitle);
     } else if (Platform.OS === 'ios') {
       return new Promise((resolve, reject) => {
-        ActionSheetManager.showShareActionSheetWithOptions(
-          {...content, ...options, tintColor: processColor(options.tintColor)},
-          (error) => reject(error),
+        const tintColor = processColor(options.tintColor);
+
+        invariant(
+          NativeActionSheetManager,
+          'NativeActionSheetManager is not registered on iOS, but it should be.',
+        );
+
+        NativeActionSheetManager.showShareActionSheetWithOptions(
+          {
+            message:
+              typeof content.message === 'string' ? content.message : undefined,
+            url: typeof content.url === 'string' ? content.url : undefined,
+            subject: options.subject,
+            tintColor: tintColor != null ? tintColor : undefined,
+            excludedActivityTypes: options.excludedActivityTypes,
+          },
+          error => reject(error),
           (success, activityType) => {
             if (success) {
               resolve({
-                'action': 'sharedAction',
-                'activityType': activityType
+                action: 'sharedAction',
+                activityType: activityType,
               });
             } else {
               resolve({
-                'action': 'dismissedAction'
+                action: 'dismissedAction',
               });
             }
-          }
+          },
         );
       });
     } else {
@@ -103,14 +143,13 @@ class Share {
   /**
    * The content was successfully shared.
    */
-  static get sharedAction() { return 'sharedAction'; }
+  static sharedAction: 'sharedAction' = 'sharedAction';
 
   /**
    * The dialog has been dismissed.
    * @platform ios
    */
-  static get dismissedAction() { return 'dismissedAction'; }
-
+  static dismissedAction: 'dismissedAction' = 'dismissedAction';
 }
 
 module.exports = Share;

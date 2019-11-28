@@ -1,10 +1,8 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 #import "RCTModalHostViewManager.h"
@@ -12,9 +10,21 @@
 #import "RCTBridge.h"
 #import "RCTModalHostView.h"
 #import "RCTModalHostViewController.h"
-#import "RCTTouchHandler.h"
 #import "RCTShadowView.h"
 #import "RCTUtils.h"
+
+@implementation RCTConvert (RCTModalHostView)
+
+RCT_ENUM_CONVERTER(UIModalPresentationStyle, (@{
+  @"fullScreen": @(UIModalPresentationFullScreen),
+#if !TARGET_OS_TV
+  @"pageSheet": @(UIModalPresentationPageSheet),
+  @"formSheet": @(UIModalPresentationFormSheet),
+#endif
+  @"overFullScreen": @(UIModalPresentationOverFullScreen),
+}), UIModalPresentationFullScreen, integerValue)
+
+@end
 
 @interface RCTModalHostShadowView : RCTShadowView
 
@@ -26,8 +36,7 @@
 {
   [super insertReactSubview:subview atIndex:atIndex];
   if ([subview isKindOfClass:[RCTShadowView class]]) {
-    CGRect frame = {.origin = CGPointZero, .size = RCTScreenSize()};
-    [(RCTShadowView *)subview setFrame:frame];
+    ((RCTShadowView *)subview).size = RCTScreenSize();
   }
 }
 
@@ -39,7 +48,7 @@
 
 @implementation RCTModalHostViewManager
 {
-  NSHashTable *_hostViews;
+  NSPointerArray *_hostViews;
 }
 
 RCT_EXPORT_MODULE()
@@ -49,9 +58,9 @@ RCT_EXPORT_MODULE()
   RCTModalHostView *view = [[RCTModalHostView alloc] initWithBridge:self.bridge];
   view.delegate = self;
   if (!_hostViews) {
-    _hostViews = [NSHashTable weakObjectsHashTable];
+    _hostViews = [NSPointerArray weakObjectsPointerArray];
   }
-  [_hostViews addObject:view];
+  [_hostViews addPointer:(__bridge void *)view];
   return view;
 }
 
@@ -74,7 +83,7 @@ RCT_EXPORT_MODULE()
   if (_dismissalBlock) {
     _dismissalBlock([modalHostView reactViewController], viewController, animated, nil);
   } else {
-    [viewController dismissViewControllerAnimated:animated completion:nil];
+    [viewController.presentingViewController dismissViewControllerAnimated:animated completion:nil];
   }
 }
 
@@ -89,13 +98,19 @@ RCT_EXPORT_MODULE()
   for (RCTModalHostView *hostView in _hostViews) {
     [hostView invalidate];
   }
-  [_hostViews removeAllObjects];
+  _hostViews = nil;
 }
 
 RCT_EXPORT_VIEW_PROPERTY(animationType, NSString)
+RCT_EXPORT_VIEW_PROPERTY(presentationStyle, UIModalPresentationStyle)
 RCT_EXPORT_VIEW_PROPERTY(transparent, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(onShow, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(identifier, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(supportedOrientations, NSArray)
 RCT_EXPORT_VIEW_PROPERTY(onOrientationChange, RCTDirectEventBlock)
+
+#if TARGET_OS_TV
+RCT_EXPORT_VIEW_PROPERTY(onRequestClose, RCTDirectEventBlock)
+#endif
 
 @end

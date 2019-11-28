@@ -1,30 +1,80 @@
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *
- * @providesModule Keyboard
- * @flow
+ * @format
+ * @flow strict-local
  */
+
 'use strict';
 
-const NativeEventEmitter = require('NativeEventEmitter');
-const KeyboardObserver = require('NativeModules').KeyboardObserver;
-const dismissKeyboard = require('dismissKeyboard');
-const KeyboardEventEmitter = new NativeEventEmitter(KeyboardObserver);
+const LayoutAnimation = require('../../LayoutAnimation/LayoutAnimation');
+const NativeEventEmitter = require('../../EventEmitter/NativeEventEmitter');
+
+const dismissKeyboard = require('../../Utilities/dismissKeyboard');
+const invariant = require('invariant');
+
+import NativeKeyboardObserver from './NativeKeyboardObserver';
+const KeyboardEventEmitter: NativeEventEmitter = new NativeEventEmitter(
+  NativeKeyboardObserver,
+);
+
+export type KeyboardEventName =
+  | 'keyboardWillShow'
+  | 'keyboardDidShow'
+  | 'keyboardWillHide'
+  | 'keyboardDidHide'
+  | 'keyboardWillChangeFrame'
+  | 'keyboardDidChangeFrame';
+
+export type KeyboardEventEasing =
+  | 'easeIn'
+  | 'easeInEaseOut'
+  | 'easeOut'
+  | 'linear'
+  | 'keyboard';
+
+export type KeyboardEventCoordinates = $ReadOnly<{|
+  screenX: number,
+  screenY: number,
+  width: number,
+  height: number,
+|}>;
+
+export type KeyboardEvent = AndroidKeyboardEvent | IOSKeyboardEvent;
+
+type BaseKeyboardEvent = {|
+  duration: number,
+  easing: KeyboardEventEasing,
+  endCoordinates: KeyboardEventCoordinates,
+|};
+
+export type AndroidKeyboardEvent = $ReadOnly<{|
+  ...BaseKeyboardEvent,
+  duration: 0,
+  easing: 'keyboard',
+|}>;
+
+export type IOSKeyboardEvent = $ReadOnly<{|
+  ...BaseKeyboardEvent,
+  startCoordinates: KeyboardEventCoordinates,
+  isEventFromThisApp: boolean,
+|}>;
+
+type KeyboardEventListener = (e: KeyboardEvent) => void;
 
 // The following object exists for documentation purposes
 // Actual work happens in
 // https://github.com/facebook/react-native/blob/master/Libraries/EventEmitter/NativeEventEmitter.js
+
 /**
- * `Keyboard` component to control keyboard events.
+ * `Keyboard` module to control keyboard events.
  *
  * ### Usage
  *
- * The Keyboard component allows you to listen for native events and react to them, as
+ * The Keyboard module allows you to listen for native events and react to them, as
  * well as make changes to the keyboard, like dismissing it.
  *
  *```
@@ -38,16 +88,16 @@ const KeyboardEventEmitter = new NativeEventEmitter(KeyboardObserver);
  *   }
  *
  *   componentWillUnmount () {
- *      this.keyboardDidShowListener.remove();
- *      this.keyboardDidHideListener.remove();
+ *     this.keyboardDidShowListener.remove();
+ *     this.keyboardDidHideListener.remove();
  *   }
  *
  *   _keyboardDidShow () {
- *    window.alert('Keyboard Shown');
+ *     alert('Keyboard Shown');
  *   }
  *
  *   _keyboardDidHide () {
- *    window.alert('Keyboard Hidden');
+ *     alert('Keyboard Hidden');
  *   }
  *
  *   render() {
@@ -60,16 +110,17 @@ const KeyboardEventEmitter = new NativeEventEmitter(KeyboardObserver);
  * }
  *```
  */
-module.exports = {
 
+const Keyboard = {
   /**
    * The `addListener` function connects a JavaScript function to an identified native
    * keyboard notification event.
    *
    * This function then returns the reference to the listener.
    *
-   * @param {string} nativeEvent The `nativeEvent` is the string that identifies the event you're listening for.  This
+   * @param {string} eventName The `nativeEvent` is the string that identifies the event you're listening for.  This
    *can be any of the following:
+   *
    * - `keyboardWillShow`
    * - `keyboardDidShow`
    * - `keyboardWillHide`
@@ -77,10 +128,28 @@ module.exports = {
    * - `keyboardWillChangeFrame`
    * - `keyboardDidChangeFrame`
    *
-   * @param {function} jsFunction function to be called when the event fires.
+   * Note that if you set `android:windowSoftInputMode` to `adjustResize`  or `adjustNothing`,
+   * only `keyboardDidShow` and `keyboardDidHide` events will be available on Android.
+   * `keyboardWillShow` as well as `keyboardWillHide` are generally not available on Android
+   * since there is no native corresponding event.
+   *
+   * @param {function} callback function to be called when the event fires.
    */
-  addListener (nativeEvent: string, jsFunction: Function) {
-    return KeyboardEventEmitter.addListener(nativeEvent, jsFunction);
+  addListener(eventName: KeyboardEventName, callback: KeyboardEventListener) {
+    invariant(false, 'Dummy method used for documentation');
+  },
+
+  /**
+   * Removes a specific listener.
+   *
+   * @param {string} eventName The `nativeEvent` is the string that identifies the event you're listening for.
+   * @param {function} callback function to be called when the event fires.
+   */
+  removeListener(
+    eventName: KeyboardEventName,
+    callback: KeyboardEventListener,
+  ) {
+    invariant(false, 'Dummy method used for documentation');
   },
 
   /**
@@ -88,24 +157,39 @@ module.exports = {
    *
    * @param {string} eventType The native event string listeners are watching which will be removed.
    */
-  removeAllListeners (eventType: string) {
-    KeyboardEventEmitter.removeAllListeners(eventType);
-  },
-
-  /**
-   * Removes a specific subscription.
-   *
-   * @param {EmitterSubscription} subscription The subscription emitter to be removed.
-   */
-  removeSubscription (subscription: Object) {
-    KeyboardEventEmitter.removeSubscription(subscription);
+  removeAllListeners(eventName: KeyboardEventName) {
+    invariant(false, 'Dummy method used for documentation');
   },
 
   /**
    * Dismisses the active keyboard and removes focus.
    */
-  dismiss () {
-    dismissKeyboard();
-  }
+  dismiss() {
+    invariant(false, 'Dummy method used for documentation');
+  },
 
+  /**
+   * Useful for syncing TextInput (or other keyboard accessory view) size of
+   * position changes with keyboard movements.
+   */
+  scheduleLayoutAnimation(event: KeyboardEvent) {
+    invariant(false, 'Dummy method used for documentation');
+  },
 };
+
+// Throw away the dummy object and reassign it to original module
+KeyboardEventEmitter.dismiss = dismissKeyboard;
+KeyboardEventEmitter.scheduleLayoutAnimation = function(event: KeyboardEvent) {
+  const {duration, easing} = event;
+  if (duration != null && duration !== 0) {
+    LayoutAnimation.configureNext({
+      duration: duration,
+      update: {
+        duration: duration,
+        type: (easing != null && LayoutAnimation.Types[easing]) || 'keyboard',
+      },
+    });
+  }
+};
+
+module.exports = KeyboardEventEmitter;

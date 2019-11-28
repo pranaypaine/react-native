@@ -1,23 +1,19 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.react.bridge.queue;
 
 import android.os.Build;
-
-import javax.annotation.Nullable;
-
+import androidx.annotation.Nullable;
 import com.facebook.infer.annotation.Assertions;
 
 /**
- * Spec for creating a ReactQueueConfiguration. This exists so that CatalystInstance is able to
- * set Exception handlers on the MessageQueueThreads it uses and it would not be super clean if the
+ * Spec for creating a ReactQueueConfiguration. This exists so that CatalystInstance is able to set
+ * Exception handlers on the MessageQueueThreads it uses and it would not be super clean if the
  * threads were configured, then passed to CatalystInstance where they are configured more. These
  * specs allows the Threads to be created fully configured.
  */
@@ -48,9 +44,11 @@ public class ReactQueueConfigurationSpec {
   }
 
   public static ReactQueueConfigurationSpec createDefault() {
-    MessageQueueThreadSpec spec = Build.VERSION.SDK_INT < 21 ?
-        MessageQueueThreadSpec.newBackgroundThreadSpec("native_modules", LEGACY_STACK_SIZE_BYTES) :
-        MessageQueueThreadSpec.newBackgroundThreadSpec("native_modules");
+    MessageQueueThreadSpec spec =
+        Build.VERSION.SDK_INT < 21
+            ? MessageQueueThreadSpec.newBackgroundThreadSpec(
+                "native_modules", LEGACY_STACK_SIZE_BYTES)
+            : MessageQueueThreadSpec.newBackgroundThreadSpec("native_modules");
     return builder()
         .setJSQueueThreadSpec(MessageQueueThreadSpec.newBackgroundThreadSpec("js"))
         .setNativeModulesQueueThreadSpec(spec)
@@ -64,8 +62,7 @@ public class ReactQueueConfigurationSpec {
 
     public Builder setNativeModulesQueueThreadSpec(MessageQueueThreadSpec spec) {
       Assertions.assertCondition(
-          mNativeModulesQueueSpec == null,
-          "Setting native modules queue spec multiple times!");
+          mNativeModulesQueueSpec == null, "Setting native modules queue spec multiple times!");
       mNativeModulesQueueSpec = spec;
       return this;
     }

@@ -1,14 +1,13 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
-#import "RCTDiffClampAnimatedNode.h"
-#import "RCTLog.h"
+#import <React/RCTDiffClampAnimatedNode.h>
+
+#import <React/RCTLog.h>
 
 @implementation RCTDiffClampAnimatedNode
 {
@@ -50,12 +49,12 @@
 
 - (CGFloat)inputNodeValue
 {
-  RCTValueAnimatedNode *inputNode = (RCTValueAnimatedNode *)self.parentNodes[_inputNodeTag];
+  RCTValueAnimatedNode *inputNode = (RCTValueAnimatedNode *)[self.parentNodes objectForKey:_inputNodeTag];
   if (![inputNode isKindOfClass:[RCTValueAnimatedNode class]]) {
     RCTLogError(@"Illegal node ID set as an input for Animated.DiffClamp node");
     return 0;
   }
-  
+
   return inputNode.value;
 }
 

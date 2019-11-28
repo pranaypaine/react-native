@@ -1,24 +1,31 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.react.views.picker;
 
 import android.widget.Spinner;
-
+import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.uimanager.ThemedReactContext;
+import com.facebook.react.uimanager.ViewManagerDelegate;
+import com.facebook.react.viewmanagers.AndroidDialogPickerManagerDelegate;
+import com.facebook.react.viewmanagers.AndroidDialogPickerManagerInterface;
 
-/**
- * {@link ReactPickerManager} for {@link ReactPicker} with {@link Spinner#MODE_DIALOG}.
- */
-public class ReactDialogPickerManager extends ReactPickerManager {
+/** {@link ReactPickerManager} for {@link ReactPicker} with {@link Spinner#MODE_DIALOG}. */
+@ReactModule(name = ReactDialogPickerManager.REACT_CLASS)
+public class ReactDialogPickerManager extends ReactPickerManager
+    implements AndroidDialogPickerManagerInterface<ReactPicker> {
 
-  private static final String REACT_CLASS = "AndroidDialogPicker";
+  public static final String REACT_CLASS = "AndroidDialogPicker";
+
+  private final ViewManagerDelegate<ReactPicker> mDelegate;
+
+  public ReactDialogPickerManager() {
+    mDelegate = new AndroidDialogPickerManagerDelegate<>(this);
+  }
 
   @Override
   public String getName() {
@@ -28,5 +35,10 @@ public class ReactDialogPickerManager extends ReactPickerManager {
   @Override
   protected ReactPicker createViewInstance(ThemedReactContext reactContext) {
     return new ReactPicker(reactContext, Spinner.MODE_DIALOG);
+  }
+
+  @Override
+  protected ViewManagerDelegate<ReactPicker> getDelegate() {
+    return mDelegate;
   }
 }

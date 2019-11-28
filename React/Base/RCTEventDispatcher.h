@@ -1,15 +1,13 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 #import <UIKit/UIKit.h>
 
-#import "RCTBridge.h"
+#import <React/RCTBridge.h>
 
 typedef NS_ENUM(NSInteger, RCTTextEventType)
 {
@@ -39,15 +37,36 @@ RCT_EXTERN NSString *RCTNormalizeInputEventName(NSString *eventName);
 
 @property (nonatomic, strong, readonly) NSNumber *viewTag;
 @property (nonatomic, copy, readonly) NSString *eventName;
-@property (nonatomic, assign, readonly) uint16_t coalescingKey;
 
 - (BOOL)canCoalesce;
+
+/** used directly for doing a JS call */
++ (NSString *)moduleDotMethod;
+
+/** must contain only JSON compatible values */
+- (NSArray *)arguments;
+
+@optional
+
+/**
+ * Coalescing related methods must only be implemented if canCoalesce
+ * returns YES.
+ */
+@property (nonatomic, assign, readonly) uint16_t coalescingKey;
 - (id<RCTEvent>)coalesceWithEvent:(id<RCTEvent>)newEvent;
 
-// used directly for doing a JS call
-+ (NSString *)moduleDotMethod;
-// must contain only JSON compatible values
-- (NSArray *)arguments;
+@end
+
+/**
+ * This protocol allows observing events dispatched by RCTEventDispatcher.
+ */
+@protocol RCTEventDispatcherObserver <NSObject>
+
+/**
+ * Called before dispatching an event, on the same thread the event was
+ * dispatched from.
+ */
+- (void)eventDispatcherWillDispatchEvent:(id<RCTEvent>)event;
 
 @end
 
@@ -71,12 +90,6 @@ __deprecated_msg("Subclass RCTEventEmitter instead");
 __deprecated_msg("Subclass RCTEventEmitter instead");
 
 /**
- * Deprecated, do not use.
- */
-- (void)sendInputEventWithName:(NSString *)name body:(NSDictionary *)body
-__deprecated_msg("Use RCTDirectEventBlock or RCTBubblingEventBlock instead");
-
-/**
  * Send a text input/focus event. For internal use only.
  */
 - (void)sendTextEventWithType:(RCTTextEventType)type
@@ -92,6 +105,16 @@ __deprecated_msg("Use RCTDirectEventBlock or RCTBubblingEventBlock instead");
  * If an event can be coalesced and there is another compatible event waiting, the coalescing will happen immediately.
  */
 - (void)sendEvent:(id<RCTEvent>)event;
+
+/**
+ * Add an event dispatcher observer.
+ */
+- (void)addDispatchObserver:(id<RCTEventDispatcherObserver>)observer;
+
+/**
+ * Remove an event dispatcher observer.
+ */
+- (void)removeDispatchObserver:(id<RCTEventDispatcherObserver>)observer;
 
 @end
 

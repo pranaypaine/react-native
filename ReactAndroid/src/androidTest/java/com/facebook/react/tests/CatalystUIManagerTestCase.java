@@ -1,49 +1,50 @@
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.react.tests;
-
-import java.util.Arrays;
-import java.util.List;
 
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
-
 import com.facebook.react.ReactRootView;
 import com.facebook.react.bridge.JavaScriptModule;
 import com.facebook.react.bridge.UiThreadUtil;
+import com.facebook.react.modules.appstate.AppStateModule;
+import com.facebook.react.modules.deviceinfo.DeviceInfoModule;
 import com.facebook.react.modules.systeminfo.AndroidInfoModule;
+import com.facebook.react.testing.FakeWebSocketModule;
+import com.facebook.react.testing.ReactIntegrationTestCase;
+import com.facebook.react.testing.ReactTestHelper;
 import com.facebook.react.uimanager.PixelUtil;
-import com.facebook.react.uimanager.UIImplementation;
 import com.facebook.react.uimanager.UIManagerModule;
 import com.facebook.react.uimanager.ViewManager;
 import com.facebook.react.views.text.ReactRawTextManager;
 import com.facebook.react.views.text.ReactTextViewManager;
 import com.facebook.react.views.view.ReactViewManager;
-import com.facebook.react.testing.FakeWebSocketModule;
-import com.facebook.react.testing.ReactIntegrationTestCase;
-import com.facebook.react.testing.ReactTestHelper;
+import java.util.Arrays;
+import java.util.List;
 
-/**
- * Test case for basic {@link UIManagerModule} functionality.
- */
+/** Test case for basic {@link UIManagerModule} functionality. */
 public class CatalystUIManagerTestCase extends ReactIntegrationTestCase {
   private interface UIManagerTestModule extends JavaScriptModule {
     void renderFlexTestApplication(int rootTag);
+
     void renderFlexWithTextApplication(int rootTag);
+
     void renderAbsolutePositionTestApplication(int rootTag);
+
     void renderAbsolutePositionBottomRightTestApplication(int rootTag);
+
     void renderCenteredTextViewTestApplication(int rootTag, String text);
+
     void renderUpdatePositionInListTestApplication(int rootTag);
+
     void flushUpdatePositionInList();
   }
 
@@ -63,7 +64,7 @@ public class CatalystUIManagerTestCase extends ReactIntegrationTestCase {
     final DisplayMetrics metrics = getContext().getResources().getDisplayMetrics();
     rootView.setLayoutParams(
         new FrameLayout.LayoutParams(metrics.widthPixels, metrics.heightPixels));
-    uiManager.addMeasuredRootView(rootView);
+    uiManager.addRootView(rootView);
     // We add the root view by posting to the main thread so wait for that to complete so that the
     // root view tag is added to the view
     waitForIdleSync();
@@ -74,29 +75,28 @@ public class CatalystUIManagerTestCase extends ReactIntegrationTestCase {
   protected void setUp() throws Exception {
     super.setUp();
 
-    List<ViewManager> viewManagers = Arrays.<ViewManager>asList(
-        new ReactViewManager(),
-        new ReactTextViewManager(),
-        new ReactRawTextManager());
-    uiManager = new UIManagerModule(
-        getContext(),
-        viewManagers,
-        new UIImplementation(getContext(), viewManagers));
-    UiThreadUtil.runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        uiManager.onHostResume();
-      }
-    });
+    List<ViewManager> viewManagers =
+        Arrays.<ViewManager>asList(
+            new ReactViewManager(), new ReactTextViewManager(), new ReactRawTextManager());
+    uiManager = new UIManagerModule(getContext(), viewManagers, 0);
+    UiThreadUtil.runOnUiThread(
+        new Runnable() {
+          @Override
+          public void run() {
+            uiManager.onHostResume();
+          }
+        });
     waitForIdleSync();
 
-    jsModule = ReactTestHelper.catalystInstanceBuilder(this)
-        .addNativeModule(uiManager)
-        .addNativeModule(new AndroidInfoModule())
-        .addNativeModule(new FakeWebSocketModule())
-        .addJSModule(UIManagerTestModule.class)
-        .build()
-        .getJSModule(UIManagerTestModule.class);
+    jsModule =
+        ReactTestHelper.catalystInstanceBuilder(this)
+            .addNativeModule(uiManager)
+            .addNativeModule(new AndroidInfoModule(getContext()))
+            .addNativeModule(new DeviceInfoModule(getContext()))
+            .addNativeModule(new AppStateModule(getContext()))
+            .addNativeModule(new FakeWebSocketModule())
+            .build()
+            .getJSModule(UIManagerTestModule.class);
   }
 
   public void testFlexUIRendered() {
@@ -138,7 +138,8 @@ public class CatalystUIManagerTestCase extends ReactIntegrationTestCase {
   //   assertEquals(inPixelRounded(300), row.getHeight());
   //   assertEquals(2, row.getChildCount());
   //
-  //   // Text measurement adds padding that isn't completely dependent on density so we can't easily
+  //   // Text measurement adds padding that isn't completely dependent on density so we can't
+  // easily
   //   // get an exact value here
   //   float approximateExpectedTextHeight = inPixelRounded(19);
   //   View leftText = row.getChildAt(0);
@@ -222,7 +223,7 @@ public class CatalystUIManagerTestCase extends ReactIntegrationTestCase {
 
   public void _testCenteredText(String text) {
     ReactRootView rootView = new ReactRootView(getContext());
-    int rootTag = uiManager.addMeasuredRootView(rootView);
+    int rootTag = uiManager.addRootView(rootView);
 
     jsModule.renderCenteredTextViewTestApplication(rootTag, text);
     waitForBridgeAndUIIdle();
@@ -244,10 +245,10 @@ public class CatalystUIManagerTestCase extends ReactIntegrationTestCase {
   }
 
   public void testCenteredTextCases() {
-    String[] cases = new String[] {
-      "test",
-      "with whitespace",
-    };
+    String[] cases =
+        new String[] {
+          "test", "with whitespace",
+        };
     for (String text : cases) {
       _testCenteredText(text);
     }

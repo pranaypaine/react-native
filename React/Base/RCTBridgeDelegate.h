@@ -1,13 +1,11 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
-#import "RCTJavaScriptLoader.h"
+#import <React/RCTJavaScriptLoader.h>
 
 @class RCTBridge;
 @protocol RCTBridgeModule;
@@ -23,15 +21,6 @@
 - (NSURL *)sourceURLForBridge:(RCTBridge *)bridge;
 
 @optional
-
-/**
- * The bridge will attempt to load the JS source code from the location specified
- * by the `sourceURLForBridge:` method, if loading fails, you can implement this
- * method to specify fallbackSourceURL.
- * NOTE: We don't plan to support this API permanently (this method will be
- * removed after we track down why a valid sourceURL fails to load sometimes).
- */
-- (NSURL *)fallbackSourceURLForBridge:(RCTBridge *)bridge;
 
 /**
  * The bridge initializes any registered RCTBridgeModules automatically, however
@@ -50,37 +39,22 @@
 - (NSArray<id<RCTBridgeModule>> *)extraModulesForBridge:(RCTBridge *)bridge;
 
 /**
- * Customize how bridge native modules are initialized.
- *
- * By default all modules are created lazily except those that have constants to export
- * or require main thread initialization. If you want to limit the set of native
- * modules that this should be considered for, implement this method.
- *
- * Return nil to whitelist all modules found. Modules passed in extraModulesForBridge:
- * are automatically whitelisted.
+ * Configure whether the JSCExecutor created should use the system JSC API or
+ * alternative hooks provided. When returning YES from this method, you must have
+ * previously called facebook::react::setCustomJSCWrapper.
  *
  * @experimental
  */
-- (NSArray<Class> *)whitelistedModulesForBridge:(RCTBridge *)bridge;
+- (BOOL)shouldBridgeUseCustomJSC:(RCTBridge *)bridge;
 
 /**
- * When loading initial JavaScript, do so synchronously when the bridge is created iff
- * this returns true.  Otherwise, the JS will be fetched on a network thread, and
- * executed on the JS thread.  Currently used only by C++ bridge.
- *
- * @experimental
- */
-- (BOOL)shouldBridgeLoadJavaScriptSynchronously:(RCTBridge *)bridge;
-
-/**
- * When initializing native modules that require main thread initialization, the bridge
- * will default to dispatch module creation blocks asynchrously. If we're blockingly
- * waiting on the main thread to finish bridge creation on the main thread, this will
- * deadlock. Override this method to initialize modules synchronously instead.
- *
- * @experimental
- */
-- (BOOL)shouldBridgeInitializeNativeModulesSynchronously:(RCTBridge *)bridge;
+* The bridge will call this method when a module been called from JS
+* cannot be found among registered modules.
+* It should return YES if the module with name 'moduleName' was registered
+* in the implementation, and the system must attempt to look for it again among registered.
+* If the module was not registered, return NO to prevent further searches.
+*/
+- (BOOL)bridge:(RCTBridge *)bridge didNotFindModule:(NSString *)moduleName;
 
 /**
  * The bridge will automatically attempt to load the JS source code from the
@@ -88,6 +62,19 @@
  * to handle loading the JS yourself, you can do so by implementing this method.
  */
 - (void)loadSourceForBridge:(RCTBridge *)bridge
+                 onProgress:(RCTSourceLoadProgressBlock)onProgress
+                 onComplete:(RCTSourceLoadBlock)loadCallback;
+
+/**
+ * Similar to loadSourceForBridge:onProgress:onComplete: but without progress
+ * reporting.
+ */
+- (void)loadSourceForBridge:(RCTBridge *)bridge
                   withBlock:(RCTSourceLoadBlock)loadCallback;
+
+/**
+ * Retrieve the list of lazy-native-modules names for the given bridge.
+ */
+- (NSDictionary<NSString *, Class> *)extraLazyModuleClassesForBridge:(RCTBridge *)bridge;
 
 @end

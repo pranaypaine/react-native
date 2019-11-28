@@ -1,103 +1,150 @@
-# React Native [![Build Status](https://travis-ci.org/facebook/react-native.svg?branch=master)](https://travis-ci.org/facebook/react-native) [![Circle CI](https://circleci.com/gh/facebook/react-native.svg?style=svg)](https://circleci.com/gh/facebook/react-native) [![npm version](https://badge.fury.io/js/react-native.svg)](https://badge.fury.io/js/react-native)
+<h1 align="center">
+  <a href="https://facebook.github.io/react-native/">
+    React Native
+  </a>
+</h1>
 
-React Native enables you to build world-class application experiences on native platforms using a consistent developer experience based on JavaScript and [React](https://facebook.github.io/react). The focus of React Native is on developer efficiency across all the platforms you care about - learn once, write anywhere. Facebook uses React Native in multiple production apps and will continue investing in React Native.
+<p align="center">
+  <strong>Learn once, write anywhere:</strong><br>
+  Build mobile apps with React.
+</p>
 
-Supported operating systems are >= Android 4.1 (API 16) and >= iOS 8.0.
+<p align="center">
+  <a href="https://github.com/facebook/react-native/blob/master/LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="React Native is released under the MIT license." />
+  </a>
+  <a href="https://circleci.com/gh/facebook/react-native">
+    <img src="https://circleci.com/gh/facebook/react-native.svg?style=shield" alt="Current CircleCI build status." />
+  </a>
+  <a href="https://ci.appveyor.com/project/facebook/react-native/branch/master">
+    <img src="https://ci.appveyor.com/api/projects/status/g8d58ipi3auqdtrk/branch/master?svg=true" alt="Current Appveyor build status." />
+  </a>
+  <a href="https://www.npmjs.org/package/react-native">
+    <img src="https://badge.fury.io/js/react-native.svg" alt="Current npm package version." />
+  </a>
+  <a href="https://facebook.github.io/react-native/docs/contributing">
+    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome!" />
+  </a>
+  <a href="https://twitter.com/intent/follow?screen_name=reactnative">
+    <img src="https://img.shields.io/twitter/follow/reactnative.svg?label=Follow%20@reactnative" alt="Follow @reactnative" />
+  </a>
+</p>
 
-- [Getting Started](#getting-started)
-- [Getting Help](#getting-help)
-- [Documentation](#documentation)
-- [Examples](#examples)
-- [Extending React Native](#extending-react-native)
-- [Upgrading](#upgrading)
-- [Opening Issues](#opening-issues)
-- [Contributing](#contributing)
-- [License](#license)
+<h3 align="center">
+  <a href="https://facebook.github.io/react-native/docs/getting-started">Getting Started</a>
+  <span> · </span>
+  <a href="https://facebook.github.io/react-native/docs/tutorial">Learn the Basics</a>
+  <span> · </span>
+  <a href="https://facebook.github.io/react-native/showcase.html">Showcase</a>
+  <span> · </span>
+  <a href="https://facebook.github.io/react-native/docs/contributing">Contribute</a>
+  <span> · </span>
+  <a href="https://facebook.github.io/react-native/en/help">Community</a>
+  <span> · </span>
+  <a href="https://github.com/facebook/react-native/blob/master/.github/SUPPORT.md">Support</a>
+</h3>
 
-## Introduction
+React Native brings [**React**'s][r] declarative UI framework to iOS and Android. With React Native, you use native UI controls and have full access to the native platform.
 
-See the official [React Native website](https://facebook.github.io/react-native/) for an introduction to React Native.
+- **Declarative.** React makes it painless to create interactive UIs. Declarative views make your code more predictable and easier to debug.
+- **Component-Based.** Build encapsulated components that manage their state, then compose them to make complex UIs.
+- **Developer Velocity.** See local changes in seconds. Changes to JavaScript code can be live reloaded without rebuilding the native app.
+- **Portability.** Reuse code across iOS, Android, and [other platforms][p].
 
-## Getting Started
+React Native is developed and supported by many companies and individual core contributors. Find out more in our [ecosystem overview][e].
 
-- Follow the [Getting Started guide](https://facebook.github.io/react-native/docs/getting-started.html) to install React Native and its dependencies.
-- Check out this [tutorial](https://facebook.github.io/react-native/docs/sample-application-movies.html) to walk through your first project that fetches real data and displays it in a list.
-- [Open the UIExplorer example project](#examples) to see a list of components that ship with React Native.
-- Install the React Developer Tools for [Chrome](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi) or [Firefox](https://addons.mozilla.org/firefox/addon/react-devtools/) for better debugging [(read more)](https://facebook.github.io/react-native/docs/debugging.html).
-- Try out apps from the [Showcase](https://facebook.github.io/react-native/showcase.html) to see what React Native is capable of!
+[r]: https://reactjs.org/
+[p]: https://facebook.github.io/react-native/docs/out-of-tree-platforms
+[e]: https://github.com/facebook/react-native/blob/master/ECOSYSTEM.md
 
-## Getting Help
+## Contents
 
-Please use these community resources for getting help. We use the GitHub issues for tracking bugs and feature requests and have limited bandwidth to address them.
+- [Requirements](#-requirements)
+- [Building your first React Native app](#-building-your-first-react-native-app)
+- [Documentation](#-documentation)
+- [Upgrading](#-upgrading)
+- [How to Contribute](#-how-to-contribute)
+- [Code of Conduct](#code-of-conduct)
+- [License](#-license)
 
-- Ask a question on [StackOverflow](https://stackoverflow.com/) and tag it with `react-native`
-- Chat with us on [Reactiflux](https://discord.gg/0ZcbPKXt5bWJVmUY) in #react-native
-- Articulate your feature request or upvote existing ones on [Product Pains](https://productpains.com/product/react-native/)
-- Start a thread on the [React Discussion Board](https://discuss.reactjs.org/)
-- Join #reactnative on IRC: chat.freenode.net
-- If it turns out that you may have found a bug, please [open an issue](#opening-issues)
 
-## Documentation
+## 📋 Requirements
 
-[The website’s documentation](https://facebook.github.io/react-native/docs/) is divided into multiple sections.
-- There are **Guides** that discuss topics like [debugging](https://facebook.github.io/react-native/docs/debugging.html), [integrating with existing apps](https://facebook.github.io/react-native/docs/integration-with-existing-apps.html), and [the gesture responder system](https://facebook.github.io/react-native/docs/gesture-responder-system.html).
-- The **Components** section covers React components such as [`View`](https://facebook.github.io/react-native/docs/view.html) and [`Navigator`](https://facebook.github.io/react-native/docs/navigator.html).
-- The **APIs** section covers other libraries like [Animated](https://facebook.github.io/react-native/docs/animated.html) and [StyleSheet](https://facebook.github.io/react-native/docs/stylesheet.html) that aren’t React components themselves.
-- Finally, React Native provides a small number of **Polyfills** that offer web-like APIs.
+React Native apps may target iOS 9.0 and Android 4.1 (API 16) or newer. You may use Windows, macOS, or Linux as your development operating system, though building and running iOS apps is limited to macOS. Tools like [Expo](https://expo.io) can be used to work around this.
 
-Another great way to learn more about the components and APIs included with React Native is to read their source. Look under the `Libraries` directory for components like `ScrollView` and `Navigator`, for example. The UIExplorer example is also here to demonstrate some of the ways to use these components. From the source you can get an accurate understanding of each component’s behavior and API.
+## 🎉 Building your first React Native app
 
-The React Native documentation only discusses the components, APIs and topics specific to React Native (React on iOS and Android). For further documentation on the React API that is shared between React Native and React DOM, refer to the [React documentation](https://facebook.github.io/react/).
+Follow the [Getting Started guide](https://facebook.github.io/react-native/docs/getting-started.html). The recommended way to install React Native depends on your project. Here you can find short guides for the most common scenarios:
 
-## Examples
+- [Trying out React Native][hello-world]
+- [Creating a New Application][new-app]
+- [Adding React Native to an Existing Application][existing]
 
-- `git clone https://github.com/facebook/react-native.git`
-- `cd react-native && npm install`
+[hello-world]: https://snack.expo.io/@hramos/hello,-world!
+[new-app]: https://facebook.github.io/react-native/docs/getting-started.html
+[existing]: https://facebook.github.io/react-native/docs/integration-with-existing-apps.html
 
-### Running the examples on iOS
+## 📖 Documentation
 
-Now open any example (the `.xcodeproj` file in each of the `Examples` subdirectories) and hit Run in Xcode.
+The full documentation for React Native can be found on our [website][docs].
 
-### Running the examples on Android
+The React Native documentation discusses components, APIs, and topics that are specific to React Native. For further documentation on the React API that is shared between React Native and React DOM, refer to the [React documentation][r-docs].
 
-Note that you'll need the Android NDK installed, see [prerequisites](https://github.com/facebook/react-native/blob/master/ReactAndroid/README.md#prerequisites).
+The source for the React Native documentation and website is hosted on a separate repo, [**@facebook/react-native-website**][repo-website].
 
-```bash
-./gradlew :Examples:Movies:android:app:installDebug
-# Start the packager in a separate shell (make sure you ran npm install):
-./packager/packager.sh
-# Open the Movies app in your emulator
-```
+[docs]: https://facebook.github.io/react-native/docs/getting-started.html
+[r-docs]: https://reactjs.org/docs/getting-started.html
+[repo-website]: https://github.com/facebook/react-native-website
 
-## Extending React Native
+## 🚀 Upgrading
 
-- Looking for a component? [JS.coach](https://js.coach/react-native)
-- Fellow developers write and publish React Native modules to npm and open source them on GitHub.
-- Making modules helps grow the React Native ecosystem and community. We recommend writing modules for your use cases and sharing them on npm.
-- Read the guides on Native Modules ([iOS](https://facebook.github.io/react-native/docs/native-modules-ios.html), [Android](https://facebook.github.io/react-native/docs/native-modules-android.html)) and Native UI Components ([iOS](https://facebook.github.io/react-native/docs/native-components-ios.html), [Android](https://facebook.github.io/react-native/docs/native-components-android.html)) if you are interested in extending native functionality.
+Upgrading to new versions of React Native may give you access to more APIs, views, developer tools, and other goodies. See the [Upgrading Guide][u] for instructions.
 
-## Upgrading
+React Native releases are discussed in the React Native Community, [**@react-native-community/react-native-releases**][repo-releases].
 
-React Native is under active development. See the guide on [upgrading React Native](https://facebook.github.io/react-native/docs/upgrading.html) to keep your project up-to-date.
+[u]: https://facebook.github.io/react-native/docs/upgrading
+[repo-releases]: https://github.com/react-native-community/react-native-releases
 
-## Opening Issues
+## 👏 How to Contribute
 
-If you encounter a bug with React Native we would like to hear about it. Search the [existing issues](https://github.com/facebook/react-native/issues) and try to make sure your problem doesn’t already exist before opening a new issue. It’s helpful if you include the version of React Native and OS you’re using. Please include a stack trace and reduced repro case when appropriate, too.
+The main purpose of this repository is to continue evolving React Native core. We want to make contributing to this project as easy and transparent as possible, and we are grateful to the community for contributing bug fixes and improvements. Read below to learn how you can take part in improving React Native.
 
-The GitHub issues are intended for bug reports and feature requests. For help and questions with using React Native please make use of the resources listed in the [Getting Help](#getting-help) section. [Product Pains](https://productpains.com/product/react-native/) in particular is a good way to signal your interest in a feature or issue. There are limited resources available for handling issues and by keeping the list of open issues lean we can respond in a timely manner.
+### [Code of Conduct][code]
 
-## Contributing
+Facebook has adopted a Code of Conduct that we expect project participants to adhere to.
+Please read the [full text][code] so that you can understand what actions will and will not be tolerated.
 
-For more information about contributing PRs and issues, see our [Contribution Guidelines](https://github.com/facebook/react-native/blob/master/CONTRIBUTING.md).
+[code]: https://code.fb.com/codeofconduct/
 
-[Good First Task](https://github.com/facebook/react-native/labels/Good%20First%20Task) is a great starting point for PRs.
+### [Contributing Guide][contribute]
 
-We encourage the community to ask and answer questions on Stack Overflow with [the react-native tag](https://stackoverflow.com/questions/tagged/react-native). It's a great way to help out and be involved!
+Read our [**Contributing Guide**][contribute] to learn about our development process, how to propose bugfixes and improvements, and how to build and test your changes to React Native.
 
-## License
+[contribute]: https://facebook.github.io/react-native/docs/contributing
 
-React is [BSD licensed](./LICENSE). We also provide an additional [patent grant](./PATENTS).
+### [Open Source Roadmap][roadmap]
 
-React documentation is [Creative Commons licensed](./LICENSE-docs).
+You can learn more about our vision for React Native in the [**Roadmap**][roadmap].
 
-Examples provided in this repository and in the documentation are [separately licensed](./LICENSE-examples), as are some of the [custom components](./LICENSE-CustomComponents).
+[roadmap]: https://github.com/facebook/react-native/wiki/Roadmap
+
+### Good First Issues
+
+We have a list of [good first issues][gfi] that contain bugs which have a relatively limited scope. This is a great place to get started, gain experience, and get familiar with our contribution process.
+
+[gfi]: https://github.com/facebook/react-native/labels/good%20first%20issue
+
+### Discussions
+
+Larger discussions and proposals are discussed in [**@react-native-community/discussions-and-proposals**][repo-meta].
+
+[repo-meta]: https://github.com/react-native-community/discussions-and-proposals
+
+## 📄 License
+
+React Native is MIT licensed, as found in the [LICENSE][l] file.
+
+React Native documentation is Creative Commons licensed, as found in the [LICENSE-docs][ld] file.
+
+[l]: https://github.com/facebook/react-native/blob/master/LICENSE
+[ld]: https://github.com/facebook/react-native/blob/master/LICENSE-docs

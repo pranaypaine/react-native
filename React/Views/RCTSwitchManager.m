@@ -1,10 +1,8 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 #import "RCTSwitchManager.h"
@@ -13,6 +11,7 @@
 #import "RCTEventDispatcher.h"
 #import "RCTSwitch.h"
 #import "UIView+React.h"
+#import <React/RCTUIManager.h>
 
 @implementation RCTSwitchManager
 
@@ -37,6 +36,24 @@ RCT_EXPORT_MODULE()
   }
 }
 
+RCT_EXPORT_METHOD(setValue : (nonnull NSNumber *)viewTag toValue : (BOOL)value)
+{
+  [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, UIView *> *viewRegistry) {
+    UIView *view = viewRegistry[viewTag];
+    
+    if ([view isKindOfClass:[UISwitch class]]) {
+      [(UISwitch *)view setOn:value animated:NO];
+    } else {
+      UIView *subview = view.subviews.firstObject;
+      if ([subview isKindOfClass:[UISwitch class]]) {
+        [(UISwitch *)subview setOn:value animated:NO];
+      } else {
+        RCTLogError(@"view type must be UISwitch");
+      }
+    }
+  }];
+}
+
 RCT_EXPORT_VIEW_PROPERTY(onTintColor, UIColor);
 RCT_EXPORT_VIEW_PROPERTY(tintColor, UIColor);
 RCT_EXPORT_VIEW_PROPERTY(thumbTintColor, UIColor);
@@ -50,5 +67,8 @@ RCT_CUSTOM_VIEW_PROPERTY(disabled, BOOL, RCTSwitch)
     view.enabled = defaultView.enabled;
   }
 }
+RCT_REMAP_VIEW_PROPERTY(thumbColor, thumbTintColor, UIColor);
+RCT_REMAP_VIEW_PROPERTY(trackColorForFalse, tintColor, UIColor);
+RCT_REMAP_VIEW_PROPERTY(trackColorForTrue, onTintColor, UIColor);
 
 @end

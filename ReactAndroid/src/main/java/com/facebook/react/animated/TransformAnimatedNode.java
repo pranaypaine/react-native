@@ -1,10 +1,8 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.react.animated;
@@ -13,12 +11,12 @@ import com.facebook.react.bridge.JavaOnlyArray;
 import com.facebook.react.bridge.JavaOnlyMap;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Native counterpart of transform animated node (see AnimatedTransform class in AnimatedImplementation.js)
+ * Native counterpart of transform animated node (see AnimatedTransform class in
+ * AnimatedImplementation.js)
  */
 /* package */ class TransformAnimatedNode extends AnimatedNode {
 
@@ -70,10 +68,10 @@ import java.util.List;
         if (node == null) {
           throw new IllegalArgumentException("Mapped style node does not exists");
         } else if (node instanceof ValueAnimatedNode) {
-          value = ((ValueAnimatedNode) node).mValue;
+          value = ((ValueAnimatedNode) node).getValue();
         } else {
-          throw new IllegalArgumentException("Unsupported type of node used as a transform child " +
-            "node " + node.getClass());
+          throw new IllegalArgumentException(
+              "Unsupported type of node used as a transform child " + "node " + node.getClass());
         }
       } else {
         value = ((StaticTransformConfig) transformConfig).mValue;

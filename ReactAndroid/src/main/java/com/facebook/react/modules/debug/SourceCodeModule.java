@@ -1,43 +1,45 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.react.modules.debug;
 
-import javax.annotation.Nullable;
-
+import com.facebook.infer.annotation.Assertions;
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.module.annotations.ReactModule;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.facebook.react.bridge.BaseJavaModule;
-import com.facebook.react.module.annotations.ReactModule;
 
 /**
  * Module that exposes the URL to the source code map (used for exception stack trace parsing) to JS
  */
-@ReactModule(name = "RCTSourceCode")
-public class SourceCodeModule extends BaseJavaModule {
+@ReactModule(name = SourceCodeModule.NAME)
+public class SourceCodeModule extends NativeSourceCodeSpec {
 
-  private final String mSourceUrl;
+  public static final String NAME = "SourceCode";
 
-  public SourceCodeModule(String sourceUrl) {
-    mSourceUrl = sourceUrl;
+  public SourceCodeModule(ReactApplicationContext reactContext) {
+    super(reactContext);
   }
 
   @Override
   public String getName() {
-    return "RCTSourceCode";
+    return NAME;
   }
 
   @Override
-  public @Nullable Map<String, Object> getConstants() {
+  protected Map<String, Object> getTypedExportedConstants() {
     HashMap<String, Object> constants = new HashMap<>();
-    constants.put("scriptURL", mSourceUrl);
+
+    String sourceURL =
+        Assertions.assertNotNull(
+            getReactApplicationContext().getCatalystInstance().getSourceURL(),
+            "No source URL loaded, have you initialised the instance?");
+
+    constants.put("scriptURL", sourceURL);
     return constants;
   }
 }

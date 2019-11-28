@@ -1,27 +1,19 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.react.uimanager;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import android.util.DisplayMetrics;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.ImageView;
-
 import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.events.TouchEventType;
+import java.util.Map;
 
-/**
- * Constants exposed to JS from {@link UIManagerModule}.
- */
+/** Constants exposed to JS from {@link UIManagerModule}. */
 /* package */ class UIManagerModuleConstants {
 
   public static final String ACTION_DISMISSED = "dismissed";
@@ -40,48 +32,51 @@ import com.facebook.react.uimanager.events.TouchEventType;
                 "phasedRegistrationNames",
                 MapBuilder.of("bubbled", "onSelect", "captured", "onSelectCapture")))
         .put(
-            TouchEventType.START.getJSEventName(),
+            TouchEventType.getJSEventName(TouchEventType.START),
             MapBuilder.of(
                 "phasedRegistrationNames",
-                MapBuilder.of(
-                    "bubbled",
-                    "onTouchStart",
-                    "captured",
-                    "onTouchStartCapture")))
+                MapBuilder.of("bubbled", "onTouchStart", "captured", "onTouchStartCapture")))
         .put(
-            TouchEventType.MOVE.getJSEventName(),
+            TouchEventType.getJSEventName(TouchEventType.MOVE),
             MapBuilder.of(
                 "phasedRegistrationNames",
-                MapBuilder.of(
-                    "bubbled",
-                    "onTouchMove",
-                    "captured",
-                    "onTouchMoveCapture")))
+                MapBuilder.of("bubbled", "onTouchMove", "captured", "onTouchMoveCapture")))
         .put(
-            TouchEventType.END.getJSEventName(),
+            TouchEventType.getJSEventName(TouchEventType.END),
             MapBuilder.of(
                 "phasedRegistrationNames",
-                MapBuilder.of(
-                    "bubbled",
-                    "onTouchEnd",
-                    "captured",
-                    "onTouchEndCapture")))
+                MapBuilder.of("bubbled", "onTouchEnd", "captured", "onTouchEndCapture")))
+        .put(
+            TouchEventType.getJSEventName(TouchEventType.CANCEL),
+            MapBuilder.of(
+                "phasedRegistrationNames",
+                MapBuilder.of("bubbled", "onTouchCancel", "captured", "onTouchCancelCapture")))
         .build();
   }
 
   /* package */ static Map getDirectEventTypeConstants() {
+    final String rn = "registrationName";
     return MapBuilder.builder()
-        .put("topContentSizeChange", MapBuilder.of("registrationName", "onContentSizeChange"))
-        .put("topLayout", MapBuilder.of("registrationName", "onLayout"))
-        .put("topLoadingError", MapBuilder.of("registrationName", "onLoadingError"))
-        .put("topLoadingFinish", MapBuilder.of("registrationName", "onLoadingFinish"))
-        .put("topLoadingStart", MapBuilder.of("registrationName", "onLoadingStart"))
-        .put("topSelectionChange", MapBuilder.of("registrationName", "onSelectionChange"))
+        .put("topContentSizeChange", MapBuilder.of(rn, "onContentSizeChange"))
+        .put("topLayout", MapBuilder.of(rn, "onLayout"))
+        .put("topLoadingError", MapBuilder.of(rn, "onLoadingError"))
+        .put("topLoadingFinish", MapBuilder.of(rn, "onLoadingFinish"))
+        .put("topLoadingStart", MapBuilder.of(rn, "onLoadingStart"))
+        .put("topSelectionChange", MapBuilder.of(rn, "onSelectionChange"))
+        .put("topMessage", MapBuilder.of(rn, "onMessage"))
+        .put("topClick", MapBuilder.of(rn, "onClick"))
+        // Scroll events are added as per task T22348735.
+        // Subject for further improvement.
+        .put("topScrollBeginDrag", MapBuilder.of(rn, "onScrollBeginDrag"))
+        .put("topScrollEndDrag", MapBuilder.of(rn, "onScrollEndDrag"))
+        .put("topScroll", MapBuilder.of(rn, "onScroll"))
+        .put("topMomentumScrollBegin", MapBuilder.of(rn, "onMomentumScrollBegin"))
+        .put("topMomentumScrollEnd", MapBuilder.of(rn, "onMomentumScrollEnd"))
         .build();
   }
 
   public static Map<String, Object> getConstants() {
-    HashMap<String, Object> constants = new HashMap<String, Object>();
+    Map<String, Object> constants = MapBuilder.newHashMap();
     constants.put(
         "UIView",
         MapBuilder.of(
@@ -93,36 +88,6 @@ import com.facebook.react.uimanager.events.TouchEventType;
                 ImageView.ScaleType.CENTER_CROP.ordinal(),
                 "ScaleAspectCenter",
                 ImageView.ScaleType.CENTER_INSIDE.ordinal())));
-
-    DisplayMetrics displayMetrics = DisplayMetricsHolder.getWindowDisplayMetrics();
-    DisplayMetrics screenDisplayMetrics = DisplayMetricsHolder.getScreenDisplayMetrics();
-    constants.put(
-        "Dimensions",
-        MapBuilder.of(
-            "windowPhysicalPixels",
-            MapBuilder.of(
-                "width",
-                displayMetrics.widthPixels,
-                "height",
-                displayMetrics.heightPixels,
-                "scale",
-                displayMetrics.density,
-                "fontScale",
-                displayMetrics.scaledDensity,
-                "densityDpi",
-                displayMetrics.densityDpi),
-        "screenPhysicalPixels",
-        MapBuilder.of(
-            "width",
-            screenDisplayMetrics.widthPixels,
-            "height",
-            screenDisplayMetrics.heightPixels,
-            "scale",
-            screenDisplayMetrics.density,
-            "fontScale",
-            screenDisplayMetrics.scaledDensity,
-            "densityDpi",
-            screenDisplayMetrics.densityDpi)));
 
     constants.put(
         "StyleConstants",
@@ -141,18 +106,17 @@ import com.facebook.react.uimanager.events.TouchEventType;
     constants.put(
         "PopupMenu",
         MapBuilder.of(
-            ACTION_DISMISSED,
-            ACTION_DISMISSED,
-            ACTION_ITEM_SELECTED,
-            ACTION_ITEM_SELECTED));
+            ACTION_DISMISSED, ACTION_DISMISSED, ACTION_ITEM_SELECTED, ACTION_ITEM_SELECTED));
 
     constants.put(
-      "AccessibilityEventTypes",
-      MapBuilder.of(
-          "typeWindowStateChanged",
-          AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
-          "typeViewClicked",
-          AccessibilityEvent.TYPE_VIEW_CLICKED));
+        "AccessibilityEventTypes",
+        MapBuilder.of(
+            "typeWindowStateChanged",
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
+            "typeViewFocused",
+            AccessibilityEvent.TYPE_VIEW_FOCUSED,
+            "typeViewClicked",
+            AccessibilityEvent.TYPE_VIEW_CLICKED));
 
     return constants;
   }

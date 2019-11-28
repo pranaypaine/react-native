@@ -1,24 +1,28 @@
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *
- * @providesModule RCTNetworking
+ * @format
  * @flow
  */
+
 'use strict';
 
 // Do not require the native RCTNetworking module directly! Use this wrapper module instead.
 // It will add the necessary requestId, so that you don't have to generate it yourself.
-const FormData = require('FormData');
-const NativeEventEmitter = require('NativeEventEmitter');
-const RCTNetworkingNative = require('NativeModules').Networking;
+const NativeEventEmitter = require('../EventEmitter/NativeEventEmitter');
+
+const convertRequestBody = require('./convertRequestBody');
+
+import NativeNetworkingAndroid from './NativeNetworkingAndroid';
+import type {RequestBody} from './convertRequestBody';
 
 type Header = [string, string];
 
+// Convert FormData headers to arrays, which are easier to consume in
+// native on Android.
 function convertHeadersMapToArray(headers: Object): Array<Header> {
   const headerArray = [];
   for (const name in headers) {
@@ -37,9 +41,8 @@ function generateRequestId(): number {
  * requestId to each network request that can be used to abort that request later on.
  */
 class RCTNetworking extends NativeEventEmitter {
-
   constructor() {
-    super(RCTNetworkingNative);
+    super(NativeNetworkingAndroid);
   }
 
   sendRequest(
@@ -47,18 +50,22 @@ class RCTNetworking extends NativeEventEmitter {
     trackingName: string,
     url: string,
     headers: Object,
-    data: string | FormData | {uri: string},
+    data: RequestBody,
     responseType: 'text' | 'base64',
     incrementalUpdates: boolean,
     timeout: number,
-    callback: (requestId: number) => any
+    callback: (requestId: number) => mixed,
+    withCredentials: boolean,
   ) {
-    const body =
-      typeof data === 'string' ? {string: data} :
-      data instanceof FormData ? {formData: getParts(data)} :
-      data;
+    const body = convertRequestBody(data);
+    if (body && body.formData) {
+      body.formData = body.formData.map(part => ({
+        ...part,
+        headers: convertHeadersMapToArray(part.headers),
+      }));
+    }
     const requestId = generateRequestId();
-    RCTNetworkingNative.sendRequest(
+    NativeNetworkingAndroid.sendRequest(
       method,
       url,
       requestId,
@@ -66,25 +73,19 @@ class RCTNetworking extends NativeEventEmitter {
       {...body, trackingName},
       responseType,
       incrementalUpdates,
-      timeout
+      timeout,
+      withCredentials,
     );
     callback(requestId);
   }
 
   abortRequest(requestId: number) {
-    RCTNetworkingNative.abortRequest(requestId);
+    NativeNetworkingAndroid.abortRequest(requestId);
   }
 
   clearCookies(callback: (result: boolean) => any) {
-    RCTNetworkingNative.clearCookies(callback);
+    NativeNetworkingAndroid.clearCookies(callback);
   }
 }
 
-function getParts(data) {
-  return data.getParts().map((part) => {
-    part.headers = convertHeadersMapToArray(part.headers);
-    return part;
-  });
-}
-
-module.exports = new RCTNetworking();
+module.exports = (new RCTNetworking(): RCTNetworking);

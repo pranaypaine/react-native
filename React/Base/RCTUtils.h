@@ -1,10 +1,8 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 #import <tgmath.h>
@@ -13,8 +11,8 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-#import "RCTAssert.h"
-#import "RCTDefines.h"
+#import <React/RCTAssert.h>
+#import <React/RCTDefines.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -29,8 +27,8 @@ RCT_EXTERN id RCTJSONClean(id object);
 // Get MD5 hash of a string
 RCT_EXTERN NSString *RCTMD5Hash(NSString *string);
 
-// Check is we are currently on the main queue (not to be confused with
-// the main thread, which is not neccesarily the same thing)
+// Check if we are currently on the main queue (not to be confused with
+// the main thread, which is not necessarily the same thing)
 // https://twitter.com/olebegemann/status/738656134731599872
 RCT_EXTERN BOOL RCTIsMainQueue(void);
 
@@ -38,10 +36,9 @@ RCT_EXTERN BOOL RCTIsMainQueue(void);
 // this will execute immediately if we're already on the main queue.
 RCT_EXTERN void RCTExecuteOnMainQueue(dispatch_block_t block);
 
-// Deprecated - do not use.
-RCT_EXTERN void RCTExecuteOnMainThread(dispatch_block_t block, BOOL sync)
-__deprecated_msg("Use RCTExecuteOnMainQueue instead. RCTExecuteOnMainQueue is "
-                 "async. If you need to use the `sync` option... please don't.");
+// Legacy function to execute the specified block on the main queue synchronously.
+// Please do not use this unless you know what you're doing.
+RCT_EXTERN void RCTUnsafeExecuteOnMainQueueSync(dispatch_block_t block);
 
 // Get screen metrics in a thread-safe way
 RCT_EXTERN CGFloat RCTScreenScale(void);
@@ -96,11 +93,15 @@ RCT_EXTERN BOOL RCTForceTouchAvailable(void);
 RCT_EXTERN NSError *RCTErrorWithMessage(NSString *message);
 
 // Convert nil values to NSNull, and vice-versa
-#define RCTNullIfNil(value) (value ?: (id)kCFNull)
-#define RCTNilIfNull(value) (value == (id)kCFNull ? nil : value)
+#define RCTNullIfNil(value) ((value) ?: (id)kCFNull)
+#define RCTNilIfNull(value) \
+  ({ __typeof__(value) t = (value); (id)t == (id)kCFNull ? (__typeof(value))nil : t; })
 
 // Convert NaN or infinite values to zero, as these aren't JSON-safe
 RCT_EXTERN double RCTZeroIfNaN(double value);
+
+// Returns `0` and log special warning if value is NaN or INF.
+RCT_EXTERN double RCTSanitizeNaNValue(double value, NSString *property);
 
 // Convert data to a Base64-encoded data URL
 RCT_EXTERN NSURL *RCTDataURL(NSString *mimeType, NSData *data);
@@ -112,8 +113,30 @@ RCT_EXTERN NSData *__nullable RCTGzipData(NSData *__nullable data, float level);
 // (or nil, if the URL does not specify a path within the main bundle)
 RCT_EXTERN NSString *__nullable RCTBundlePathForURL(NSURL *__nullable URL);
 
+// Returns the Path of Library directory
+RCT_EXTERN NSString *__nullable RCTLibraryPath(void);
+
+// Returns the relative path within the library for an absolute URL
+// (or nil, if the URL does not specify a path within the Library directory)
+RCT_EXTERN NSString *__nullable RCTLibraryPathForURL(NSURL *__nullable URL);
+
+// Determines if a given image URL refers to a image in bundle
+RCT_EXTERN BOOL RCTIsBundleAssetURL(NSURL *__nullable imageURL);
+
+// Determines if a given image URL refers to a image in library
+RCT_EXTERN BOOL RCTIsLibraryAssetURL(NSURL *__nullable imageURL);
+
 // Determines if a given image URL refers to a local image
 RCT_EXTERN BOOL RCTIsLocalAssetURL(NSURL *__nullable imageURL);
+
+// Returns an UIImage for a local image asset. Returns nil if the URL
+// does not correspond to a local asset.
+RCT_EXTERN UIImage *__nullable RCTImageFromLocalAssetURL(NSURL *imageURL);
+
+// Only used in case when RCTImageFromLocalAssetURL fails to get an image
+// This method basically checks for the image in the bundle location, instead
+// of the CodePush location
+RCT_EXTERN UIImage *__nullable RCTImageFromLocalBundleAssetURL(NSURL *imageURL);
 
 // Creates a new, unique temporary file path with the specified extension
 RCT_EXTERN NSString *__nullable RCTTempFilePath(NSString *__nullable extension, NSError **error);
@@ -124,8 +147,18 @@ RCT_EXTERN NSString *RCTColorToHexString(CGColorRef color);
 // Get standard localized string (if it exists)
 RCT_EXTERN NSString *RCTUIKitLocalizedString(NSString *string);
 
+// Get a human readable type string from an NSObject. For example NSString becomes string
+RCT_EXTERN NSString *RCTHumanReadableType(NSObject *obj);
+
 // URL manipulation
 RCT_EXTERN NSString *__nullable RCTGetURLQueryParam(NSURL *__nullable URL, NSString *param);
 RCT_EXTERN NSURL *__nullable RCTURLByReplacingQueryParam(NSURL *__nullable URL, NSString *param, NSString *__nullable value);
+
+// Given a string, drop common RN prefixes (RCT, RK, etc.)
+RCT_EXTERN NSString *RCTDropReactPrefixes(NSString *s);
+
+RCT_EXTERN BOOL RCTUIManagerTypeForTagIsFabric(NSNumber *reactTag);
+
+RCT_EXTERN BOOL RCTValidateTypeOfViewCommandArgument(NSObject *obj, id expectedClass, NSString const * expectedType, NSString const *componentName, NSString const * commandName, NSString const * argPos);
 
 NS_ASSUME_NONNULL_END

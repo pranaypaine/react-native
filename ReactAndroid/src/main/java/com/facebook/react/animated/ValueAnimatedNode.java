@@ -1,24 +1,23 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.react.animated;
 
+import androidx.annotation.Nullable;
 import com.facebook.react.bridge.ReadableMap;
-
-import javax.annotation.Nullable;
 
 /**
  * Basic type of animated node that maps directly from {@code Animated.Value(x)} of Animated.js
  * library.
  */
 /*package*/ class ValueAnimatedNode extends AnimatedNode {
+  /*package*/ Object mAnimatedObject = null;
   /*package*/ double mValue = Double.NaN;
+  /*package*/ double mOffset = 0;
   private @Nullable AnimatedNodeValueListener mValueListener;
 
   public ValueAnimatedNode() {
@@ -27,13 +26,35 @@ import javax.annotation.Nullable;
 
   public ValueAnimatedNode(ReadableMap config) {
     mValue = config.getDouble("value");
+    mOffset = config.getDouble("offset");
+  }
+
+  public double getValue() {
+    if (Double.isNaN(mOffset + mValue)) {
+      this.update();
+    }
+    return mOffset + mValue;
+  }
+
+  public Object getAnimatedObject() {
+    return mAnimatedObject;
+  }
+
+  public void flattenOffset() {
+    mValue += mOffset;
+    mOffset = 0;
+  }
+
+  public void extractOffset() {
+    mOffset += mValue;
+    mValue = 0;
   }
 
   public void onValueUpdate() {
     if (mValueListener == null) {
       return;
     }
-    mValueListener.onValueUpdate(mValue);
+    mValueListener.onValueUpdate(getValue());
   }
 
   public void setValueListener(@Nullable AnimatedNodeValueListener listener) {

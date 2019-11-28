@@ -1,74 +1,88 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.react.views.slider;
 
-import java.util.Map;
-
+import android.content.Context;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
+import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.SeekBar;
-
-import com.facebook.csslayout.CSSMeasureMode;
-import com.facebook.csslayout.CSSNodeAPI;
-import com.facebook.csslayout.MeasureOutput;
+import androidx.annotation.Nullable;
+import androidx.core.view.AccessibilityDelegateCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.AccessibilityActionCompat;
 import com.facebook.react.bridge.ReactContext;
+import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.LayoutShadowNode;
+import com.facebook.react.uimanager.PixelUtil;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.UIManagerModule;
+import com.facebook.react.uimanager.ViewManagerDelegate;
 import com.facebook.react.uimanager.ViewProps;
 import com.facebook.react.uimanager.annotations.ReactProp;
+import com.facebook.react.viewmanagers.SliderManagerDelegate;
+import com.facebook.react.viewmanagers.SliderManagerInterface;
+import com.facebook.yoga.YogaMeasureFunction;
+import com.facebook.yoga.YogaMeasureMode;
+import com.facebook.yoga.YogaMeasureOutput;
+import com.facebook.yoga.YogaNode;
+import java.util.Map;
 
 /**
  * Manages instances of {@code ReactSlider}.
  *
- * Note that the slider is _not_ a controlled component.
+ * <p>Note that the slider is _not_ a controlled component.
  */
-public class ReactSliderManager extends SimpleViewManager<ReactSlider> {
+public class ReactSliderManager extends SimpleViewManager<ReactSlider>
+    implements SliderManagerInterface<ReactSlider> {
 
   private static final int STYLE = android.R.attr.seekBarStyle;
 
-  private static final String REACT_CLASS = "RCTSlider";
+  public static final String REACT_CLASS = "RCTSlider";
 
-  static class ReactSliderShadowNode extends LayoutShadowNode implements
-      CSSNodeAPI.MeasureFunction {
+  static class ReactSliderShadowNode extends LayoutShadowNode implements YogaMeasureFunction {
 
     private int mWidth;
     private int mHeight;
     private boolean mMeasured;
 
     private ReactSliderShadowNode() {
+      initMeasureFunction();
+    }
+
+    private void initMeasureFunction() {
       setMeasureFunction(this);
     }
 
     @Override
-    public void measure(
-        CSSNodeAPI node,
+    public long measure(
+        YogaNode node,
         float width,
-        CSSMeasureMode widthMode,
+        YogaMeasureMode widthMode,
         float height,
-        CSSMeasureMode heightMode,
-        MeasureOutput measureOutput) {
+        YogaMeasureMode heightMode) {
       if (!mMeasured) {
         SeekBar reactSlider = new ReactSlider(getThemedContext(), null, STYLE);
-        final int spec = View.MeasureSpec.makeMeasureSpec(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            View.MeasureSpec.UNSPECIFIED);
+        final int spec =
+            View.MeasureSpec.makeMeasureSpec(
+                ViewGroup.LayoutParams.WRAP_CONTENT, View.MeasureSpec.UNSPECIFIED);
         reactSlider.measure(spec, spec);
         mWidth = reactSlider.getMeasuredWidth();
         mHeight = reactSlider.getMeasuredHeight();
         mMeasured = true;
       }
-      measureOutput.width = mWidth;
-      measureOutput.height = mHeight;
+
+      return YogaMeasureOutput.make(mWidth, mHeight);
     }
   }
 
@@ -77,26 +91,35 @@ public class ReactSliderManager extends SimpleViewManager<ReactSlider> {
         @Override
         public void onProgressChanged(SeekBar seekbar, int progress, boolean fromUser) {
           ReactContext reactContext = (ReactContext) seekbar.getContext();
-          reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher().dispatchEvent(
-              new ReactSliderEvent(
-                  seekbar.getId(),
-                  ((ReactSlider)seekbar).toRealProgress(progress),
-                  fromUser));
+          reactContext
+              .getNativeModule(UIManagerModule.class)
+              .getEventDispatcher()
+              .dispatchEvent(
+                  new ReactSliderEvent(
+                      seekbar.getId(), ((ReactSlider) seekbar).toRealProgress(progress), fromUser));
         }
 
         @Override
-        public void onStartTrackingTouch(SeekBar seekbar) {
-        }
+        public void onStartTrackingTouch(SeekBar seekbar) {}
 
         @Override
         public void onStopTrackingTouch(SeekBar seekbar) {
           ReactContext reactContext = (ReactContext) seekbar.getContext();
-          reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher().dispatchEvent(
-              new ReactSlidingCompleteEvent(
-                  seekbar.getId(),
-                  ((ReactSlider)seekbar).toRealProgress(seekbar.getProgress())));
+          reactContext
+              .getNativeModule(UIManagerModule.class)
+              .getEventDispatcher()
+              .dispatchEvent(
+                  new ReactSlidingCompleteEvent(
+                      seekbar.getId(),
+                      ((ReactSlider) seekbar).toRealProgress(seekbar.getProgress())));
         }
       };
+
+  private final ViewManagerDelegate<ReactSlider> mDelegate;
+
+  public ReactSliderManager() {
+    mDelegate = new SliderManagerDelegate<>(this);
+  }
 
   @Override
   public String getName() {
@@ -115,14 +138,18 @@ public class ReactSliderManager extends SimpleViewManager<ReactSlider> {
 
   @Override
   protected ReactSlider createViewInstance(ThemedReactContext context) {
-    return new ReactSlider(context, null, STYLE);
+    final ReactSlider slider = new ReactSlider(context, null, STYLE);
+    ViewCompat.setAccessibilityDelegate(slider, sAccessibilityDelegate);
+    return slider;
   }
 
+  @Override
   @ReactProp(name = ViewProps.ENABLED, defaultBoolean = true)
   public void setEnabled(ReactSlider view, boolean enabled) {
     view.setEnabled(enabled);
   }
 
+  @Override
   @ReactProp(name = "value", defaultDouble = 0d)
   public void setValue(ReactSlider view, double value) {
     view.setOnSeekBarChangeListener(null);
@@ -130,20 +157,77 @@ public class ReactSliderManager extends SimpleViewManager<ReactSlider> {
     view.setOnSeekBarChangeListener(ON_CHANGE_LISTENER);
   }
 
+  @Override
   @ReactProp(name = "minimumValue", defaultDouble = 0d)
   public void setMinimumValue(ReactSlider view, double value) {
     view.setMinValue(value);
   }
 
+  @Override
   @ReactProp(name = "maximumValue", defaultDouble = 1d)
   public void setMaximumValue(ReactSlider view, double value) {
     view.setMaxValue(value);
   }
 
+  @Override
   @ReactProp(name = "step", defaultDouble = 0d)
   public void setStep(ReactSlider view, double value) {
     view.setStep(value);
   }
+
+  @Override
+  @ReactProp(name = "thumbTintColor", customType = "Color")
+  public void setThumbTintColor(ReactSlider view, Integer color) {
+    if (color == null) {
+      view.getThumb().clearColorFilter();
+    } else {
+      view.getThumb().setColorFilter(color, PorterDuff.Mode.SRC_IN);
+    }
+  }
+
+  @Override
+  @ReactProp(name = "minimumTrackTintColor", customType = "Color")
+  public void setMinimumTrackTintColor(ReactSlider view, Integer color) {
+    LayerDrawable drawable = (LayerDrawable) view.getProgressDrawable().getCurrent();
+    Drawable progress = drawable.findDrawableByLayerId(android.R.id.progress);
+    if (color == null) {
+      progress.clearColorFilter();
+    } else {
+      progress.setColorFilter(color, PorterDuff.Mode.SRC_IN);
+    }
+  }
+
+  @Override
+  @ReactProp(name = "maximumTrackTintColor", customType = "Color")
+  public void setMaximumTrackTintColor(ReactSlider view, Integer color) {
+    LayerDrawable drawable = (LayerDrawable) view.getProgressDrawable().getCurrent();
+    Drawable background = drawable.findDrawableByLayerId(android.R.id.background);
+    if (color == null) {
+      background.clearColorFilter();
+    } else {
+      background.setColorFilter(color, PorterDuff.Mode.SRC_IN);
+    }
+  }
+
+  @Override
+  public void setDisabled(ReactSlider view, boolean value) {}
+
+  @Override
+  public void setMaximumTrackImage(ReactSlider view, @Nullable ReadableMap value) {}
+
+  @Override
+  public void setMinimumTrackImage(ReactSlider view, @Nullable ReadableMap value) {}
+
+  @Override
+  public void setTestID(ReactSlider view, @Nullable String value) {
+    super.setTestId(view, value);
+  }
+
+  @Override
+  public void setThumbImage(ReactSlider view, @Nullable ReadableMap value) {}
+
+  @Override
+  public void setTrackImage(ReactSlider view, @Nullable ReadableMap value) {}
 
   @Override
   protected void addEventEmitters(final ThemedReactContext reactContext, final ReactSlider view) {
@@ -156,4 +240,53 @@ public class ReactSliderManager extends SimpleViewManager<ReactSlider> {
         ReactSlidingCompleteEvent.EVENT_NAME,
         MapBuilder.of("registrationName", "onSlidingComplete"));
   }
+
+  @Override
+  public long measure(
+      Context context,
+      ReadableMap localData,
+      ReadableMap props,
+      ReadableMap state,
+      float width,
+      YogaMeasureMode widthMode,
+      float height,
+      YogaMeasureMode heightMode) {
+    SeekBar reactSlider = new ReactSlider(context, null, STYLE);
+    final int spec =
+        View.MeasureSpec.makeMeasureSpec(
+            ViewGroup.LayoutParams.WRAP_CONTENT, View.MeasureSpec.UNSPECIFIED);
+    reactSlider.measure(spec, spec);
+
+    return YogaMeasureOutput.make(
+        PixelUtil.toDIPFromPixel(reactSlider.getMeasuredWidth()),
+        PixelUtil.toDIPFromPixel(reactSlider.getMeasuredHeight()));
+  }
+
+  @Override
+  protected ViewManagerDelegate<ReactSlider> getDelegate() {
+    return mDelegate;
+  }
+
+  protected static class ReactSliderAccessibilityDelegate extends AccessibilityDelegateCompat {
+    private static boolean isSliderAction(int action) {
+      return (action == AccessibilityActionCompat.ACTION_SCROLL_FORWARD.getId())
+          || (action == AccessibilityActionCompat.ACTION_SCROLL_BACKWARD.getId())
+          || (action == AccessibilityActionCompat.ACTION_SET_PROGRESS.getId());
+    }
+
+    @Override
+    public boolean performAccessibilityAction(View host, int action, Bundle args) {
+      if (isSliderAction(action)) {
+        ON_CHANGE_LISTENER.onStartTrackingTouch((SeekBar) host);
+      }
+      final boolean rv = super.performAccessibilityAction(host, action, args);
+      if (isSliderAction(action)) {
+        ON_CHANGE_LISTENER.onStopTrackingTouch((SeekBar) host);
+      }
+      return rv;
+    }
+  };
+
+  protected static ReactSliderAccessibilityDelegate sAccessibilityDelegate =
+      new ReactSliderAccessibilityDelegate();
 }

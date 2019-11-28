@@ -1,157 +1,216 @@
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *
- * @providesModule TouchableBounce
- * @flow
+ * @flow strict-local
+ * @format
  */
+
 'use strict';
 
-var Animated = require('Animated');
-var EdgeInsetsPropType = require('EdgeInsetsPropType');
-var NativeMethodsMixin = require('react/lib/NativeMethodsMixin');
-var React = require('React');
-var Touchable = require('Touchable');
+import Pressability from '../../Pressability/Pressability.js';
+import {PressabilityDebugView} from '../../Pressability/PressabilityDebug.js';
+import type {ViewStyleProp} from '../../StyleSheet/StyleSheet.js';
+import TVTouchable from './TVTouchable.js';
+import typeof TouchableWithoutFeedback from './TouchableWithoutFeedback.js';
+import {Animated, Platform} from 'react-native';
+import * as React from 'react';
 
-type Event = Object;
+type Props = $ReadOnly<{|
+  ...React.ElementConfig<TouchableWithoutFeedback>,
 
-type State = {
-  animationID: ?number,
+  onPressAnimationComplete?: ?() => void,
+  onPressWithCompletion?: ?(callback: () => void) => void,
+  releaseBounciness?: ?number,
+  releaseVelocity?: ?number,
+  style?: ?ViewStyleProp,
+
+  hostRef: React.Ref<typeof Animated.View>,
+|}>;
+
+type State = $ReadOnly<{|
+  pressability: Pressability,
   scale: Animated.Value,
-};
+|}>;
 
-var PRESS_RETENTION_OFFSET = {top: 20, left: 20, right: 20, bottom: 30};
+class TouchableBounce extends React.Component<Props, State> {
+  _tvTouchable: ?TVTouchable;
 
-/**
- * Example of using the `TouchableMixin` to play well with other responder
- * locking views including `ScrollView`. `TouchableMixin` provides touchable
- * hooks (`this.touchableHandle*`) that we forward events to. In turn,
- * `TouchableMixin` expects us to implement some abstract methods to handle
- * interesting interactions such as `handleTouchablePress`.
- */
-var TouchableBounce = React.createClass({
-  mixins: [Touchable.Mixin, NativeMethodsMixin],
+  state: State = {
+    pressability: new Pressability({
+      getHitSlop: () => this.props.hitSlop,
+      getLongPressDelayMS: () => {
+        if (this.props.delayLongPress != null) {
+          const maybeNumber = this.props.delayLongPress;
+          if (typeof maybeNumber === 'number') {
+            return maybeNumber;
+          }
+        }
+        return 500;
+      },
+      getPressDelayMS: () => this.props.delayPressIn,
+      getPressOutDelayMS: () => this.props.delayPressOut,
+      getPressRectOffset: () => this.props.pressRetentionOffset,
+      getTouchSoundDisabled: () => this.props.touchSoundDisabled,
+      onBlur: event => {
+        if (Platform.isTV) {
+          this._bounceTo(1, 0.4, 0);
+        }
+        if (this.props.onBlur != null) {
+          this.props.onBlur(event);
+        }
+      },
+      onFocus: event => {
+        if (Platform.isTV) {
+          this._bounceTo(0.93, 0.1, 0);
+        }
+        if (this.props.onFocus != null) {
+          this.props.onFocus(event);
+        }
+      },
+      onLongPress: event => {
+        if (this.props.onLongPress != null) {
+          this.props.onLongPress(event);
+        }
+      },
+      onPress: event => {
+        const {onPressAnimationComplete, onPressWithCompletion} = this.props;
+        const releaseBounciness = this.props.releaseBounciness ?? 10;
+        const releaseVelocity = this.props.releaseVelocity ?? 10;
 
-  propTypes: {
-    /**
-     * When true, indicates that the view is an accessibility element. By default,
-     * all the touchable elements are accessible.
-     */
-    accessible: React.PropTypes.bool,
+        if (onPressWithCompletion != null) {
+          onPressWithCompletion(() => {
+            this.state.scale.setValue(0.93);
+            this._bounceTo(
+              1,
+              releaseVelocity,
+              releaseBounciness,
+              onPressAnimationComplete,
+            );
+          });
+          return;
+        }
 
-    onPress: React.PropTypes.func,
-    onPressIn: React.PropTypes.func,
-    onPressOut: React.PropTypes.func,
-    // The function passed takes a callback to start the animation which should
-    // be run after this onPress handler is done. You can use this (for example)
-    // to update UI before starting the animation.
-    onPressWithCompletion: React.PropTypes.func,
-    // the function passed is called after the animation is complete
-    onPressAnimationComplete: React.PropTypes.func,
-    /**
-     * When the scroll view is disabled, this defines how far your touch may
-     * move off of the button, before deactivating the button. Once deactivated,
-     * try moving it back and you'll see that the button is once again
-     * reactivated! Move it back and forth several times while the scroll view
-     * is disabled. Ensure you pass in a constant to reduce memory allocations.
-     */
-    pressRetentionOffset: EdgeInsetsPropType,
-    /**
-     * This defines how far your touch can start away from the button. This is
-     * added to `pressRetentionOffset` when moving off of the button.
-     * ** NOTE **
-     * The touch area never extends past the parent view bounds and the Z-index
-     * of sibling views always takes precedence if a touch hits two overlapping
-     * views.
-     */
-    hitSlop: EdgeInsetsPropType,
-  },
+        this._bounceTo(
+          1,
+          releaseVelocity,
+          releaseBounciness,
+          onPressAnimationComplete,
+        );
+        if (this.props.onPress != null) {
+          this.props.onPress(event);
+        }
+      },
+      onPressIn: event => {
+        this._bounceTo(0.93, 0.1, 0);
+        if (this.props.onPressIn != null) {
+          this.props.onPressIn(event);
+        }
+      },
+      onPressOut: event => {
+        this._bounceTo(1, 0.4, 0);
+        if (this.props.onPressOut != null) {
+          this.props.onPressOut(event);
+        }
+      },
+      onResponderTerminationRequest: () =>
+        !this.props.rejectResponderTermination,
+      onStartShouldSetResponder: () => !this.props.disabled,
+    }),
+    scale: new Animated.Value(1),
+  };
 
-  getInitialState: function(): State {
-    return {
-      ...this.touchableGetInitialState(),
-      scale: new Animated.Value(1),
-    };
-  },
-
-  bounceTo: function(
-    value: number,
+  _bounceTo(
+    toValue: number,
     velocity: number,
     bounciness: number,
-    callback?: ?Function
+    callback?: ?() => void,
   ) {
     Animated.spring(this.state.scale, {
-      toValue: value,
+      toValue,
       velocity,
       bounciness,
+      useNativeDriver: true,
     }).start(callback);
-  },
+  }
 
-  /**
-   * `Touchable.Mixin` self callbacks. The mixin will invoke these if they are
-   * defined on your component.
-   */
-  touchableHandleActivePressIn: function(e: Event) {
-    this.bounceTo(0.93, 0.1, 0);
-    this.props.onPressIn && this.props.onPressIn(e);
-  },
+  render(): React.Node {
+    // BACKWARD-COMPATIBILITY: Focus and blur events were never supported before
+    // adopting `Pressability`, so preserve that behavior.
+    const {
+      onBlur,
+      onFocus,
+      ...eventHandlersWithoutBlurAndFocus
+    } = this.state.pressability.getEventHandlers();
 
-  touchableHandleActivePressOut: function(e: Event) {
-    this.bounceTo(1, 0.4, 0);
-    this.props.onPressOut && this.props.onPressOut(e);
-  },
-
-  touchableHandlePress: function(e: Event) {
-    var onPressWithCompletion = this.props.onPressWithCompletion;
-    if (onPressWithCompletion) {
-      onPressWithCompletion(() => {
-        this.state.scale.setValue(0.93);
-        this.bounceTo(1, 10, 10, this.props.onPressAnimationComplete);
-      });
-      return;
-    }
-
-    this.bounceTo(1, 10, 10, this.props.onPressAnimationComplete);
-    this.props.onPress && this.props.onPress(e);
-  },
-
-  touchableGetPressRectOffset: function(): typeof PRESS_RETENTION_OFFSET {
-    return this.props.pressRetentionOffset || PRESS_RETENTION_OFFSET;
-  },
-
-  touchableGetHitSlop: function(): ?Object {
-    return this.props.hitSlop;
-  },
-
-  touchableGetHighlightDelayMS: function(): number {
-    return 0;
-  },
-
-  render: function(): ReactElement<any> {
     return (
       <Animated.View
         style={[{transform: [{scale: this.state.scale}]}, this.props.style]}
         accessible={this.props.accessible !== false}
         accessibilityLabel={this.props.accessibilityLabel}
-        accessibilityComponentType={this.props.accessibilityComponentType}
-        accessibilityTraits={this.props.accessibilityTraits}
+        accessibilityHint={this.props.accessibilityHint}
+        accessibilityRole={this.props.accessibilityRole}
+        accessibilityState={this.props.accessibilityState}
+        accessibilityActions={this.props.accessibilityActions}
+        onAccessibilityAction={this.props.onAccessibilityAction}
+        accessibilityValue={this.props.accessibilityValue}
+        importantForAccessibility={this.props.importantForAccessibility}
+        accessibilityLiveRegion={this.props.accessibilityLiveRegion}
+        accessibilityViewIsModal={this.props.accessibilityViewIsModal}
+        accessibilityElementsHidden={this.props.accessibilityElementsHidden}
+        nativeID={this.props.nativeID}
         testID={this.props.testID}
         hitSlop={this.props.hitSlop}
-        onStartShouldSetResponder={this.touchableHandleStartShouldSetResponder}
-        onResponderTerminationRequest={this.touchableHandleResponderTerminationRequest}
-        onResponderGrant={this.touchableHandleResponderGrant}
-        onResponderMove={this.touchableHandleResponderMove}
-        onResponderRelease={this.touchableHandleResponderRelease}
-        onResponderTerminate={this.touchableHandleResponderTerminate}>
+        focusable={
+          this.props.focusable !== false &&
+          this.props.onPress !== undefined &&
+          !this.props.disabled
+        }
+        ref={this.props.hostRef}
+        {...eventHandlersWithoutBlurAndFocus}>
         {this.props.children}
-        {Touchable.renderDebugView({color: 'orange', hitSlop: this.props.hitSlop})}
+        {__DEV__ ? (
+          <PressabilityDebugView color="orange" hitSlop={this.props.hitSlop} />
+        ) : null}
       </Animated.View>
     );
   }
-});
 
-module.exports = TouchableBounce;
+  componentDidMount(): void {
+    if (Platform.isTV) {
+      this._tvTouchable = new TVTouchable(this, {
+        getDisabled: () => this.props.disabled === true,
+        onBlur: event => {
+          if (this.props.onBlur != null) {
+            this.props.onBlur(event);
+          }
+        },
+        onFocus: event => {
+          if (this.props.onFocus != null) {
+            this.props.onFocus(event);
+          }
+        },
+        onPress: event => {
+          if (this.props.onPress != null) {
+            this.props.onPress(event);
+          }
+        },
+      });
+    }
+  }
+
+  componentWillUnmount(): void {
+    if (Platform.isTV) {
+      if (this._tvTouchable != null) {
+        this._tvTouchable.destroy();
+      }
+    }
+    this.state.pressability.reset();
+  }
+}
+
+module.exports = (React.forwardRef((props, hostRef) => (
+  <TouchableBounce {...props} hostRef={hostRef} />
+)): React.ComponentType<$ReadOnly<$Diff<Props, {|hostRef: mixed|}>>>);

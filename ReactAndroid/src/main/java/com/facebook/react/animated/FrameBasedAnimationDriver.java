@@ -1,16 +1,15 @@
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.react.animated;
 
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.ReadableType;
 
 /**
  * Implementation of {@link AnimationDriver} which provides a support for simple time-based
@@ -22,29 +21,54 @@ class FrameBasedAnimationDriver extends AnimationDriver {
   // 60FPS
   private static final double FRAME_TIME_MILLIS = 1000d / 60d;
 
-  private long mStartFrameTimeNanos = -1;
-  private final double[] mFrames;
-  private final double mToValue;
+  private long mStartFrameTimeNanos;
+  private double[] mFrames;
+  private double mToValue;
   private double mFromValue;
+  private int mIterations;
+  private int mCurrentLoop;
 
   FrameBasedAnimationDriver(ReadableMap config) {
+    resetConfig(config);
+  }
+
+  @Override
+  public void resetConfig(ReadableMap config) {
     ReadableArray frames = config.getArray("frames");
     int numberOfFrames = frames.size();
-    mFrames = new double[numberOfFrames];
+    if (mFrames == null || mFrames.length != numberOfFrames) {
+      mFrames = new double[numberOfFrames];
+    }
     for (int i = 0; i < numberOfFrames; i++) {
       mFrames[i] = frames.getDouble(i);
     }
-    mToValue = config.getDouble("toValue");
+    if (config.hasKey("toValue")) {
+      mToValue = config.getType("toValue") == ReadableType.Number ? config.getDouble("toValue") : 0;
+    } else {
+      mToValue = 0;
+    }
+    if (config.hasKey("iterations")) {
+      mIterations =
+          config.getType("iterations") == ReadableType.Number ? config.getInt("iterations") : 1;
+    } else {
+      mIterations = 1;
+    }
+    mCurrentLoop = 1;
+    mHasFinished = mIterations == 0;
+    mStartFrameTimeNanos = -1;
   }
 
   @Override
   public void runAnimationStep(long frameTimeNanos) {
     if (mStartFrameTimeNanos < 0) {
       mStartFrameTimeNanos = frameTimeNanos;
-      mFromValue = mAnimatedValue.mValue;
+      if (mCurrentLoop == 1) {
+        // initiate start value when animation runs for the first time
+        mFromValue = mAnimatedValue.mValue;
+      }
     }
     long timeFromStartMillis = (frameTimeNanos - mStartFrameTimeNanos) / 1000000;
-    int frameIndex = (int) (timeFromStartMillis / FRAME_TIME_MILLIS);
+    int frameIndex = (int) Math.round(timeFromStartMillis / FRAME_TIME_MILLIS);
     if (frameIndex < 0) {
       throw new IllegalStateException("Calculated frame index should never be lower than 0");
     } else if (mHasFinished) {
@@ -53,9 +77,13 @@ class FrameBasedAnimationDriver extends AnimationDriver {
     }
     double nextValue;
     if (frameIndex >= mFrames.length - 1) {
-      // animation has completed, no more frames left
-      mHasFinished = true;
       nextValue = mToValue;
+      if (mIterations == -1 || mCurrentLoop < mIterations) { // looping animation, return to start
+        mStartFrameTimeNanos = -1;
+        mCurrentLoop++;
+      } else { // animation has completed, no more frames left
+        mHasFinished = true;
+      }
     } else {
       nextValue = mFromValue + mFrames[frameIndex] * (mToValue - mFromValue);
     }

@@ -1,69 +1,88 @@
-/**
- * Copyright (c) 2014-present, Facebook, Inc.
- * All rights reserved.
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.react.tests;
 
+import com.facebook.react.bridge.BaseJavaModule;
+import com.facebook.react.bridge.CatalystInstance;
+import com.facebook.react.bridge.Dynamic;
+import com.facebook.react.bridge.InvalidIteratorException;
+import com.facebook.react.bridge.JavaScriptModule;
+import com.facebook.react.bridge.NoSuchKeyException;
+import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.ReadableMapKeySetIterator;
+import com.facebook.react.bridge.ReadableNativeMap;
+import com.facebook.react.bridge.ReadableType;
+import com.facebook.react.bridge.UiThreadUtil;
+import com.facebook.react.bridge.UnexpectedNativeTypeException;
+import com.facebook.react.bridge.WritableArray;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.WritableNativeArray;
+import com.facebook.react.bridge.WritableNativeMap;
+import com.facebook.react.modules.appstate.AppStateModule;
+import com.facebook.react.modules.deviceinfo.DeviceInfoModule;
+import com.facebook.react.modules.systeminfo.AndroidInfoModule;
+import com.facebook.react.testing.FakeWebSocketModule;
+import com.facebook.react.testing.ReactIntegrationTestCase;
+import com.facebook.react.testing.ReactTestHelper;
+import com.facebook.react.uimanager.UIManagerModule;
+import com.facebook.react.uimanager.ViewManager;
+import com.facebook.react.views.view.ReactViewManager;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import com.facebook.react.bridge.BaseJavaModule;
-import com.facebook.react.bridge.CatalystInstance;
-import com.facebook.react.bridge.ReactMethod;
-import com.facebook.react.bridge.InvalidIteratorException;
-import com.facebook.react.bridge.JavaScriptModule;
-import com.facebook.react.bridge.NoSuchKeyException;
-import com.facebook.react.bridge.ReadableArray;
-import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.bridge.ReadableType;
-import com.facebook.react.bridge.ReadableNativeMap;
-import com.facebook.react.bridge.ReadableMapKeySetIterator;
-import com.facebook.react.bridge.UnexpectedNativeTypeException;
-import com.facebook.react.bridge.UiThreadUtil;
-import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.bridge.WritableNativeMap;
-import com.facebook.react.modules.systeminfo.AndroidInfoModule;
-import com.facebook.react.testing.FakeWebSocketModule;
-import com.facebook.react.testing.ReactIntegrationTestCase;
-import com.facebook.react.testing.ReactTestHelper;
-import com.facebook.react.uimanager.UIImplementation;
-import com.facebook.react.uimanager.UIManagerModule;
-import com.facebook.react.uimanager.ViewManager;
-import com.facebook.react.views.view.ReactViewManager;
+import org.junit.Ignore;
 
 /**
  * Integration test to verify passing various types of parameters from JS to Java works
+ *
+ * <p>TODO: we should run these tests with isBlockingSynchronousMethod = true as well, since they
+ * currently use a completely different codepath
  */
+@Ignore("Fix prop types and view managers.")
 public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTestCase {
 
   private interface TestJSToJavaParametersModule extends JavaScriptModule {
     void returnBasicTypes();
 
+    void returnBoxedTypes();
+
+    void returnDynamicTypes();
+
     void returnArrayWithBasicTypes();
+
     void returnNestedArray();
+
     void returnArrayWithMaps();
 
     void returnMapWithBasicTypes();
+
     void returnNestedMap();
+
     void returnMapWithArrays();
 
     void returnArrayWithStringDoubleIntMapArrayBooleanNull();
+
     void returnMapWithStringDoubleIntMapArrayBooleanNull();
 
     void returnMapForMerge1();
+
     void returnMapForMerge2();
 
     void returnMapWithMultibyteUTF8CharacterString();
+
     void returnArrayWithMultibyteUTF8CharacterString();
 
     void returnArrayWithLargeInts();
+
     void returnMapWithLargeInts();
   }
 
@@ -74,12 +93,8 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
   protected void setUp() throws Exception {
     super.setUp();
 
-    List<ViewManager> viewManagers = Arrays.<ViewManager>asList(
-        new ReactViewManager());
-    final UIManagerModule mUIManager = new UIManagerModule(
-        getContext(),
-        viewManagers,
-        new UIImplementation(getContext(), viewManagers));
+    List<ViewManager> viewManagers = Arrays.<ViewManager>asList(new ReactViewManager());
+    final UIManagerModule mUIManager = new UIManagerModule(getContext(), viewManagers, 0);
     UiThreadUtil.runOnUiThread(
         new Runnable() {
           @Override
@@ -90,13 +105,15 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
     waitForIdleSync();
 
     mRecordingTestModule = new RecordingTestModule();
-    mCatalystInstance = ReactTestHelper.catalystInstanceBuilder(this)
-        .addNativeModule(mRecordingTestModule)
-        .addNativeModule(new AndroidInfoModule())
-        .addNativeModule(new FakeWebSocketModule())
-        .addNativeModule(mUIManager)
-        .addJSModule(TestJSToJavaParametersModule.class)
-        .build();
+    mCatalystInstance =
+        ReactTestHelper.catalystInstanceBuilder(this)
+            .addNativeModule(mRecordingTestModule)
+            .addNativeModule(new AndroidInfoModule(getContext()))
+            .addNativeModule(new DeviceInfoModule(getContext()))
+            .addNativeModule(new AppStateModule(getContext()))
+            .addNativeModule(new FakeWebSocketModule())
+            .addNativeModule(mUIManager)
+            .build();
   }
 
   public void testBasicTypes() {
@@ -111,6 +128,30 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
     assertEquals(3.14, args[1]);
     assertEquals(true, args[2]);
     assertNull(args[3]);
+  }
+
+  public void testBoxedTypes() {
+    mCatalystInstance.getJSModule(TestJSToJavaParametersModule.class).returnBoxedTypes();
+    waitForBridgeAndUIIdle();
+
+    List<Object[]> boxedTypesCalls = mRecordingTestModule.getBoxedTypesCalls();
+    assertEquals(1, boxedTypesCalls.size());
+
+    Object[] args = boxedTypesCalls.get(0);
+    assertEquals(Integer.valueOf(42), args[0]);
+    assertEquals(Double.valueOf(3.14), args[1]);
+    assertEquals(Boolean.valueOf(true), args[2]);
+  }
+
+  public void testDynamicType() {
+    mCatalystInstance.getJSModule(TestJSToJavaParametersModule.class).returnDynamicTypes();
+    waitForBridgeAndUIIdle();
+
+    List<Dynamic> dynamicCalls = mRecordingTestModule.getDynamicCalls();
+    assertEquals(2, dynamicCalls.size());
+
+    assertEquals("foo", dynamicCalls.get(0).asString());
+    assertEquals(3.14, dynamicCalls.get(1).asDouble());
   }
 
   public void testArrayWithBasicTypes() {
@@ -282,7 +323,8 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
   }
 
   public void testGetTypeFromArray() {
-    mCatalystInstance.getJSModule(TestJSToJavaParametersModule.class)
+    mCatalystInstance
+        .getJSModule(TestJSToJavaParametersModule.class)
         .returnArrayWithStringDoubleIntMapArrayBooleanNull();
     waitForBridgeAndUIIdle();
 
@@ -300,7 +342,8 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
   }
 
   public void testGetTypeFromMap() {
-    mCatalystInstance.getJSModule(TestJSToJavaParametersModule.class)
+    mCatalystInstance
+        .getJSModule(TestJSToJavaParametersModule.class)
         .returnMapWithStringDoubleIntMapArrayBooleanNull();
     waitForBridgeAndUIIdle();
 
@@ -318,7 +361,8 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
   }
 
   public void testGetWrongTypeFromArray() {
-    mCatalystInstance.getJSModule(TestJSToJavaParametersModule.class)
+    mCatalystInstance
+        .getJSModule(TestJSToJavaParametersModule.class)
         .returnArrayWithStringDoubleIntMapArrayBooleanNull();
     waitForBridgeAndUIIdle();
 
@@ -335,7 +379,8 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
   }
 
   public void testGetWrongTypeFromMap() {
-    mCatalystInstance.getJSModule(TestJSToJavaParametersModule.class)
+    mCatalystInstance
+        .getJSModule(TestJSToJavaParametersModule.class)
         .returnMapWithStringDoubleIntMapArrayBooleanNull();
     waitForBridgeAndUIIdle();
 
@@ -446,6 +491,78 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
     assertEquals("newvalue", dest.getString("newkey"));
   }
 
+  public void testEqualityMapAfterMerge() {
+    mCatalystInstance.getJSModule(TestJSToJavaParametersModule.class).returnMapForMerge1();
+    waitForBridgeAndUIIdle();
+
+    List<ReadableMap> maps = mRecordingTestModule.getMapCalls();
+    assertEquals(1, maps.size());
+
+    WritableMap map1 = new WritableNativeMap();
+    map1.merge(maps.get(0));
+    WritableMap map2 = new WritableNativeMap();
+    map2.merge(maps.get(0));
+
+    assertTrue(map1.equals(map2));
+  }
+
+  public void testWritableNativeMapEquals() {
+    WritableMap map1 = new WritableNativeMap();
+    WritableMap map2 = new WritableNativeMap();
+
+    map1.putInt("key1", 123);
+    map2.putInt("key1", 123);
+    map1.putString("key2", "value");
+    map2.putString("key2", "value");
+
+    assertTrue(map1.equals(map2));
+  }
+
+  public void testWritableNativeMapArraysEquals() {
+    WritableMap map1 = new WritableNativeMap();
+    WritableMap map2 = new WritableNativeMap();
+
+    map1.putInt("key1", 123);
+    map2.putInt("key1", 123);
+    map1.putString("key2", "value");
+    map2.putString("key2", "value");
+    WritableArray array1 = new WritableNativeArray();
+    array1.pushInt(321);
+    array1.pushNull();
+    array1.pushString("test");
+    map1.putArray("key3", array1);
+
+    WritableArray array2 = new WritableNativeArray();
+    array1.pushInt(321);
+    array1.pushNull();
+    array1.pushString("test");
+    map2.putArray("key3", array2);
+
+    assertTrue(map1.equals(map2));
+  }
+
+  public void testWritableNativeMapArraysNonEquals() {
+    WritableMap map1 = new WritableNativeMap();
+    WritableMap map2 = new WritableNativeMap();
+
+    map1.putInt("key1", 123);
+    map2.putInt("key1", 123);
+    map1.putString("key2", "value");
+    map2.putString("key2", "value");
+    WritableArray array1 = new WritableNativeArray();
+    array1.pushInt(321);
+    array1.pushNull();
+    array1.pushString("test");
+    map1.putArray("key3", array1);
+
+    WritableArray array2 = new WritableNativeArray();
+    array1.pushNull();
+    array1.pushString("test");
+    map2.putArray("key3", array2);
+
+    assertTrue(map1.equals(map2));
+  }
+
   public void testMapAccessibleAfterMerge() {
     mCatalystInstance.getJSModule(TestJSToJavaParametersModule.class).returnMapForMerge1();
     mCatalystInstance.getJSModule(TestJSToJavaParametersModule.class).returnMapForMerge2();
@@ -491,8 +608,9 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
       keys.add(mapIterator.nextKey());
     }
 
-    Set<String> expectedKeys = new HashSet<String>(
-        Arrays.asList("stringKey", "doubleKey", "intKey", "booleanKey", "nullKey"));
+    Set<String> expectedKeys =
+        new HashSet<String>(
+            Arrays.asList("stringKey", "doubleKey", "intKey", "booleanKey", "nullKey"));
     assertEquals(keys, expectedKeys);
   }
 
@@ -565,9 +683,7 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
   }
 
   private void assertUnexpectedTypeExceptionThrown(
-      ReadableArray array,
-      int index,
-      String typeToAskFor) {
+      ReadableArray array, int index, String typeToAskFor) {
     boolean gotException = false;
     try {
       arrayGetByType(array, index, typeToAskFor);
@@ -579,9 +695,7 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
   }
 
   private void assertUnexpectedTypeExceptionThrown(
-      ReadableMap map,
-      String key,
-      String typeToAskFor) {
+      ReadableMap map, String key, String typeToAskFor) {
     boolean gotException = false;
     try {
       mapGetByType(map, key, typeToAskFor);
@@ -593,9 +707,7 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
   }
 
   private void assertArrayOutOfBoundsExceptionThrown(
-      ReadableArray array,
-      int index,
-      String typeToAskFor) {
+      ReadableArray array, int index, String typeToAskFor) {
     boolean gotException = false;
     try {
       arrayGetByType(array, index, typeToAskFor);
@@ -606,10 +718,7 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
     assertTrue(gotException);
   }
 
-  private void assertNoSuchKeyExceptionThrown(
-      ReadableMap map,
-      String key,
-      String typeToAskFor) {
+  private void assertNoSuchKeyExceptionThrown(ReadableMap map, String key, String typeToAskFor) {
     boolean gotException = false;
     try {
       mapGetByType(map, key, typeToAskFor);
@@ -620,8 +729,7 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
     assertTrue(gotException);
   }
 
-  private static void assertInvalidIteratorExceptionThrown(
-      ReadableMapKeySetIterator iterator) {
+  private static void assertInvalidIteratorExceptionThrown(ReadableMapKeySetIterator iterator) {
     boolean gotException = false;
     try {
       iterator.nextKey();
@@ -668,11 +776,13 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
     }
   }
 
-  private class RecordingTestModule extends BaseJavaModule {
+  private static class RecordingTestModule extends BaseJavaModule {
 
     private final List<Object[]> mBasicTypesCalls = new ArrayList<Object[]>();
+    private final List<Object[]> mBoxedTypesCalls = new ArrayList<Object[]>();
     private final List<ReadableArray> mArrayCalls = new ArrayList<ReadableArray>();
     private final List<ReadableMap> mMapCalls = new ArrayList<ReadableMap>();
+    private final List<Dynamic> mDynamicCalls = new ArrayList<Dynamic>();
 
     @Override
     public String getName() {
@@ -681,7 +791,12 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
 
     @ReactMethod
     public void receiveBasicTypes(String s, double d, boolean b, String nullableString) {
-      mBasicTypesCalls.add(new Object[]{s, d, b, nullableString});
+      mBasicTypesCalls.add(new Object[] {s, d, b, nullableString});
+    }
+
+    @ReactMethod
+    public void receiveBoxedTypes(Integer i, Double d, Boolean b) {
+      mBoxedTypesCalls.add(new Object[] {i, d, b});
     }
 
     @ReactMethod
@@ -694,8 +809,17 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
       mMapCalls.add(map);
     }
 
+    @ReactMethod
+    public void receiveDynamic(Dynamic dynamic) {
+      mDynamicCalls.add(dynamic);
+    }
+
     public List<Object[]> getBasicTypesCalls() {
       return mBasicTypesCalls;
+    }
+
+    public List<Object[]> getBoxedTypesCalls() {
+      return mBoxedTypesCalls;
     }
 
     public List<ReadableArray> getArrayCalls() {
@@ -704,6 +828,10 @@ public class CatalystNativeJSToJavaParametersTestCase extends ReactIntegrationTe
 
     public List<ReadableMap> getMapCalls() {
       return mMapCalls;
+    }
+
+    public List<Dynamic> getDynamicCalls() {
+      return mDynamicCalls;
     }
   }
 }
