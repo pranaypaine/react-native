@@ -10,11 +10,13 @@
 
 'use strict';
 
-const Platform = require('./Platform');
+const DevSettings = require('./DevSettings');
 const invariant = require('invariant');
-
 const MetroHMRClient = require('metro/src/lib/bundle-modules/HMRClient');
+const Platform = require('./Platform');
+const prettyFormat = require('pretty-format');
 
+import getDevServer from '../Core/Devtools/getDevServer';
 import NativeRedBox from '../NativeModules/specs/NativeRedBox';
 import * as LogBoxData from '../LogBox/Data/LogBoxData';
 import type {ExtendedError} from '../Core/Devtools/parseErrorStack';
@@ -30,6 +32,7 @@ type LogLevel =
   | 'trace'
   | 'info'
   | 'warn'
+  | 'error'
   | 'log'
   | 'group'
   | 'groupCollapsed'
@@ -113,36 +116,23 @@ const HMRClient: HMRClientNativeInterface = {
       return;
     }
     try {
-      let message;
-      if (global.Symbol) {
-        message = JSON.stringify({
+      hmrClient.send(
+        JSON.stringify({
           type: 'log',
           level,
           data: data.map(item =>
             typeof item === 'string'
               ? item
-              : require('pretty-format')(item, {
+              : prettyFormat(item, {
                   escapeString: true,
                   highlight: true,
                   maxDepth: 3,
                   min: true,
-                  plugins: [require('pretty-format').plugins.ReactElement],
+                  plugins: [prettyFormat.plugins.ReactElement],
                 }),
           ),
-        });
-      } else {
-        try {
-          message = JSON.stringify({type: 'log', level, data});
-        } catch (error) {
-          message = JSON.stringify({
-            type: 'log',
-            level,
-            data: [error.message],
-          });
-        }
-      }
-
-      hmrClient.send(message);
+        }),
+      );
     } catch (error) {
       // If sending logs causes any failures we want to silently ignore them
       // to ensure we do not cause infinite-logging loops.
@@ -159,8 +149,8 @@ const HMRClient: HMRClientNativeInterface = {
     isEnabled: boolean,
   ) {
     invariant(platform, 'Missing required parameter `platform`');
-    invariant(bundleEntry, 'Missing required paramenter `bundleEntry`');
-    invariant(host, 'Missing required paramenter `host`');
+    invariant(bundleEntry, 'Missing required parameter `bundleEntry`');
+    invariant(host, 'Missing required parameter `host`');
     invariant(!hmrClient, 'Cannot initialize hmrClient twice');
 
     // Moving to top gives errors due to NativeModules not being initialized
@@ -170,19 +160,26 @@ const HMRClient: HMRClientNativeInterface = {
     const client = new MetroHMRClient(`ws://${wsHost}/hot`);
     hmrClient = client;
 
+    const {fullBundleUrl} = getDevServer();
     pendingEntryPoints.push(
-      `ws://${wsHost}/hot?bundleEntry=${bundleEntry}&platform=${platform}`,
+      // HMRServer understands regular bundle URLs, so prefer that in case
+      // there are any important URL parameters we can't reconstruct from
+      // `setup()`'s arguments.
+      fullBundleUrl ??
+        // The ws://.../hot?bundleEntry= format is an alternative to specifying
+        // a regular HTTP bundle URL.
+        `ws://${wsHost}/hot?bundleEntry=${bundleEntry}&platform=${platform}`,
     );
 
     client.on('connection-error', e => {
-      let error = `Cannot connect to the Metro server.
+      let error = `Cannot connect to Metro.
 
 Try the following to fix the issue:
-- Ensure that the Metro server is running and available on the same network`;
+- Ensure that Metro is running and available on the same network`;
 
       if (Platform.OS === 'ios') {
         error += `
-- Ensure that the Metro server URL is correctly set in AppDelegate`;
+- Ensure that the Metro URL is correctly set in AppDelegate`;
       } else {
         error += `
 - Ensure that your device/emulator is connected to your machine and has USB debugging enabled - run 'adb devices' to see a list of connected devices
@@ -225,12 +222,12 @@ Error: ${e.message}`;
       if (data.type === 'GraphNotFoundError') {
         client.close();
         setHMRUnavailableReason(
-          'The Metro server has restarted since the last edit. Reload to reconnect.',
+          'Metro has restarted since the last edit. Reload to reconnect.',
         );
       } else if (data.type === 'RevisionNotFoundError') {
         client.close();
         setHMRUnavailableReason(
-          'The Metro server and the client are out of sync. Reload to reconnect.',
+          'Metro and the client are out of sync. Reload to reconnect.',
         );
       } else {
         currentCompileErrorMessage = `${data.type} ${data.message}`;
@@ -242,7 +239,7 @@ Error: ${e.message}`;
 
     client.on('close', data => {
       LoadingView.hide();
-      setHMRUnavailableReason('Disconnected from the Metro server.');
+      setHMRUnavailableReason('Disconnected from Metro.');
     });
 
     if (isEnabled) {
@@ -274,6 +271,11 @@ function setHMRUnavailableReason(reason) {
 }
 
 function registerBundleEntryPoints(client) {
+  if (hmrUnavailableReason) {
+    DevSettings.reload('Bundle Splitting – Metro disconnected');
+    return;
+  }
+
   if (pendingEntryPoints.length > 0) {
     client.send(
       JSON.stringify({

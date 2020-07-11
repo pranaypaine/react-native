@@ -10,8 +10,8 @@
 #include <climits>
 #include <memory>
 #include <string>
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 namespace facebook {
 namespace react {
@@ -19,6 +19,15 @@ namespace react {
 #ifndef NDEBUG
 #define RN_DEBUG_STRING_CONVERTIBLE 1
 #endif
+
+// To Debug Yoga layout, uncomment the following line.
+// #define RN_DEBUG_YOGA_LOGGER 1
+//
+// Additional logging can be enabled editing yoga.cpp (e.g. gPrintChanges,
+// gPrintSkips)
+
+// To Debug introspection of RN Shadow tree, uncomment the following line:
+// #define RN_SHADOW_TREE_INTROSPECTION 1
 
 #if RN_DEBUG_STRING_CONVERTIBLE
 
@@ -143,12 +152,16 @@ std::string getDebugValue(T const &object) {
 }
 
 template <typename T>
-std::vector<T> getDebugChildren(T const &object) {
+std::vector<T> getDebugChildren(
+    T const &object,
+    DebugStringConvertibleOptions options) {
   return {};
 }
 
 template <typename T>
-std::vector<T> getDebugProps(T const &object) {
+std::vector<T> getDebugProps(
+    T const &object,
+    DebugStringConvertibleOptions options) {
   return {};
 }
 
@@ -164,7 +177,7 @@ std::string getDebugPropsDescription(
 
   options.depth++;
 
-  for (auto prop : getDebugProps(object)) {
+  for (auto prop : getDebugProps(object, options)) {
     auto name = getDebugName(prop);
     auto value = getDebugValue(prop);
     auto children = getDebugPropsDescription(prop, options);
@@ -194,7 +207,7 @@ std::string getDebugChildrenDescription(
   auto childrenString = std::string{""};
   options.depth++;
 
-  for (auto child : getDebugChildren(object)) {
+  for (auto child : getDebugChildren(object, options)) {
     childrenString += getDebugDescription(child, options) + trailing;
   }
 
@@ -209,7 +222,7 @@ std::string getDebugChildrenDescription(
 template <typename T>
 std::string getDebugDescription(
     T const &object,
-    DebugStringConvertibleOptions options = {}) {
+    DebugStringConvertibleOptions options) {
   auto nameString = getDebugName(object);
   auto valueString = getDebugValue(object);
 
@@ -246,42 +259,42 @@ std::string getDebugDescription(
 // `int`
 inline std::string getDebugDescription(
     int number,
-    DebugStringConvertibleOptions options = {}) {
+    DebugStringConvertibleOptions options) {
   return toString(number);
 }
 
 // `float`
 inline std::string getDebugDescription(
     float number,
-    DebugStringConvertibleOptions options = {}) {
+    DebugStringConvertibleOptions options) {
   return toString(number);
 }
 
 // `double`
 inline std::string getDebugDescription(
     double number,
-    DebugStringConvertibleOptions options = {}) {
+    DebugStringConvertibleOptions options) {
   return toString(number);
 }
 
 // `bool`
 inline std::string getDebugDescription(
     bool boolean,
-    DebugStringConvertibleOptions options = {}) {
+    DebugStringConvertibleOptions options) {
   return toString(boolean);
 }
 
 // `void *`
 inline std::string getDebugDescription(
     void *pointer,
-    DebugStringConvertibleOptions options = {}) {
+    DebugStringConvertibleOptions options) {
   return toString(pointer);
 }
 
 // `std::string`
 inline std::string getDebugDescription(
     std::string const &string,
-    DebugStringConvertibleOptions options = {}) {
+    DebugStringConvertibleOptions options) {
   return string;
 }
 
@@ -292,7 +305,26 @@ std::string getDebugName(std::vector<T, Ts...> const &vector) {
 }
 
 template <typename T, typename... Ts>
-std::vector<T, Ts...> getDebugChildren(std::vector<T, Ts...> const &vector) {
+std::vector<T, Ts...> getDebugChildren(
+    std::vector<T, Ts...> const &vector,
+    DebugStringConvertibleOptions options) {
+  return vector;
+}
+
+// `std::array<T, Size>`
+template <typename T, size_t Size>
+std::string getDebugName(std::array<T, Size> const &array) {
+  return "List";
+}
+
+template <typename T, size_t Size>
+std::vector<T> getDebugChildren(
+    std::array<T, Size> const &array,
+    DebugStringConvertibleOptions options) {
+  auto vector = std::vector<T>{};
+  for (auto const &value : array) {
+    vector.push_back(value);
+  }
   return vector;
 }
 
@@ -303,7 +335,9 @@ std::string getDebugName(std::unordered_set<T, Ts...> const &set) {
 }
 
 template <typename T, typename... Ts>
-std::vector<T> getDebugChildren(std::unordered_set<T, Ts...> const &set) {
+std::vector<T> getDebugChildren(
+    std::unordered_set<T, Ts...> const &set,
+    DebugStringConvertibleOptions options) {
   auto vector = std::vector<T>{};
   vector.insert(vector.end(), set.begin(), set.end());
   return vector;
@@ -313,24 +347,24 @@ std::vector<T> getDebugChildren(std::unordered_set<T, Ts...> const &set) {
 template <typename T>
 inline std::string getDebugDescription(
     std::shared_ptr<T> const &pointer,
-    DebugStringConvertibleOptions options = {}) {
-  return getDebugDescription((void *)pointer.get()) + "(shared)";
+    DebugStringConvertibleOptions options) {
+  return getDebugDescription((void *)pointer.get(), options) + "(shared)";
 }
 
 // `std::weak_ptr<T>`
 template <typename T>
 inline std::string getDebugDescription(
     std::weak_ptr<T> const &pointer,
-    DebugStringConvertibleOptions options = {}) {
-  return getDebugDescription((void *)pointer.lock().get()) + "(weak)";
+    DebugStringConvertibleOptions options) {
+  return getDebugDescription((void *)pointer.lock().get(), options) + "(weak)";
 }
 
 // `std::unique_ptr<T>`
 template <typename T>
 inline std::string getDebugDescription(
     std::unique_ptr<T const> const &pointer,
-    DebugStringConvertibleOptions options = {}) {
-  return getDebugDescription((void *)pointer.get()) + "(unique)";
+    DebugStringConvertibleOptions options) {
+  return getDebugDescription((void *)pointer.get(), options) + "(unique)";
 }
 
 /*

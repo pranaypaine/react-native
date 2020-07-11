@@ -261,7 +261,7 @@ inline void fromRawValue(const RawValue &value, YGAlign &result) {
     result = YGAlignBaseline;
     return;
   }
-  if (stringValue == "between") {
+  if (stringValue == "space-between") {
     result = YGAlignSpaceBetween;
     return;
   }
@@ -422,6 +422,8 @@ inline void fromRawValue(const RawValue &value, Transform &result) {
       for (auto number : numbers) {
         transformMatrix.matrix[i++] = number;
       }
+      transformMatrix.operations.push_back(
+          TransformOperation{TransformOperationType::Arbitrary, 0, 0, 0});
     } else if (operation == "perspective") {
       transformMatrix =
           transformMatrix * Transform::Perspective((Float)parameters);
@@ -440,13 +442,13 @@ inline void fromRawValue(const RawValue &value, Transform &result) {
           transformMatrix * Transform::Scale(number, number, number);
     } else if (operation == "scaleX") {
       transformMatrix =
-          transformMatrix * Transform::Scale((Float)parameters, 0, 0);
+          transformMatrix * Transform::Scale((Float)parameters, 1, 1);
     } else if (operation == "scaleY") {
       transformMatrix =
-          transformMatrix * Transform::Scale(0, (Float)parameters, 0);
+          transformMatrix * Transform::Scale(1, (Float)parameters, 1);
     } else if (operation == "scaleZ") {
       transformMatrix =
-          transformMatrix * Transform::Scale(0, 0, (Float)parameters);
+          transformMatrix * Transform::Scale(1, 1, (Float)parameters);
     } else if (operation == "translate") {
       auto numbers = (std::vector<Float>)parameters;
       transformMatrix = transformMatrix *

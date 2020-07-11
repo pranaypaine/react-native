@@ -5,13 +5,13 @@
  * LICENSE file in the root directory of this source tree.
  *
  * @format
- * @flow
+ * @flow strict-local
  */
 
 'use strict';
 
 import type {DirectEventHandler, WithDefault} from '../../Types/CodegenTypes';
-import type {ColorValue} from '../../StyleSheet/StyleSheetTypes';
+import type {ColorValue} from '../../StyleSheet/StyleSheet';
 import type {ViewProps} from '../View/ViewPropTypes';
 import * as React from 'react';
 
@@ -61,4 +61,5 @@ export const Commands: NativeCommands = codegenNativeCommands<NativeCommands>({
 
 export default (codegenNativeComponent<NativeProps>('PullToRefreshView', {
   paperComponentName: 'RCTRefreshControl',
+  excludedPlatforms: ['android'],
 }): HostComponent<NativeProps>);

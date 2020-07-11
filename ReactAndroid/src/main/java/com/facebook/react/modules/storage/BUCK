@@ -4,6 +4,7 @@ rn_android_library(
     name = "storage",
     srcs = glob(["**/*.java"]),
     is_androidx = True,
+    labels = ["supermodule:xplat/default/public.react_native.infra"],
     visibility = [
         "PUBLIC",
     ],
@@ -17,4 +18,5 @@ rn_android_library(
         react_native_target("java/com/facebook/react/module/annotations:annotations"),
         react_native_target("java/com/facebook/react/modules/common:common"),
     ],
+    exported_deps = [react_native_target("java/com/facebook/fbreact/specs:FBReactNativeSpec")],
 )

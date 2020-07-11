@@ -12,14 +12,16 @@
 #import <objc/runtime.h>
 
 #import "RCTAssert.h"
-#import "RCTBridge.h"
 #import "RCTBridge+Private.h"
+#import "RCTBridge.h"
+#import "RCTConstants.h"
 #import "RCTEventDispatcher.h"
 #import "RCTKeyCommands.h"
 #import "RCTLog.h"
 #import "RCTPerformanceLogger.h"
 #import "RCTProfile.h"
 #import "RCTRootContentView.h"
+#import "RCTRootShadowView.h"
 #import "RCTTouchHandler.h"
 #import "RCTUIManager.h"
 #import "RCTUIManagerUtils.h"
@@ -28,12 +30,11 @@
 #import "UIView+React.h"
 
 #if TARGET_OS_TV
-#import "RCTTVRemoteHandler.h"
 #import "RCTTVNavigationEventEmitter.h"
+#import "RCTTVRemoteHandler.h"
 #endif
 
 NSString *const RCTContentDidAppearNotification = @"RCTContentDidAppearNotification";
-static NSString *const RCTUserInterfaceStyleDidChangeNotification = @"RCTUserInterfaceStyleDidChangeNotification";
 
 @interface RCTUIManager (RCTRootView)
 
@@ -41,8 +42,7 @@ static NSString *const RCTUserInterfaceStyleDidChangeNotification = @"RCTUserInt
 
 @end
 
-@implementation RCTRootView
-{
+@implementation RCTRootView {
   RCTBridge *_bridge;
   NSString *_moduleName;
   RCTRootContentView *_contentView;
@@ -72,6 +72,7 @@ static NSString *const RCTUserInterfaceStyleDidChangeNotification = @"RCTUserInt
     _loadingViewFadeDelay = 0.25;
     _loadingViewFadeDuration = 0.25;
     _sizeFlexibility = RCTRootViewSizeFlexibilityNone;
+    _minimumSize = CGSizeZero;
 
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(bridgeDidReload)
@@ -112,15 +113,13 @@ static NSString *const RCTUserInterfaceStyleDidChangeNotification = @"RCTUserInt
                 initialProperties:(NSDictionary *)initialProperties
                     launchOptions:(NSDictionary *)launchOptions
 {
-  RCTBridge *bridge = [[RCTBridge alloc] initWithBundleURL:bundleURL
-                                            moduleProvider:nil
-                                             launchOptions:launchOptions];
+  RCTBridge *bridge = [[RCTBridge alloc] initWithBundleURL:bundleURL moduleProvider:nil launchOptions:launchOptions];
 
   return [self initWithBridge:bridge moduleName:moduleName initialProperties:initialProperties];
 }
 
-RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
-RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
+RCT_NOT_IMPLEMENTED(-(instancetype)initWithFrame : (CGRect)frame)
+RCT_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
 
 #if TARGET_OS_TV
 - (UIView *)preferredFocusedView
@@ -155,14 +154,10 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
   // Following the current `size` and current `sizeFlexibility` policy.
   fitSize = CGSizeMake(
       _sizeFlexibility & RCTRootViewSizeFlexibilityWidth ? fitSize.width : currentSize.width,
-      _sizeFlexibility & RCTRootViewSizeFlexibilityHeight ? fitSize.height : currentSize.height
-    );
+      _sizeFlexibility & RCTRootViewSizeFlexibilityHeight ? fitSize.height : currentSize.height);
 
   // Following the given size constraints.
-  fitSize = CGSizeMake(
-      MIN(size.width, fitSize.width),
-      MIN(size.height, fitSize.height)
-    );
+  fitSize = CGSizeMake(MIN(size.width, fitSize.width), MIN(size.height, fitSize.height));
 
   return fitSize;
 }
@@ -171,10 +166,24 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
 {
   [super layoutSubviews];
   _contentView.frame = self.bounds;
-  _loadingView.center = (CGPoint){
-    CGRectGetMidX(self.bounds),
-    CGRectGetMidY(self.bounds)
-  };
+  _loadingView.center = (CGPoint){CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds)};
+}
+
+- (void)setMinimumSize:(CGSize)minimumSize
+{
+  if (CGSizeEqualToSize(_minimumSize, minimumSize)) {
+    return;
+  }
+  _minimumSize = minimumSize;
+  __block NSNumber *tag = self.reactTag;
+  __weak typeof(self) weakSelf = self;
+  RCTExecuteOnUIManagerQueue(^{
+    __strong typeof(self) strongSelf = weakSelf;
+    if (strongSelf && strongSelf->_bridge.isValid) {
+      RCTRootShadowView *shadowView = (RCTRootShadowView *)[strongSelf->_bridge.uiManager shadowViewForReactTag:tag];
+      shadowView.minimumSize = minimumSize;
+    }
+  });
 }
 
 - (UIViewController *)reactViewController
@@ -207,18 +216,20 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
 {
   if (_loadingView.superview == self && _contentView.contentHasAppeared) {
     if (_loadingViewFadeDuration > 0) {
-      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(_loadingViewFadeDelay * NSEC_PER_SEC)),
-                     dispatch_get_main_queue(), ^{
-
-                       [UIView transitionWithView:self
-                                         duration:self->_loadingViewFadeDuration
-                                          options:UIViewAnimationOptionTransitionCrossDissolve
-                                       animations:^{
-                                         self->_loadingView.hidden = YES;
-                                       } completion:^(__unused BOOL finished) {
-                                         [self->_loadingView removeFromSuperview];
-                                       }];
-                     });
+      dispatch_after(
+          dispatch_time(DISPATCH_TIME_NOW, (int64_t)(_loadingViewFadeDelay * NSEC_PER_SEC)),
+          dispatch_get_main_queue(),
+          ^{
+            [UIView transitionWithView:self
+                duration:self->_loadingViewFadeDuration
+                options:UIViewAnimationOptionTransitionCrossDissolve
+                animations:^{
+                  self->_loadingView.hidden = YES;
+                }
+                completion:^(__unused BOOL finished) {
+                  [self->_loadingView removeFromSuperview];
+                }];
+          });
     } else {
       _loadingView.hidden = YES;
       [_loadingView removeFromSuperview];
@@ -287,15 +298,12 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
 {
   NSString *moduleName = _moduleName ?: @"";
   NSDictionary *appParameters = @{
-    @"rootTag": _contentView.reactTag,
-    @"initialProps": _appProperties ?: @{},
+    @"rootTag" : _contentView.reactTag,
+    @"initialProps" : _appProperties ?: @{},
   };
 
   RCTLogInfo(@"Running application %@ (%@)", moduleName, appParameters);
-  [bridge enqueueJSCall:@"AppRegistry"
-                 method:@"runApplication"
-                   args:@[moduleName, appParameters]
-             completion:NULL];
+  [bridge enqueueJSCall:@"AppRegistry" method:@"runApplication" args:@[ moduleName, appParameters ] completion:NULL];
 }
 
 - (void)setSizeFlexibility:(RCTRootViewSizeFlexibility)sizeFlexibility
@@ -367,21 +375,17 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
   [self showLoadingView];
 }
 
-#if defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && defined(__IPHONE_13_0) && \
-    __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_13_0
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection
 {
   [super traitCollectionDidChange:previousTraitCollection];
 
-  if (@available(iOS 13.0, *)) {
-    if ([previousTraitCollection hasDifferentColorAppearanceComparedToTraitCollection:self.traitCollection]) {
-      [[NSNotificationCenter defaultCenter] postNotificationName:RCTUserInterfaceStyleDidChangeNotification
-                                                          object:self
-                                                        userInfo:@{@"traitCollection": self.traitCollection}];
-    }
-  }
+  [[NSNotificationCenter defaultCenter]
+      postNotificationName:RCTUserInterfaceStyleDidChangeNotification
+                    object:self
+                  userInfo:@{
+                    RCTUserInterfaceStyleDidChangeNotificationTraitCollectionKey : self.traitCollection,
+                  }];
 }
-#endif
 
 - (void)dealloc
 {

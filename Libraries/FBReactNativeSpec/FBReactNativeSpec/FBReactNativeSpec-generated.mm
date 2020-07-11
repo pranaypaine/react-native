@@ -36,8 +36,8 @@ namespace facebook {
     }
 
 
-    NativeAccessibilityInfoSpecJSI::NativeAccessibilityInfoSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("AccessibilityInfo", instance, jsInvoker) {
+    NativeAccessibilityInfoSpecJSI::NativeAccessibilityInfoSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["isReduceMotionEnabled"] = MethodMetadata {1, __hostFunction_NativeAccessibilityInfoSpecJSI_isReduceMotionEnabled};
         
@@ -103,8 +103,8 @@ namespace facebook {
     }
 
 
-    NativeAccessibilityManagerSpecJSI::NativeAccessibilityManagerSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("AccessibilityManager", instance, jsInvoker) {
+    NativeAccessibilityManagerSpecJSI::NativeAccessibilityManagerSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["getCurrentBoldTextState"] = MethodMetadata {2, __hostFunction_NativeAccessibilityManagerSpecJSI_getCurrentBoldTextState};
         
@@ -170,8 +170,8 @@ namespace facebook {
     }
 
 
-    NativeActionSheetManagerSpecJSI::NativeActionSheetManagerSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("ActionSheetManager", instance, jsInvoker) {
+    NativeActionSheetManagerSpecJSI::NativeActionSheetManagerSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["showActionSheetWithOptions"] = MethodMetadata {2, __hostFunction_NativeActionSheetManagerSpecJSI_showActionSheetWithOptions};
         
@@ -201,8 +201,8 @@ namespace facebook {
     }
 
 
-    NativeAlertManagerSpecJSI::NativeAlertManagerSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("AlertManager", instance, jsInvoker) {
+    NativeAlertManagerSpecJSI::NativeAlertManagerSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["alertWithArgs"] = MethodMetadata {2, __hostFunction_NativeAlertManagerSpecJSI_alertWithArgs};
         
@@ -231,6 +231,10 @@ namespace facebook {
     
     static facebook::jsi::Value __hostFunction_NativeAnimatedModuleSpecJSI_createAnimatedNode(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
       return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "createAnimatedNode", @selector(createAnimatedNode:config:), args, count);
+    }
+
+    static facebook::jsi::Value __hostFunction_NativeAnimatedModuleSpecJSI_getValue(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
+      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "getValue", @selector(getValue:saveValueCallback:), args, count);
     }
 
     static facebook::jsi::Value __hostFunction_NativeAnimatedModuleSpecJSI_startListeningToAnimatedNodeValue(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
@@ -306,10 +310,13 @@ namespace facebook {
     }
 
 
-    NativeAnimatedModuleSpecJSI::NativeAnimatedModuleSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("AnimatedModule", instance, jsInvoker) {
+    NativeAnimatedModuleSpecJSI::NativeAnimatedModuleSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["createAnimatedNode"] = MethodMetadata {2, __hostFunction_NativeAnimatedModuleSpecJSI_createAnimatedNode};
+        
+        
+        methodMap_["getValue"] = MethodMetadata {2, __hostFunction_NativeAnimatedModuleSpecJSI_getValue};
         
         
         methodMap_["startListeningToAnimatedNodeValue"] = MethodMetadata {1, __hostFunction_NativeAnimatedModuleSpecJSI_startListeningToAnimatedNodeValue};
@@ -385,8 +392,8 @@ namespace facebook {
     }
 
 
-    NativeAnimationsDebugModuleSpecJSI::NativeAnimationsDebugModuleSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("AnimationsDebugModule", instance, jsInvoker) {
+    NativeAnimationsDebugModuleSpecJSI::NativeAnimationsDebugModuleSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["startRecordingFps"] = MethodMetadata {0, __hostFunction_NativeAnimationsDebugModuleSpecJSI_startRecordingFps};
         
@@ -426,8 +433,8 @@ namespace facebook {
     }
 
 
-    NativeAppStateSpecJSI::NativeAppStateSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("AppState", instance, jsInvoker) {
+    NativeAppStateSpecJSI::NativeAppStateSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["getCurrentAppState"] = MethodMetadata {2, __hostFunction_NativeAppStateSpecJSI_getCurrentAppState};
         
@@ -463,8 +470,8 @@ namespace facebook {
     }
 
 
-    NativeAppearanceSpecJSI::NativeAppearanceSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("Appearance", instance, jsInvoker) {
+    NativeAppearanceSpecJSI::NativeAppearanceSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["getColorScheme"] = MethodMetadata {0, __hostFunction_NativeAppearanceSpecJSI_getColorScheme};
         
@@ -574,8 +581,8 @@ namespace facebook {
     }
 
 
-    NativeAsyncStorageSpecJSI::NativeAsyncStorageSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("AsyncStorage", instance, jsInvoker) {
+    NativeAsyncStorageSpecJSI::NativeAsyncStorageSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["multiGet"] = MethodMetadata {2, __hostFunction_NativeAsyncStorageSpecJSI_multiGet};
         
@@ -633,8 +640,8 @@ namespace facebook {
     }
 
 
-    NativeBlobModuleSpecJSI::NativeBlobModuleSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("BlobModule", instance, jsInvoker) {
+    NativeBlobModuleSpecJSI::NativeBlobModuleSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["addNetworkingHandler"] = MethodMetadata {0, __hostFunction_NativeBlobModuleSpecJSI_addNetworkingHandler};
         
@@ -679,8 +686,8 @@ namespace facebook {
     }
 
 
-    NativeBugReportingSpecJSI::NativeBugReportingSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("BugReporting", instance, jsInvoker) {
+    NativeBugReportingSpecJSI::NativeBugReportingSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["startReportAProblemFlow"] = MethodMetadata {0, __hostFunction_NativeBugReportingSpecJSI_startReportAProblemFlow};
         
@@ -696,83 +703,6 @@ namespace facebook {
 
   } // namespace react
 } // namespace facebook
-@implementation RCTCxxConvert (NativeCameraRollManager_GetPhotosParams)
-+ (RCTManagedPointer *)JS_NativeCameraRollManager_GetPhotosParams:(id)json
-{
-  return facebook::react::managedPointer<JS::NativeCameraRollManager::GetPhotosParams>(json);
-}
-@end
-namespace facebook {
-  namespace react {
-
-    
-    static facebook::jsi::Value __hostFunction_NativeCameraRollManagerSpecJSI_getPhotos(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
-      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, PromiseKind, "getPhotos", @selector(getPhotos:resolve:reject:), args, count);
-    }
-
-    static facebook::jsi::Value __hostFunction_NativeCameraRollManagerSpecJSI_saveToCameraRoll(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
-      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, PromiseKind, "saveToCameraRoll", @selector(saveToCameraRoll:type:resolve:reject:), args, count);
-    }
-
-    static facebook::jsi::Value __hostFunction_NativeCameraRollManagerSpecJSI_deletePhotos(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
-      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, PromiseKind, "deletePhotos", @selector(deletePhotos:resolve:reject:), args, count);
-    }
-
-
-    NativeCameraRollManagerSpecJSI::NativeCameraRollManagerSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("CameraRollManager", instance, jsInvoker) {
-        
-        methodMap_["getPhotos"] = MethodMetadata {1, __hostFunction_NativeCameraRollManagerSpecJSI_getPhotos};
-        
-        setMethodArgConversionSelector(@"getPhotos", 0, @"JS_NativeCameraRollManager_GetPhotosParams:");
-        
-        methodMap_["saveToCameraRoll"] = MethodMetadata {2, __hostFunction_NativeCameraRollManagerSpecJSI_saveToCameraRoll};
-        
-        
-        methodMap_["deletePhotos"] = MethodMetadata {1, __hostFunction_NativeCameraRollManagerSpecJSI_deletePhotos};
-        
-        
-
-    }
-
-  } // namespace react
-} // namespace facebook
-@implementation RCTCxxConvert (NativeCameraRollManager_PhotoIdentifierNodeImage)
-+ (RCTManagedPointer *)JS_NativeCameraRollManager_PhotoIdentifierNodeImage:(id)json
-{
-  return facebook::react::managedPointer<JS::NativeCameraRollManager::PhotoIdentifierNodeImage>(json);
-}
-@end
-@implementation RCTCxxConvert (NativeCameraRollManager_PhotoIdentifierNodeLocation)
-+ (RCTManagedPointer *)JS_NativeCameraRollManager_PhotoIdentifierNodeLocation:(id)json
-{
-  return facebook::react::managedPointer<JS::NativeCameraRollManager::PhotoIdentifierNodeLocation>(json);
-}
-@end
-@implementation RCTCxxConvert (NativeCameraRollManager_PhotoIdentifierNode)
-+ (RCTManagedPointer *)JS_NativeCameraRollManager_PhotoIdentifierNode:(id)json
-{
-  return facebook::react::managedPointer<JS::NativeCameraRollManager::PhotoIdentifierNode>(json);
-}
-@end
-@implementation RCTCxxConvert (NativeCameraRollManager_PhotoIdentifier)
-+ (RCTManagedPointer *)JS_NativeCameraRollManager_PhotoIdentifier:(id)json
-{
-  return facebook::react::managedPointer<JS::NativeCameraRollManager::PhotoIdentifier>(json);
-}
-@end
-@implementation RCTCxxConvert (NativeCameraRollManager_PhotoIdentifiersPagePage_info)
-+ (RCTManagedPointer *)JS_NativeCameraRollManager_PhotoIdentifiersPagePage_info:(id)json
-{
-  return facebook::react::managedPointer<JS::NativeCameraRollManager::PhotoIdentifiersPagePage_info>(json);
-}
-@end
-@implementation RCTCxxConvert (NativeCameraRollManager_PhotoIdentifiersPage)
-+ (RCTManagedPointer *)JS_NativeCameraRollManager_PhotoIdentifiersPage:(id)json
-{
-  return facebook::react::managedPointer<JS::NativeCameraRollManager::PhotoIdentifiersPage>(json);
-}
-@end
 namespace facebook {
   namespace react {
 
@@ -786,8 +716,8 @@ namespace facebook {
     }
 
 
-    NativeClipboardSpecJSI::NativeClipboardSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("Clipboard", instance, jsInvoker) {
+    NativeClipboardSpecJSI::NativeClipboardSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["getString"] = MethodMetadata {0, __hostFunction_NativeClipboardSpecJSI_getString};
         
@@ -809,8 +739,8 @@ namespace facebook {
     }
 
 
-    NativeDatePickerAndroidSpecJSI::NativeDatePickerAndroidSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("DatePickerAndroid", instance, jsInvoker) {
+    NativeDatePickerAndroidSpecJSI::NativeDatePickerAndroidSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["open"] = MethodMetadata {1, __hostFunction_NativeDatePickerAndroidSpecJSI_open};
         
@@ -825,7 +755,7 @@ namespace facebook {
 
     
     static facebook::jsi::Value __hostFunction_NativeDevLoadingViewSpecJSI_showMessage(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
-      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "showMessage", @selector(showMessage:color:backgroundColor:), args, count);
+      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "showMessage", @selector(showMessage:withColor:withBackgroundColor:), args, count);
     }
 
     static facebook::jsi::Value __hostFunction_NativeDevLoadingViewSpecJSI_hide(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
@@ -833,8 +763,8 @@ namespace facebook {
     }
 
 
-    NativeDevLoadingViewSpecJSI::NativeDevLoadingViewSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("DevLoadingView", instance, jsInvoker) {
+    NativeDevLoadingViewSpecJSI::NativeDevLoadingViewSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["showMessage"] = MethodMetadata {3, __hostFunction_NativeDevLoadingViewSpecJSI_showMessage};
         
@@ -872,8 +802,8 @@ namespace facebook {
     }
 
 
-    NativeDevMenuSpecJSI::NativeDevMenuSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("DevMenu", instance, jsInvoker) {
+    NativeDevMenuSpecJSI::NativeDevMenuSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["show"] = MethodMetadata {0, __hostFunction_NativeDevMenuSpecJSI_show};
         
@@ -931,13 +861,21 @@ namespace facebook {
       return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "addMenuItem", @selector(addMenuItem:), args, count);
     }
 
+    static facebook::jsi::Value __hostFunction_NativeDevSettingsSpecJSI_addListener(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
+      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "addListener", @selector(addListener:), args, count);
+    }
+
+    static facebook::jsi::Value __hostFunction_NativeDevSettingsSpecJSI_removeListeners(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
+      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "removeListeners", @selector(removeListeners:), args, count);
+    }
+
     static facebook::jsi::Value __hostFunction_NativeDevSettingsSpecJSI_setIsShakeToShowDevMenuEnabled(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
       return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "setIsShakeToShowDevMenuEnabled", @selector(setIsShakeToShowDevMenuEnabled:), args, count);
     }
 
 
-    NativeDevSettingsSpecJSI::NativeDevSettingsSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("DevSettings", instance, jsInvoker) {
+    NativeDevSettingsSpecJSI::NativeDevSettingsSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["reload"] = MethodMetadata {0, __hostFunction_NativeDevSettingsSpecJSI_reload};
         
@@ -963,7 +901,33 @@ namespace facebook {
         methodMap_["addMenuItem"] = MethodMetadata {1, __hostFunction_NativeDevSettingsSpecJSI_addMenuItem};
         
         
+        methodMap_["addListener"] = MethodMetadata {1, __hostFunction_NativeDevSettingsSpecJSI_addListener};
+        
+        
+        methodMap_["removeListeners"] = MethodMetadata {1, __hostFunction_NativeDevSettingsSpecJSI_removeListeners};
+        
+        
         methodMap_["setIsShakeToShowDevMenuEnabled"] = MethodMetadata {1, __hostFunction_NativeDevSettingsSpecJSI_setIsShakeToShowDevMenuEnabled};
+        
+        
+
+    }
+
+  } // namespace react
+} // namespace facebook
+namespace facebook {
+  namespace react {
+
+    
+    static facebook::jsi::Value __hostFunction_NativeDevSplitBundleLoaderSpecJSI_loadBundle(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
+      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, PromiseKind, "loadBundle", @selector(loadBundle:resolve:reject:), args, count);
+    }
+
+
+    NativeDevSplitBundleLoaderSpecJSI::NativeDevSplitBundleLoaderSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
+        
+        methodMap_["loadBundle"] = MethodMetadata {1, __hostFunction_NativeDevSplitBundleLoaderSpecJSI_loadBundle};
         
         
 
@@ -980,8 +944,8 @@ namespace facebook {
     }
 
 
-    NativeDeviceEventManagerSpecJSI::NativeDeviceEventManagerSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("DeviceEventManager", instance, jsInvoker) {
+    NativeDeviceEventManagerSpecJSI::NativeDeviceEventManagerSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["invokeDefaultBackPressHandler"] = MethodMetadata {0, __hostFunction_NativeDeviceEventManagerSpecJSI_invokeDefaultBackPressHandler};
         
@@ -1000,8 +964,8 @@ namespace facebook {
     }
 
 
-    NativeDeviceInfoSpecJSI::NativeDeviceInfoSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("DeviceInfo", instance, jsInvoker) {
+    NativeDeviceInfoSpecJSI::NativeDeviceInfoSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["getConstants"] = MethodMetadata {0, __hostFunction_NativeDeviceInfoSpecJSI_getConstants};
         
@@ -1030,8 +994,8 @@ namespace facebook {
     }
 
 
-    NativeDialogManagerAndroidSpecJSI::NativeDialogManagerAndroidSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("DialogManagerAndroid", instance, jsInvoker) {
+    NativeDialogManagerAndroidSpecJSI::NativeDialogManagerAndroidSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["showAlert"] = MethodMetadata {3, __hostFunction_NativeDialogManagerAndroidSpecJSI_showAlert};
         
@@ -1082,8 +1046,8 @@ namespace facebook {
     }
 
 
-    NativeExceptionsManagerSpecJSI::NativeExceptionsManagerSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("ExceptionsManager", instance, jsInvoker) {
+    NativeExceptionsManagerSpecJSI::NativeExceptionsManagerSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["reportFatalException"] = MethodMetadata {3, __hostFunction_NativeExceptionsManagerSpecJSI_reportFatalException};
         
@@ -1119,8 +1083,8 @@ namespace facebook {
     }
 
 
-    NativeFileReaderModuleSpecJSI::NativeFileReaderModuleSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("FileReaderModule", instance, jsInvoker) {
+    NativeFileReaderModuleSpecJSI::NativeFileReaderModuleSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["readAsDataURL"] = MethodMetadata {1, __hostFunction_NativeFileReaderModuleSpecJSI_readAsDataURL};
         
@@ -1160,8 +1124,8 @@ namespace facebook {
     }
 
 
-    NativeFrameRateLoggerSpecJSI::NativeFrameRateLoggerSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("FrameRateLogger", instance, jsInvoker) {
+    NativeFrameRateLoggerSpecJSI::NativeFrameRateLoggerSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["setGlobalOptions"] = MethodMetadata {1, __hostFunction_NativeFrameRateLoggerSpecJSI_setGlobalOptions};
         
@@ -1194,40 +1158,13 @@ namespace facebook {
     }
 
 
-    NativeHeadlessJsTaskSupportSpecJSI::NativeHeadlessJsTaskSupportSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("HeadlessJsTaskSupport", instance, jsInvoker) {
+    NativeHeadlessJsTaskSupportSpecJSI::NativeHeadlessJsTaskSupportSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["notifyTaskFinished"] = MethodMetadata {1, __hostFunction_NativeHeadlessJsTaskSupportSpecJSI_notifyTaskFinished};
         
         
         methodMap_["notifyTaskRetry"] = MethodMetadata {1, __hostFunction_NativeHeadlessJsTaskSupportSpecJSI_notifyTaskRetry};
-        
-        
-
-    }
-
-  } // namespace react
-} // namespace facebook
-namespace facebook {
-  namespace react {
-
-    
-    static facebook::jsi::Value __hostFunction_NativeHeapCaptureSpecJSI_captureHeap(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
-      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "captureHeap", @selector(captureHeap:), args, count);
-    }
-
-    static facebook::jsi::Value __hostFunction_NativeHeapCaptureSpecJSI_captureComplete(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
-      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "captureComplete", @selector(captureComplete:error:), args, count);
-    }
-
-
-    NativeHeapCaptureSpecJSI::NativeHeapCaptureSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("HeapCapture", instance, jsInvoker) {
-        
-        methodMap_["captureHeap"] = MethodMetadata {1, __hostFunction_NativeHeapCaptureSpecJSI_captureHeap};
-        
-        
-        methodMap_["captureComplete"] = MethodMetadata {2, __hostFunction_NativeHeapCaptureSpecJSI_captureComplete};
         
         
 
@@ -1256,8 +1193,8 @@ namespace facebook {
     }
 
 
-    NativeI18nManagerSpecJSI::NativeI18nManagerSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("I18nManager", instance, jsInvoker) {
+    NativeI18nManagerSpecJSI::NativeI18nManagerSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["allowRTL"] = MethodMetadata {1, __hostFunction_NativeI18nManagerSpecJSI_allowRTL};
         
@@ -1309,8 +1246,8 @@ namespace facebook {
     }
 
 
-    NativeImageEditorSpecJSI::NativeImageEditorSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("ImageEditor", instance, jsInvoker) {
+    NativeImageEditorSpecJSI::NativeImageEditorSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["cropImage"] = MethodMetadata {4, __hostFunction_NativeImageEditorSpecJSI_cropImage};
         
@@ -1346,8 +1283,8 @@ namespace facebook {
     }
 
 
-    NativeImageLoaderAndroidSpecJSI::NativeImageLoaderAndroidSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("ImageLoaderAndroid", instance, jsInvoker) {
+    NativeImageLoaderAndroidSpecJSI::NativeImageLoaderAndroidSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["abortRequest"] = MethodMetadata {1, __hostFunction_NativeImageLoaderAndroidSpecJSI_abortRequest};
         
@@ -1390,8 +1327,8 @@ namespace facebook {
     }
 
 
-    NativeImageLoaderIOSSpecJSI::NativeImageLoaderIOSSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("ImageLoaderIOS", instance, jsInvoker) {
+    NativeImageLoaderIOSSpecJSI::NativeImageLoaderIOSSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["getSize"] = MethodMetadata {1, __hostFunction_NativeImageLoaderIOSSpecJSI_getSize};
         
@@ -1451,8 +1388,8 @@ namespace facebook {
     }
 
 
-    NativeImagePickerIOSSpecJSI::NativeImagePickerIOSSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("ImagePickerIOS", instance, jsInvoker) {
+    NativeImagePickerIOSSpecJSI::NativeImagePickerIOSSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["canRecordVideos"] = MethodMetadata {1, __hostFunction_NativeImagePickerIOSSpecJSI_canRecordVideos};
         
@@ -1506,8 +1443,8 @@ namespace facebook {
     }
 
 
-    NativeImageStoreSpecJSI::NativeImageStoreSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("ImageStore", instance, jsInvoker) {
+    NativeImageStoreSpecJSI::NativeImageStoreSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["getBase64ForTag"] = MethodMetadata {3, __hostFunction_NativeImageStoreSpecJSI_getBase64ForTag};
         
@@ -1530,13 +1467,33 @@ namespace facebook {
   namespace react {
 
     
+    static facebook::jsi::Value __hostFunction_NativeJSCHeapCaptureSpecJSI_captureComplete(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
+      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "captureComplete", @selector(captureComplete:error:), args, count);
+    }
+
+
+    NativeJSCHeapCaptureSpecJSI::NativeJSCHeapCaptureSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
+        
+        methodMap_["captureComplete"] = MethodMetadata {2, __hostFunction_NativeJSCHeapCaptureSpecJSI_captureComplete};
+        
+        
+
+    }
+
+  } // namespace react
+} // namespace facebook
+namespace facebook {
+  namespace react {
+
+    
     static facebook::jsi::Value __hostFunction_NativeJSCSamplingProfilerSpecJSI_operationComplete(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
       return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "operationComplete", @selector(operationComplete:result:error:), args, count);
     }
 
 
-    NativeJSCSamplingProfilerSpecJSI::NativeJSCSamplingProfilerSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("JSCSamplingProfiler", instance, jsInvoker) {
+    NativeJSCSamplingProfilerSpecJSI::NativeJSCSamplingProfilerSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["operationComplete"] = MethodMetadata {3, __hostFunction_NativeJSCSamplingProfilerSpecJSI_operationComplete};
         
@@ -1563,8 +1520,8 @@ namespace facebook {
     }
 
 
-    NativeJSDevSupportSpecJSI::NativeJSDevSupportSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("JSDevSupport", instance, jsInvoker) {
+    NativeJSDevSupportSpecJSI::NativeJSDevSupportSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["onSuccess"] = MethodMetadata {1, __hostFunction_NativeJSDevSupportSpecJSI_onSuccess};
         
@@ -1593,8 +1550,8 @@ namespace facebook {
     }
 
 
-    NativeKeyboardObserverSpecJSI::NativeKeyboardObserverSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("KeyboardObserver", instance, jsInvoker) {
+    NativeKeyboardObserverSpecJSI::NativeKeyboardObserverSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["addListener"] = MethodMetadata {1, __hostFunction_NativeKeyboardObserverSpecJSI_addListener};
         
@@ -1646,8 +1603,8 @@ namespace facebook {
     }
 
 
-    NativeLinkingSpecJSI::NativeLinkingSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("Linking", instance, jsInvoker) {
+    NativeLinkingSpecJSI::NativeLinkingSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["getInitialURL"] = MethodMetadata {0, __hostFunction_NativeLinkingSpecJSI_getInitialURL};
         
@@ -1679,6 +1636,33 @@ namespace facebook {
   namespace react {
 
     
+    static facebook::jsi::Value __hostFunction_NativeLogBoxSpecJSI_show(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
+      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "show", @selector(show), args, count);
+    }
+
+    static facebook::jsi::Value __hostFunction_NativeLogBoxSpecJSI_hide(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
+      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "hide", @selector(hide), args, count);
+    }
+
+
+    NativeLogBoxSpecJSI::NativeLogBoxSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
+        
+        methodMap_["show"] = MethodMetadata {0, __hostFunction_NativeLogBoxSpecJSI_show};
+        
+        
+        methodMap_["hide"] = MethodMetadata {0, __hostFunction_NativeLogBoxSpecJSI_hide};
+        
+        
+
+    }
+
+  } // namespace react
+} // namespace facebook
+namespace facebook {
+  namespace react {
+
+    
     static facebook::jsi::Value __hostFunction_NativeModalManagerSpecJSI_addListener(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
       return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "addListener", @selector(addListener:), args, count);
     }
@@ -1688,8 +1672,8 @@ namespace facebook {
     }
 
 
-    NativeModalManagerSpecJSI::NativeModalManagerSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("ModalManager", instance, jsInvoker) {
+    NativeModalManagerSpecJSI::NativeModalManagerSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["addListener"] = MethodMetadata {1, __hostFunction_NativeModalManagerSpecJSI_addListener};
         
@@ -1702,12 +1686,6 @@ namespace facebook {
 
   } // namespace react
 } // namespace facebook
-@implementation RCTCxxConvert (NativeNetworkingAndroid_Header)
-+ (RCTManagedPointer *)JS_NativeNetworkingAndroid_Header:(id)json
-{
-  return facebook::react::managedPointer<JS::NativeNetworkingAndroid::Header>(json);
-}
-@end
 namespace facebook {
   namespace react {
 
@@ -1733,8 +1711,8 @@ namespace facebook {
     }
 
 
-    NativeNetworkingAndroidSpecJSI::NativeNetworkingAndroidSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("NetworkingAndroid", instance, jsInvoker) {
+    NativeNetworkingAndroidSpecJSI::NativeNetworkingAndroidSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["sendRequest"] = MethodMetadata {9, __hostFunction_NativeNetworkingAndroidSpecJSI_sendRequest};
         
@@ -1787,8 +1765,8 @@ namespace facebook {
     }
 
 
-    NativeNetworkingIOSSpecJSI::NativeNetworkingIOSSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("NetworkingIOS", instance, jsInvoker) {
+    NativeNetworkingIOSSpecJSI::NativeNetworkingIOSSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["sendRequest"] = MethodMetadata {2, __hostFunction_NativeNetworkingIOSSpecJSI_sendRequest};
         
@@ -1832,8 +1810,8 @@ namespace facebook {
     }
 
 
-    NativePermissionsAndroidSpecJSI::NativePermissionsAndroidSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("PermissionsAndroid", instance, jsInvoker) {
+    NativePermissionsAndroidSpecJSI::NativePermissionsAndroidSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["checkPermission"] = MethodMetadata {1, __hostFunction_NativePermissionsAndroidSpecJSI_checkPermission};
         
@@ -1865,8 +1843,8 @@ namespace facebook {
     }
 
 
-    NativePlatformConstantsAndroidSpecJSI::NativePlatformConstantsAndroidSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("PlatformConstantsAndroid", instance, jsInvoker) {
+    NativePlatformConstantsAndroidSpecJSI::NativePlatformConstantsAndroidSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["getAndroidID"] = MethodMetadata {0, __hostFunction_NativePlatformConstantsAndroidSpecJSI_getAndroidID};
         
@@ -1888,8 +1866,8 @@ namespace facebook {
     }
 
 
-    NativePlatformConstantsIOSSpecJSI::NativePlatformConstantsIOSSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("PlatformConstantsIOS", instance, jsInvoker) {
+    NativePlatformConstantsIOSSpecJSI::NativePlatformConstantsIOSSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["getConstants"] = MethodMetadata {0, __hostFunction_NativePlatformConstantsIOSSpecJSI_getConstants};
         
@@ -1990,8 +1968,8 @@ namespace facebook {
     }
 
 
-    NativePushNotificationManagerIOSSpecJSI::NativePushNotificationManagerIOSSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("PushNotificationManagerIOS", instance, jsInvoker) {
+    NativePushNotificationManagerIOSSpecJSI::NativePushNotificationManagerIOSSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["onFinishRemoteNotification"] = MethodMetadata {2, __hostFunction_NativePushNotificationManagerIOSSpecJSI_onFinishRemoteNotification};
         
@@ -2065,8 +2043,8 @@ namespace facebook {
     }
 
 
-    NativeRedBoxSpecJSI::NativeRedBoxSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("RedBox", instance, jsInvoker) {
+    NativeRedBoxSpecJSI::NativeRedBoxSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["setExtraData"] = MethodMetadata {2, __hostFunction_NativeRedBoxSpecJSI_setExtraData};
         
@@ -2092,8 +2070,8 @@ namespace facebook {
     }
 
 
-    NativeSegmentFetcherSpecJSI::NativeSegmentFetcherSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("SegmentFetcher", instance, jsInvoker) {
+    NativeSegmentFetcherSpecJSI::NativeSegmentFetcherSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["fetchSegment"] = MethodMetadata {3, __hostFunction_NativeSegmentFetcherSpecJSI_fetchSegment};
         
@@ -2123,8 +2101,8 @@ namespace facebook {
     }
 
 
-    NativeSettingsManagerSpecJSI::NativeSettingsManagerSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("SettingsManager", instance, jsInvoker) {
+    NativeSettingsManagerSpecJSI::NativeSettingsManagerSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["setValues"] = MethodMetadata {1, __hostFunction_NativeSettingsManagerSpecJSI_setValues};
         
@@ -2155,8 +2133,8 @@ namespace facebook {
     }
 
 
-    NativeShareModuleSpecJSI::NativeShareModuleSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("ShareModule", instance, jsInvoker) {
+    NativeShareModuleSpecJSI::NativeShareModuleSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["share"] = MethodMetadata {2, __hostFunction_NativeShareModuleSpecJSI_share};
         
@@ -2176,8 +2154,8 @@ namespace facebook {
     }
 
 
-    NativeSoundManagerSpecJSI::NativeSoundManagerSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("SoundManager", instance, jsInvoker) {
+    NativeSoundManagerSpecJSI::NativeSoundManagerSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["playTouchSound"] = MethodMetadata {0, __hostFunction_NativeSoundManagerSpecJSI_playTouchSound};
         
@@ -2196,8 +2174,8 @@ namespace facebook {
     }
 
 
-    NativeSourceCodeSpecJSI::NativeSourceCodeSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("SourceCode", instance, jsInvoker) {
+    NativeSourceCodeSpecJSI::NativeSourceCodeSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["getConstants"] = MethodMetadata {0, __hostFunction_NativeSourceCodeSpecJSI_getConstants};
         
@@ -2232,8 +2210,8 @@ namespace facebook {
     }
 
 
-    NativeStatusBarManagerAndroidSpecJSI::NativeStatusBarManagerAndroidSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("StatusBarManagerAndroid", instance, jsInvoker) {
+    NativeStatusBarManagerAndroidSpecJSI::NativeStatusBarManagerAndroidSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["setColor"] = MethodMetadata {2, __hostFunction_NativeStatusBarManagerAndroidSpecJSI_setColor};
         
@@ -2294,8 +2272,8 @@ namespace facebook {
     }
 
 
-    NativeStatusBarManagerIOSSpecJSI::NativeStatusBarManagerIOSSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("StatusBarManagerIOS", instance, jsInvoker) {
+    NativeStatusBarManagerIOSSpecJSI::NativeStatusBarManagerIOSSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["getHeight"] = MethodMetadata {1, __hostFunction_NativeStatusBarManagerIOSSpecJSI_getHeight};
         
@@ -2336,8 +2314,8 @@ namespace facebook {
     }
 
 
-    NativeTVNavigationEventEmitterSpecJSI::NativeTVNavigationEventEmitterSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("TVNavigationEventEmitter", instance, jsInvoker) {
+    NativeTVNavigationEventEmitterSpecJSI::NativeTVNavigationEventEmitterSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["addListener"] = MethodMetadata {1, __hostFunction_NativeTVNavigationEventEmitterSpecJSI_addListener};
         
@@ -2367,8 +2345,8 @@ namespace facebook {
     }
 
 
-    NativeTimingSpecJSI::NativeTimingSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("Timing", instance, jsInvoker) {
+    NativeTimingSpecJSI::NativeTimingSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["createTimer"] = MethodMetadata {4, __hostFunction_NativeTimingSpecJSI_createTimer};
         
@@ -2405,8 +2383,8 @@ namespace facebook {
     }
 
 
-    NativeToastAndroidSpecJSI::NativeToastAndroidSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("ToastAndroid", instance, jsInvoker) {
+    NativeToastAndroidSpecJSI::NativeToastAndroidSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["show"] = MethodMetadata {2, __hostFunction_NativeToastAndroidSpecJSI_show};
         
@@ -2435,10 +2413,6 @@ namespace facebook {
 
     static facebook::jsi::Value __hostFunction_NativeUIManagerSpecJSI_getDefaultEventTypes(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
       return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, ArrayKind, "getDefaultEventTypes", @selector(getDefaultEventTypes), args, count);
-    }
-
-    static facebook::jsi::Value __hostFunction_NativeUIManagerSpecJSI_playTouchSound(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
-      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, VoidKind, "playTouchSound", @selector(playTouchSound), args, count);
     }
 
     static facebook::jsi::Value __hostFunction_NativeUIManagerSpecJSI_lazilyLoadView(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
@@ -2538,16 +2512,13 @@ namespace facebook {
     }
 
 
-    NativeUIManagerSpecJSI::NativeUIManagerSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("UIManager", instance, jsInvoker) {
+    NativeUIManagerSpecJSI::NativeUIManagerSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["getConstantsForViewManager"] = MethodMetadata {1, __hostFunction_NativeUIManagerSpecJSI_getConstantsForViewManager};
         
         
         methodMap_["getDefaultEventTypes"] = MethodMetadata {0, __hostFunction_NativeUIManagerSpecJSI_getDefaultEventTypes};
-        
-        
-        methodMap_["playTouchSound"] = MethodMetadata {0, __hostFunction_NativeUIManagerSpecJSI_playTouchSound};
         
         
         methodMap_["lazilyLoadView"] = MethodMetadata {1, __hostFunction_NativeUIManagerSpecJSI_lazilyLoadView};
@@ -2644,8 +2615,8 @@ namespace facebook {
     }
 
 
-    NativeVibrationSpecJSI::NativeVibrationSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("Vibration", instance, jsInvoker) {
+    NativeVibrationSpecJSI::NativeVibrationSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["vibrate"] = MethodMetadata {1, __hostFunction_NativeVibrationSpecJSI_vibrate};
         
@@ -2700,8 +2671,8 @@ namespace facebook {
     }
 
 
-    NativeWebSocketModuleSpecJSI::NativeWebSocketModuleSpecJSI(id<RCTTurboModule> instance, std::shared_ptr<CallInvoker> jsInvoker)
-      : ObjCTurboModule("WebSocketModule", instance, jsInvoker) {
+    NativeWebSocketModuleSpecJSI::NativeWebSocketModuleSpecJSI(const ObjCTurboModule::InitParams &params)
+      : ObjCTurboModule(params) {
         
         methodMap_["connect"] = MethodMetadata {4, __hostFunction_NativeWebSocketModuleSpecJSI_connect};
         

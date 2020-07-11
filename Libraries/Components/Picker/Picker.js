@@ -17,7 +17,7 @@ const React = require('react');
 const UnimplementedView = require('../UnimplementedViews/UnimplementedView');
 
 import type {TextStyleProp} from '../../StyleSheet/StyleSheet';
-import type {ColorValue} from '../../StyleSheet/StyleSheetTypes';
+import type {ColorValue} from '../../StyleSheet/StyleSheet';
 
 const MODE_DIALOG = 'dialog';
 const MODE_DROPDOWN = 'dropdown';
@@ -97,6 +97,12 @@ type PickerProps = $ReadOnly<{|
   itemStyle?: ?TextStyleProp,
 
   /**
+   * Color of the item background.
+   * @platform android
+   */
+  backgroundColor?: ColorValue,
+
+  /**
    * Prompt string for this picker, used on Android in dialog mode as the title of the dialog.
    * @platform android
    */
@@ -106,6 +112,10 @@ type PickerProps = $ReadOnly<{|
    * Used to locate this view in end-to-end tests.
    */
   testID?: ?string,
+  /**
+   * The string used for the accessibility label. Will be read once focused on the picker but not on change.
+   */
+  accessibilityLabel?: ?string,
 |}>;
 
 /**

@@ -4,7 +4,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @flow
+ * @flow strict-local
  * @format
  */
 
@@ -27,7 +27,7 @@ import type {
   DirectEventHandler,
   WithDefault,
 } from 'CodegenFlowtypes';
-import type {NativeComponent} from 'codegenNativeComponent';
+import type {NativeComponentType} from 'codegenNativeComponent';
 
 import type {ViewProps} from 'ViewPropTypes';
 
@@ -42,7 +42,7 @@ type ModuleProps = $ReadOnly<{|
   onBubblingEventDefinedInlineNull: BubblingEventHandler<null>,
 |}>;
 
-type NativeType = NativeComponent<ModuleProps>;
+type NativeType = NativeComponentType<ModuleProps>;
 
 interface NativeCommands {
   +hotspotUpdate: (viewRef: React.ElementRef<NativeType>, x: Int32, y: Int32) => void;
@@ -64,7 +64,7 @@ const FULL_NATIVE_COMPONENT_WITH_TYPE_EXPORT = `
 
 const codegenNativeCommands = require('codegenNativeCommands');
 const codegenNativeComponent = require('codegenNativeComponent');
-import type {NativeComponent} from 'codegenNativeComponent';
+import type {NativeComponentType} from 'codegenNativeComponent';
 
 import type {
   Int32,
@@ -86,7 +86,7 @@ type ModuleProps = $ReadOnly<{|
   onBubblingEventDefinedInlineNull: BubblingEventHandler<null>,
 |}>;
 
-type NativeType = NativeComponent<ModuleProps>;
+type NativeType = NativeComponentType<ModuleProps>;
 
 interface NativeCommands {
   +hotspotUpdate: (viewRef: React.ElementRef<NativeType>, x: Int32, y: Int32) => void;

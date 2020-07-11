@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <better/map.h>
 #include <better/mutex.h>
 
 #include <react/core/ReactPrimitives.h>
@@ -33,10 +34,9 @@ class ShadowTreeRegistry final {
   /*
    * Removes a `ShadowTree` instance with given `surfaceId` from the registry
    * and returns it as a result.
-   * The ownership of the instance is also transferred to the caller.
    * Can be called from any thread.
    */
-  std::unique_ptr<ShadowTree> remove(SurfaceId surfaceId) const;
+  void remove(SurfaceId surfaceId) const;
 
   /*
    * Finds a `ShadowTree` instance with a given `surfaceId` in the registry and
@@ -60,7 +60,7 @@ class ShadowTreeRegistry final {
 
  private:
   mutable better::shared_mutex mutex_;
-  mutable std::unordered_map<SurfaceId, std::unique_ptr<ShadowTree>>
+  mutable better::map<SurfaceId, std::unique_ptr<ShadowTree>>
       registry_; // Protected by `mutex_`.
 };
 

@@ -7,9 +7,9 @@
 
 #pragma once
 
-#include <react/graphics/Geometry.h>
 #include <react/core/ReactPrimitives.h>
 #include <react/debug/DebugStringConvertible.h>
+#include <react/graphics/Geometry.h>
 
 namespace facebook {
 namespace react {
@@ -81,7 +81,7 @@ using Touches = std::unordered_set<Touch, Touch::Hasher, Touch::Comparator>;
 std::string getDebugName(Touch const &touch);
 std::vector<DebugStringConvertibleObject> getDebugProps(
     Touch const &object,
-    DebugStringConvertibleOptions options = {});
+    DebugStringConvertibleOptions options);
 
 #endif
 

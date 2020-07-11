@@ -11,6 +11,7 @@ package com.facebook.react.viewmanagers;
 
 import android.view.View;
 import androidx.annotation.Nullable;
+import com.facebook.react.bridge.ColorPropConverter;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.uimanager.BaseViewManagerDelegate;
 import com.facebook.react.uimanager.BaseViewManagerInterface;
@@ -24,10 +25,10 @@ public class PullToRefreshViewManagerDelegate<T extends View, U extends BaseView
   public void setProperty(T view, String propName, @Nullable Object value) {
     switch (propName) {
       case "tintColor":
-        mViewManager.setTintColor(view, value == null ? null : ((Double) value).intValue());
+        mViewManager.setTintColor(view, ColorPropConverter.getColor(value, view.getContext()));
         break;
       case "titleColor":
-        mViewManager.setTitleColor(view, value == null ? null : ((Double) value).intValue());
+        mViewManager.setTitleColor(view, ColorPropConverter.getColor(value, view.getContext()));
         break;
       case "title":
         mViewManager.setTitle(view, value == null ? null : (String) value);

@@ -65,9 +65,7 @@ const inspect = (function() {
   function formatValue(ctx, value, recurseTimes) {
     ctx.formatValueCalls++;
     if (ctx.formatValueCalls > 200) {
-      return `[TOO BIG formatValueCalls ${
-        ctx.formatValueCalls
-      } exceeded limit of 200]`;
+      return `[TOO BIG formatValueCalls ${ctx.formatValueCalls} exceeded limit of 200]`;
     }
 
     // Primitive types cannot have properties
@@ -582,15 +580,7 @@ if (global.nativeLoggingHook) {
       const reactNativeMethod = console[methodName];
       if (originalConsole[methodName]) {
         console[methodName] = function() {
-          // TODO(T43930203): remove this special case once originalConsole.assert properly checks
-          // the condition
-          if (methodName === 'assert') {
-            if (!arguments[0]) {
-              originalConsole.assert(...arguments);
-            }
-          } else {
-            originalConsole[methodName](...arguments);
-          }
+          originalConsole[methodName](...arguments);
           reactNativeMethod.apply(console, arguments);
         };
       }
@@ -599,14 +589,7 @@ if (global.nativeLoggingHook) {
     // The following methods are not supported by this polyfill but
     // we still should pass them to original console if they are
     // supported by it.
-    [
-      'clear',
-      'dir',
-      'dirxml',
-      'groupCollapsed',
-      'profile',
-      'profileEnd',
-    ].forEach(methodName => {
+    ['clear', 'dir', 'dirxml', 'profile', 'profileEnd'].forEach(methodName => {
       if (typeof originalConsole[methodName] === 'function') {
         console[methodName] = function() {
           originalConsole[methodName](...arguments);

@@ -19,7 +19,8 @@ const StyleSheet = require('../StyleSheet/StyleSheet');
 
 const invariant = require('invariant');
 
-import type {ScrollResponderType} from '../Components/ScrollView/ScrollView';
+import {type ScrollResponderType} from '../Components/ScrollView/ScrollView';
+import type {ScrollViewNativeComponentType} from '../Components/ScrollView/ScrollViewNativeComponentType.js';
 import type {ViewStyleProp} from '../StyleSheet/StyleSheet';
 import type {
   ViewToken,
@@ -367,6 +368,17 @@ class FlatList<ItemT> extends React.PureComponent<Props<ItemT>, void> {
     }
   }
 
+  /**
+   * Provides a reference to the underlying host component
+   */
+  getNativeScrollRef():
+    | ?React.ElementRef<typeof View>
+    | ?React.ElementRef<ScrollViewNativeComponentType> {
+    if (this._listRef) {
+      return this._listRef.getScrollRef();
+    }
+  }
+
   getScrollableNode(): any {
     if (this._listRef) {
       return this._listRef.getScrollableNode();
@@ -392,10 +404,10 @@ class FlatList<ItemT> extends React.PureComponent<Props<ItemT>, void> {
         }),
       );
     } else if (this.props.onViewableItemsChanged) {
-      /* $FlowFixMe(>=0.63.0 site=react_native_fb) This comment suppresses an
-       * error found when Flow v0.63 was deployed. To see the error delete this
-       * comment and run Flow. */
       this._virtualizedListPairs.push({
+        /* $FlowFixMe(>=0.63.0 site=react_native_fb) This comment suppresses an
+         * error found when Flow v0.63 was deployed. To see the error delete
+         * this comment and run Flow. */
         viewabilityConfig: this.props.viewabilityConfig,
         onViewableItemsChanged: this._createOnViewableItemsChanged(
           this.props.onViewableItemsChanged,
@@ -581,11 +593,7 @@ class FlatList<ItemT> extends React.PureComponent<Props<ItemT>, void> {
             'Expected array of items with numColumns > 1',
           );
           return (
-            <View
-              style={StyleSheet.compose(
-                styles.row,
-                columnWrapperStyle,
-              )}>
+            <View style={StyleSheet.compose(styles.row, columnWrapperStyle)}>
               {item.map((it, kk) => {
                 const element = renderer({
                   item: it,

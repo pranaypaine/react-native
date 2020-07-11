@@ -17,6 +17,7 @@ const StyleSheetValidation = require('./StyleSheetValidation');
 const flatten = require('./flattenStyle');
 
 import type {
+  ____ColorValue_Internal,
   ____Styles_Internal,
   ____DangerouslyImpreciseStyle_Internal,
   ____DangerouslyImpreciseStyleProp_Internal,
@@ -27,6 +28,15 @@ import type {
   ____ImageStyle_Internal,
   ____ImageStyleProp_Internal,
 } from './StyleSheetTypes';
+
+/**
+ * This type should be used as the type for anything that is a color. It is
+ * most useful when using DynamicColorIOS which can be a string or a dynamic
+ * color object.
+ *
+ * type props = {backgroundColor: ColorValue};
+ */
+export type ColorValue = ____ColorValue_Internal;
 
 /**
  * This type should be used as the type for a prop that is passed through
@@ -347,7 +357,7 @@ module.exports = {
   /**
    * Creates a StyleSheet style reference from the given object.
    */
-  create<+S: ____Styles_Internal>(obj: S): $ObjMap<S, (Object) => any> {
+  create<+S: ____Styles_Internal>(obj: S): $ReadOnly<S> {
     // TODO: This should return S as the return type. But first,
     // we need to codemod all the callsites that are typing this
     // return value as a number (even though it was opaque).

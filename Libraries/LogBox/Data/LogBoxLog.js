@@ -4,7 +4,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @flow
+ * @flow strict-local
  * @format
  */
 
@@ -26,6 +26,7 @@ export type LogLevel = 'warn' | 'error' | 'fatal' | 'syntax';
 
 export type LogBoxLogData = $ReadOnly<{|
   level: LogLevel,
+  type?: ?string,
   message: Message,
   stack: Stack,
   category: string,
@@ -36,6 +37,7 @@ export type LogBoxLogData = $ReadOnly<{|
 
 class LogBoxLog {
   message: Message;
+  type: ?string;
   category: Category;
   componentStack: ComponentStack;
   stack: Stack;
@@ -55,6 +57,7 @@ class LogBoxLog {
 
   constructor(data: LogBoxLogData) {
     this.level = data.level;
+    this.type = data.type;
     this.message = data.message;
     this.stack = data.stack;
     this.category = data.category;

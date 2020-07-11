@@ -10,11 +10,11 @@
 
 'use strict';
 
-const {generateStructName} = require('./CppHelpers.js');
+const {generateEventStructName} = require('./CppHelpers.js');
 
 import type {
   ComponentShape,
-  ObjectPropertyType,
+  EventObjectPropertyType,
   SchemaType,
 } from '../../CodegenSchema';
 
@@ -79,7 +79,7 @@ function generateEnumSetter(variableName, propertyName, propertyParts) {
 
 function generateSetters(
   parentPropertyName: string,
-  properties: $ReadOnlyArray<ObjectPropertyType>,
+  properties: $ReadOnlyArray<EventObjectPropertyType>,
   propertyParts: $ReadOnlyArray<string>,
 ): string {
   const propSetters = properties
@@ -151,10 +151,7 @@ function generateEvent(componentName: string, event): string {
       .replace(/::_CLASSNAME_::/g, componentName)
       .replace(/::_EVENT_NAME_::/g, event.name)
       .replace(/::_DISPATCH_EVENT_NAME_::/g, dispatchEventName)
-      .replace(
-        '::_STRUCT_NAME_::',
-        generateStructName(componentName, [event.name]),
-      )
+      .replace('::_STRUCT_NAME_::', generateEventStructName([event.name]))
       .replace('::_IMPLEMENTATION_::', implementation);
   }
 

@@ -13,10 +13,7 @@
 const Systrace = require('../Performance/Systrace');
 
 const infoLog = require('./infoLog');
-const performanceNow =
-  global.nativeQPLTimestamp ||
-  global.nativePerformanceNow ||
-  require('fbjs/lib/performanceNow');
+const performanceNow = global.nativeQPLTimestamp ?? global.performance.now;
 
 type Timespan = {
   description?: string,
@@ -29,7 +26,7 @@ type Timespan = {
 export type IPerformanceLogger = {
   addTimespan(string, number, string | void): void,
   startTimespan(string, string | void): void,
-  stopTimespan(string): void,
+  stopTimespan(string, options?: {update?: boolean}): void,
   clear(): void,
   clearCompleted(): void,
   clearExceptTimespans(Array<string>): void,
@@ -107,7 +104,7 @@ function createPerformanceLogger(): IPerformanceLogger {
       }
     },
 
-    stopTimespan(key: string) {
+    stopTimespan(key: string, options?: {update?: boolean}) {
       const timespan = this._timespans[key];
       if (!timespan || !timespan.startTime) {
         if (PRINT_TO_CONSOLE && __DEV__) {
@@ -118,7 +115,7 @@ function createPerformanceLogger(): IPerformanceLogger {
         }
         return;
       }
-      if (timespan.endTime) {
+      if (timespan.endTime && !options?.update) {
         if (PRINT_TO_CONSOLE && __DEV__) {
           infoLog(
             'PerformanceLogger: Attempting to end a timespan that has already ended ',
@@ -134,8 +131,10 @@ function createPerformanceLogger(): IPerformanceLogger {
         infoLog('PerformanceLogger.js', 'end: ' + key);
       }
 
-      Systrace.endAsyncEvent(key, _cookies[key]);
-      delete _cookies[key];
+      if (_cookies[key] != null) {
+        Systrace.endAsyncEvent(key, _cookies[key]);
+        delete _cookies[key];
+      }
     },
 
     clear() {

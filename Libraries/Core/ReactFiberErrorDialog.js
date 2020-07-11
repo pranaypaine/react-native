@@ -5,17 +5,13 @@
  * LICENSE file in the root directory of this source tree.
  *
  * @format
- * @flow
+ * @flow strict-local
  */
 
 export type CapturedError = {
-  +componentName: ?string,
   +componentStack: string,
   +error: mixed,
   +errorBoundary: ?{...},
-  +errorBoundaryFound: boolean,
-  +errorBoundaryName: string | null,
-  +willRetry: boolean,
   ...
 };
 

@@ -9,6 +9,7 @@
 
 #include <folly/dynamic.h>
 #include <react/components/view/AccessibilityPrimitives.h>
+#include <react/core/propsConversions.h>
 
 namespace facebook {
 namespace react {
@@ -38,7 +39,7 @@ inline void fromString(const std::string &string, AccessibilityTraits &result) {
     result = AccessibilityTraits::PlaysSound;
     return;
   }
-  if (string == "keyboardkey") {
+  if (string == "keyboardkey" || string == "key") {
     result = AccessibilityTraits::KeyboardKey;
     return;
   }
@@ -78,7 +79,16 @@ inline void fromString(const std::string &string, AccessibilityTraits &result) {
     result = AccessibilityTraits::Header;
     return;
   }
-  abort();
+  if (string == "imagebutton") {
+    result = AccessibilityTraits::Image | AccessibilityTraits::Button;
+    return;
+  }
+  if (string == "summary") {
+    result = AccessibilityTraits::SummaryElement;
+    return;
+  }
+
+  result = AccessibilityTraits::None;
 }
 
 inline void fromRawValue(const RawValue &value, AccessibilityTraits &result) {
@@ -98,6 +108,18 @@ inline void fromRawValue(const RawValue &value, AccessibilityTraits &result) {
   }
 
   abort();
+}
+
+inline void fromRawValue(const RawValue &value, AccessibilityState &result) {
+  auto map = (better::map<std::string, RawValue>)value;
+  auto selected = map.find("selected");
+  if (selected != map.end()) {
+    fromRawValue(selected->second, result.selected);
+  }
+  auto disabled = map.find("disabled");
+  if (disabled != map.end()) {
+    fromRawValue(disabled->second, result.disabled);
+  }
 }
 
 } // namespace react

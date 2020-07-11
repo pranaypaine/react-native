@@ -16,8 +16,6 @@
 #include <react/core/ShadowNode.h>
 #include <react/core/ShadowNodeFragment.h>
 #include <react/core/State.h>
-#include <react/core/StateCoordinator.h>
-#include <react/core/StateUpdate.h>
 
 namespace facebook {
 namespace react {
@@ -45,11 +43,8 @@ class ConcreteComponentDescriptor : public ComponentDescriptor {
   using ConcreteState = typename ShadowNodeT::ConcreteState;
   using ConcreteStateData = typename ShadowNodeT::ConcreteState::Data;
 
-  ConcreteComponentDescriptor(
-      EventDispatcher::Weak const &eventDispatcher,
-      ContextContainer::Shared const &contextContainer = {},
-      ComponentDescriptor::Flavor const &flavor = {})
-      : ComponentDescriptor(eventDispatcher, contextContainer, flavor) {
+  ConcreteComponentDescriptor(ComponentDescriptorParameters const &parameters)
+      : ComponentDescriptor(parameters) {
     rawPropsParser_.prepare<ConcreteProps>();
   }
 
@@ -65,14 +60,13 @@ class ConcreteComponentDescriptor : public ComponentDescriptor {
     return ShadowNodeT::BaseTraits();
   }
 
-  SharedShadowNode createShadowNode(
-      const ShadowNodeFragment &fragment) const override {
+  ShadowNode::Shared createShadowNode(
+      const ShadowNodeFragment &fragment,
+      ShadowNodeFamily::Shared const &family) const override {
     assert(std::dynamic_pointer_cast<const ConcreteProps>(fragment.props));
-    assert(std::dynamic_pointer_cast<const ConcreteEventEmitter>(
-        fragment.eventEmitter));
 
     auto shadowNode =
-        std::make_shared<ShadowNodeT>(fragment, *this, getTraits());
+        std::make_shared<ShadowNodeT>(fragment, family, getTraits());
 
     adopt(shadowNode);
 
@@ -93,8 +87,8 @@ class ConcreteComponentDescriptor : public ComponentDescriptor {
   }
 
   void appendChild(
-      const SharedShadowNode &parentShadowNode,
-      const SharedShadowNode &childShadowNode) const override {
+      const ShadowNode::Shared &parentShadowNode,
+      const ShadowNode::Shared &childShadowNode) const override {
     assert(
         dynamic_cast<ConcreteShadowNode const *>(parentShadowNode.get()) &&
         "Provided `parentShadowNode` has an incompatible type.");
@@ -114,8 +108,13 @@ class ConcreteComponentDescriptor : public ComponentDescriptor {
         dynamic_cast<ConcreteProps const *>(props.get()) &&
             "Provided `props` has an incompatible type.");
 
-    if (rawProps.isEmpty()) {
-      return props ? props : ShadowNodeT::defaultSharedProps();
+    // Optimization:
+    // Quite often nodes are constructed with default/empty props: the base
+    // `props` object is `null` (there no base because it's not cloning) and the
+    // `rawProps` is empty. In this case, we can return the default props object
+    // of a concrete type entirely bypassing parsing.
+    if (!props && rawProps.isEmpty()) {
+      return ShadowNodeT::defaultSharedProps();
     }
 
     rawProps.parse(rawPropsParser_);
@@ -123,42 +122,54 @@ class ConcreteComponentDescriptor : public ComponentDescriptor {
     return ShadowNodeT::Props(rawProps, props);
   };
 
-  virtual SharedEventEmitter createEventEmitter(
-      SharedEventTarget eventTarget,
-      const Tag &tag) const override {
-    return std::make_shared<ConcreteEventEmitter>(
-        std::move(eventTarget), tag, eventDispatcher_);
-  }
+  virtual SharedProps interpolateProps(
+      float animationProgress,
+      const SharedProps &props,
+      const SharedProps &newProps) const override {
+    // By default, this does nothing.
+    return cloneProps(newProps, {});
+  };
 
   virtual State::Shared createInitialState(
-      ShadowNodeFragment const &fragment) const override {
+      ShadowNodeFragment const &fragment,
+      ShadowNodeFamily::Shared const &family) const override {
     if (std::is_same<ConcreteStateData, StateData>::value) {
       // Default case: Returning `null` for nodes that don't use `State`.
       return nullptr;
     }
 
     return std::make_shared<ConcreteState>(
-        ConcreteShadowNode::initialStateData(fragment, *this),
-        std::make_shared<StateCoordinator>(eventDispatcher_));
+        std::make_shared<ConcreteStateData const>(
+            ConcreteShadowNode::initialStateData(
+                fragment, ShadowNodeFamilyFragment::build(*family), *this)),
+        family);
   }
 
   virtual State::Shared createState(
-      const State::Shared &previousState,
-      const StateData::Shared &data) const override {
+      ShadowNodeFamily const &family,
+      StateData::Shared const &data) const override {
     if (std::is_same<ConcreteStateData, StateData>::value) {
       // Default case: Returning `null` for nodes that don't use `State`.
       return nullptr;
     }
 
-    assert(previousState && "Provided `previousState` is nullptr.");
     assert(data && "Provided `data` is nullptr.");
-    assert(
-        dynamic_cast<ConcreteState const *>(previousState.get()) &&
-        "Provided `previousState` has an incompatible type.");
 
-    return std::make_shared<const ConcreteState>(
-        std::move(*std::static_pointer_cast<ConcreteStateData>(data)),
-        *std::static_pointer_cast<const ConcreteState>(previousState));
+    return std::make_shared<ConcreteState const>(
+        std::static_pointer_cast<ConcreteStateData const>(data),
+        *family.getMostRecentState());
+  }
+
+  virtual ShadowNodeFamily::Shared createFamily(
+      ShadowNodeFamilyFragment const &fragment,
+      SharedEventTarget eventTarget) const override {
+    auto eventEmitter = std::make_shared<ConcreteEventEmitter const>(
+        std::move(eventTarget), fragment.tag, eventDispatcher_);
+    return std::make_shared<ShadowNodeFamily>(
+        ShadowNodeFamilyFragment{
+            fragment.tag, fragment.surfaceId, eventEmitter},
+        eventDispatcher_,
+        *this);
   }
 
  protected:

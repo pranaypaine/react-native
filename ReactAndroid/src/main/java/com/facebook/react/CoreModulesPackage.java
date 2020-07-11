@@ -16,10 +16,12 @@ import androidx.annotation.Nullable;
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactMarker;
+import com.facebook.react.devsupport.LogBoxModule;
 import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.module.annotations.ReactModuleList;
 import com.facebook.react.module.model.ReactModuleInfo;
 import com.facebook.react.module.model.ReactModuleInfoProvider;
+import com.facebook.react.modules.bundleloader.NativeDevSplitBundleLoaderModule;
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.modules.core.ExceptionsManagerModule;
@@ -29,6 +31,7 @@ import com.facebook.react.modules.debug.DevSettingsModule;
 import com.facebook.react.modules.debug.SourceCodeModule;
 import com.facebook.react.modules.deviceinfo.DeviceInfoModule;
 import com.facebook.react.modules.systeminfo.AndroidInfoModule;
+import com.facebook.react.turbomodule.core.interfaces.TurboModule;
 import com.facebook.react.uimanager.UIImplementationProvider;
 import com.facebook.react.uimanager.UIManagerModule;
 import com.facebook.react.uimanager.ViewManager;
@@ -49,19 +52,21 @@ import java.util.Map;
       DeviceInfoModule.class,
       DevSettingsModule.class,
       ExceptionsManagerModule.class,
+      LogBoxModule.class,
       HeadlessJsTaskSupportModule.class,
       SourceCodeModule.class,
       TimingModule.class,
       UIManagerModule.class,
+      NativeDevSplitBundleLoaderModule.class,
     })
-/* package */ class CoreModulesPackage extends TurboReactPackage implements ReactPackageLogger {
+public class CoreModulesPackage extends TurboReactPackage implements ReactPackageLogger {
 
   private final ReactInstanceManager mReactInstanceManager;
   private final DefaultHardwareBackBtnHandler mHardwareBackBtnHandler;
   private final boolean mLazyViewManagersEnabled;
   private final int mMinTimeLeftInFrameForNonBatchedOperationMs;
 
-  CoreModulesPackage(
+  public CoreModulesPackage(
       ReactInstanceManager reactInstanceManager,
       DefaultHardwareBackBtnHandler hardwareBackBtnHandler,
       @Nullable UIImplementationProvider uiImplementationProvider,
@@ -94,10 +99,12 @@ import java.util.Map;
             DeviceInfoModule.class,
             DevSettingsModule.class,
             ExceptionsManagerModule.class,
+            LogBoxModule.class,
             HeadlessJsTaskSupportModule.class,
             SourceCodeModule.class,
             TimingModule.class,
-            UIManagerModule.class
+            UIManagerModule.class,
+            NativeDevSplitBundleLoaderModule.class,
           };
 
       final Map<String, ReactModuleInfo> reactModuleInfoMap = new HashMap<>();
@@ -113,7 +120,7 @@ import java.util.Map;
                 reactModule.needsEagerInit(),
                 reactModule.hasConstants(),
                 reactModule.isCxxModule(),
-                false));
+                TurboModule.class.isAssignableFrom(moduleClass)));
       }
 
       return new ReactModuleInfoProvider() {
@@ -142,6 +149,8 @@ import java.util.Map;
         return new DevSettingsModule(reactContext, mReactInstanceManager.getDevSupportManager());
       case ExceptionsManagerModule.NAME:
         return new ExceptionsManagerModule(mReactInstanceManager.getDevSupportManager());
+      case LogBoxModule.NAME:
+        return new LogBoxModule(reactContext, mReactInstanceManager.getDevSupportManager());
       case HeadlessJsTaskSupportModule.NAME:
         return new HeadlessJsTaskSupportModule(reactContext);
       case SourceCodeModule.NAME:
@@ -152,6 +161,9 @@ import java.util.Map;
         return createUIManager(reactContext);
       case DeviceInfoModule.NAME:
         return new DeviceInfoModule(reactContext);
+      case NativeDevSplitBundleLoaderModule.NAME:
+        return new NativeDevSplitBundleLoaderModule(
+            reactContext, mReactInstanceManager.getDevSupportManager());
       default:
         throw new IllegalArgumentException(
             "In CoreModulesPackage, could not find Native module for " + name);

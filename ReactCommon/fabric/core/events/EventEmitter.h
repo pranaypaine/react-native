@@ -78,10 +78,18 @@ class EventEmitter {
       const folly::dynamic &payload,
       const EventPriority &priority = EventPriority::AsynchronousBatched) const;
 
+  void dispatchUniqueEvent(
+      const std::string &type,
+      const ValueFactory &payloadFactory =
+          EventEmitter::defaultPayloadFactory()) const;
+
  private:
   void toggleEventTargetOwnership_() const;
 
+  friend class UIManagerBinding;
+
   mutable SharedEventTarget eventTarget_;
+
   EventDispatcher::Weak eventDispatcher_;
   mutable int enableCounter_{0};
   mutable bool isEnabled_{false};

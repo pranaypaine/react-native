@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <folly/Conv.h>
 #include <folly/dynamic.h>
 #include <react/attributedstring/AttributedString.h>
 #include <react/attributedstring/ParagraphAttributes.h>
@@ -21,7 +22,7 @@
 #include <react/graphics/conversions.h>
 #include <cmath>
 
-#include <Glog/logging.h>
+#include <glog/logging.h>
 
 namespace facebook {
 namespace react {
@@ -413,35 +414,67 @@ inline std::string toString(
 
 inline ParagraphAttributes convertRawProp(
     RawProps const &rawProps,
+    ParagraphAttributes const &sourceParagraphAttributes,
     ParagraphAttributes const &defaultParagraphAttributes) {
   auto paragraphAttributes = ParagraphAttributes{};
 
   paragraphAttributes.maximumNumberOfLines = convertRawProp(
       rawProps,
       "numberOfLines",
+      sourceParagraphAttributes.maximumNumberOfLines,
       defaultParagraphAttributes.maximumNumberOfLines);
   paragraphAttributes.ellipsizeMode = convertRawProp(
-      rawProps, "ellipsizeMode", defaultParagraphAttributes.ellipsizeMode);
+      rawProps,
+      "ellipsizeMode",
+      sourceParagraphAttributes.ellipsizeMode,
+      defaultParagraphAttributes.ellipsizeMode);
   paragraphAttributes.textBreakStrategy = convertRawProp(
       rawProps,
       "textBreakStrategy",
+      sourceParagraphAttributes.textBreakStrategy,
       defaultParagraphAttributes.textBreakStrategy);
   paragraphAttributes.adjustsFontSizeToFit = convertRawProp(
       rawProps,
       "adjustsFontSizeToFit",
+      sourceParagraphAttributes.adjustsFontSizeToFit,
       defaultParagraphAttributes.adjustsFontSizeToFit);
   paragraphAttributes.minimumFontSize = convertRawProp(
       rawProps,
       "minimumFontSize",
-      defaultParagraphAttributes.minimumFontSize,
-      std::numeric_limits<Float>::quiet_NaN());
+      sourceParagraphAttributes.minimumFontSize,
+      defaultParagraphAttributes.minimumFontSize);
   paragraphAttributes.maximumFontSize = convertRawProp(
       rawProps,
       "maximumFontSize",
-      defaultParagraphAttributes.maximumFontSize,
-      std::numeric_limits<Float>::quiet_NaN());
+      sourceParagraphAttributes.maximumFontSize,
+      defaultParagraphAttributes.maximumFontSize);
+  paragraphAttributes.includeFontPadding = convertRawProp(
+      rawProps,
+      "includeFontPadding",
+      sourceParagraphAttributes.includeFontPadding,
+      defaultParagraphAttributes.includeFontPadding);
 
   return paragraphAttributes;
+}
+
+inline void fromRawValue(
+    RawValue const &value,
+    AttributedString::Range &result) {
+  auto map = (better::map<std::string, int>)value;
+
+  auto start = map.find("start");
+  if (start != map.end()) {
+    result.location = start->second;
+  }
+  auto end = map.find("end");
+  if (end != map.end()) {
+    result.length = start->second - result.location;
+  }
+}
+
+inline std::string toString(AttributedString::Range const &range) {
+  return "{location: " + folly::to<std::string>(range.location) +
+      ", length: " + folly::to<std::string>(range.length) + "}";
 }
 
 #ifdef ANDROID
@@ -453,7 +486,30 @@ inline folly::dynamic toDynamic(
   values("ellipsizeMode", toString(paragraphAttributes.ellipsizeMode));
   values("textBreakStrategy", toString(paragraphAttributes.textBreakStrategy));
   values("adjustsFontSizeToFit", paragraphAttributes.adjustsFontSizeToFit);
+  values("includeFontPadding", paragraphAttributes.includeFontPadding);
+
   return values;
+}
+
+inline folly::dynamic toDynamic(const FontVariant &fontVariant) {
+  auto result = folly::dynamic::array();
+  if ((int)fontVariant & (int)FontVariant::SmallCaps) {
+    result.push_back("small-caps");
+  }
+  if ((int)fontVariant & (int)FontVariant::OldstyleNums) {
+    result.push_back("oldstyle-nums");
+  }
+  if ((int)fontVariant & (int)FontVariant::LiningNums) {
+    result.push_back("lining-nums");
+  }
+  if ((int)fontVariant & (int)FontVariant::TabularNums) {
+    result.push_back("tabular-nums");
+  }
+  if ((int)fontVariant & (int)FontVariant::ProportionalNums) {
+    result.push_back("proportional-nums");
+  }
+
+  return result;
 }
 
 inline folly::dynamic toDynamic(const TextAttributes &textAttributes) {
@@ -485,7 +541,7 @@ inline folly::dynamic toDynamic(const TextAttributes &textAttributes) {
     _textAttributes("fontStyle", toString(*textAttributes.fontStyle));
   }
   if (textAttributes.fontVariant.has_value()) {
-    _textAttributes("fontVariant", toString(*textAttributes.fontVariant));
+    _textAttributes("fontVariant", toDynamic(*textAttributes.fontVariant));
   }
   if (textAttributes.allowFontScaling.has_value()) {
     _textAttributes("allowFontScaling", *textAttributes.allowFontScaling);
@@ -552,6 +608,13 @@ inline folly::dynamic toDynamic(const AttributedString &attributedString) {
     if (fragment.parentShadowView.componentHandle) {
       dynamicFragment["reactTag"] = fragment.parentShadowView.tag;
     }
+    if (fragment.isAttachment()) {
+      dynamicFragment["isAttachment"] = true;
+      dynamicFragment["width"] =
+          fragment.parentShadowView.layoutMetrics.frame.size.width;
+      dynamicFragment["height"] =
+          fragment.parentShadowView.layoutMetrics.frame.size.height;
+    }
     dynamicFragment["textAttributes"] = toDynamic(fragment.textAttributes);
     fragments.push_back(dynamicFragment);
   }
@@ -560,6 +623,13 @@ inline folly::dynamic toDynamic(const AttributedString &attributedString) {
       "hash", std::hash<facebook::react::AttributedString>{}(attributedString));
   value("string", attributedString.getString());
   return value;
+}
+
+inline folly::dynamic toDynamic(AttributedString::Range const &range) {
+  folly::dynamic dynamicValue = folly::dynamic::object();
+  dynamicValue["location"] = range.location;
+  dynamicValue["length"] = range.length;
+  return dynamicValue;
 }
 
 #endif

@@ -11,16 +11,18 @@
 'use strict';
 
 module.exports = {
-  getViewManagerConfig: (viewManagerName: string): null => {
+  getViewManagerConfig: (viewManagerName: string): mixed => {
     console.warn(
       'Attempting to get config for view manager: ' + viewManagerName,
     );
+    if (viewManagerName === 'RCTVirtualText') {
+      return {};
+    }
     return null;
   },
   getConstants: (): {...} => ({}),
   getConstantsForViewManager: (viewManagerName: string) => {},
   getDefaultEventTypes: (): Array<$FlowFixMe> => [],
-  playTouchSound: () => {},
   lazilyLoadView: (name: string) => {},
   createView: (
     reactTag: ?number,

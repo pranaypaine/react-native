@@ -10,14 +10,13 @@
 
 'use strict';
 
-const EmitterSubscription = require('../vendor/emitter/EmitterSubscription');
-const PropTypes = require('prop-types');
-const RCTDeviceEventEmitter = require('../EventEmitter/RCTDeviceEventEmitter');
-const React = require('react');
-const ReactNative = require('../Renderer/shims/ReactNative');
-const RootTagContext = require('./RootTagContext');
-const StyleSheet = require('../StyleSheet/StyleSheet');
-const View = require('../Components/View/View');
+import View from '../Components/View/View';
+import RCTDeviceEventEmitter from '../EventEmitter/RCTDeviceEventEmitter';
+import StyleSheet from '../StyleSheet/StyleSheet';
+import {type EventSubscription} from '../vendor/emitter/EventEmitter';
+import {RootTagContext, createRootTag} from './RootTag';
+import PropTypes from 'prop-types';
+import * as React from 'react';
 
 type Context = {rootTag: number, ...};
 
@@ -25,6 +24,7 @@ type Props = $ReadOnly<{|
   children?: React.Node,
   fabric?: boolean,
   rootTag: number,
+  initialProps?: {...},
   showArchitectureIndicator?: boolean,
   WrapperComponent?: ?React.ComponentType<any>,
   internal_excludeLogBox?: ?boolean,
@@ -43,7 +43,7 @@ class AppContainer extends React.Component<Props, State> {
     hasError: false,
   };
   _mainRef: ?React.ElementRef<typeof View>;
-  _subscription: ?EmitterSubscription = null;
+  _subscription: ?EventSubscription = null;
 
   static getDerivedStateFromError: any = undefined;
 
@@ -68,14 +68,11 @@ class AppContainer extends React.Component<Props, State> {
             const Inspector = require('../Inspector/Inspector');
             const inspector = this.state.inspector ? null : (
               <Inspector
-                inspectedViewTag={ReactNative.findNodeHandle(this._mainRef)}
-                onRequestRerenderApp={updateInspectedViewTag => {
+                inspectedView={this._mainRef}
+                onRequestRerenderApp={updateInspectedView => {
                   this.setState(
                     s => ({mainKey: s.mainKey + 1}),
-                    () =>
-                      updateInspectedViewTag(
-                        ReactNative.findNodeHandle(this._mainRef),
-                      ),
+                    () => updateInspectedView(this._mainRef),
                   );
                 }}
               />
@@ -95,15 +92,14 @@ class AppContainer extends React.Component<Props, State> {
 
   render(): React.Node {
     let logBox = null;
-    if (__DEV__ && !this.props.internal_excludeLogBox) {
-      if (!global.__RCTProfileIsProfiling) {
-        if (global.__reactExperimentalLogBox) {
-          const LogBox = require('../LogBox/LogBox');
-          logBox = <LogBox />;
-        } else {
-          const YellowBox = require('../YellowBox/YellowBox');
-          logBox = <YellowBox />;
-        }
+    if (__DEV__) {
+      if (
+        !global.__RCTProfileIsProfiling &&
+        !this.props.internal_excludeLogBox
+      ) {
+        const LogBoxNotificationContainer = require('../LogBox/LogBoxNotificationContainer')
+          .default;
+        logBox = <LogBoxNotificationContainer />;
       }
     }
 
@@ -124,6 +120,7 @@ class AppContainer extends React.Component<Props, State> {
     if (Wrapper != null) {
       innerView = (
         <Wrapper
+          initialProps={this.props.initialProps}
           fabric={this.props.fabric === true}
           showArchitectureIndicator={
             this.props.showArchitectureIndicator === true
@@ -133,7 +130,7 @@ class AppContainer extends React.Component<Props, State> {
       );
     }
     return (
-      <RootTagContext.Provider value={this.props.rootTag}>
+      <RootTagContext.Provider value={createRootTag(this.props.rootTag)}>
         <View style={styles.appContainer} pointerEvents="box-none">
           {!this.state.hasError && innerView}
           {this.state.inspector}
@@ -152,22 +149,8 @@ const styles = StyleSheet.create({
 
 if (__DEV__) {
   if (!global.__RCTProfileIsProfiling) {
-    if (global.__reactExperimentalLogBox) {
-      const LogBox = require('../LogBox/LogBox');
-      LogBox.install();
-
-      // TODO: (rickhanlonii) T57484314 Temporary hack to fix LogBox experiment but we need to
-      // either decide to provide an error boundary by default or move this to a separate root.
-      AppContainer.getDerivedStateFromError = function getDerivedStateFromError(
-        error,
-        state,
-      ) {
-        return {...state, hasError: true};
-      };
-    } else {
-      const YellowBox = require('../YellowBox/YellowBox');
-      YellowBox.install();
-    }
+    const LogBox = require('../LogBox/LogBox');
+    LogBox.install();
   }
 }
 

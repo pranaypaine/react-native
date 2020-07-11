@@ -28,13 +28,20 @@ project.xcworkspace
 /RNTester/android/app/gradlew
 /RNTester/android/app/gradlew.bat
 /ReactAndroid/build/
+/ReactAndroid/gradle/
+/ReactAndroid/gradlew
+/ReactAndroid/gradlew.bat
 
 # Buck
 .buckd
 buck-out
-/ReactAndroid/src/main/jni/prebuilt/lib/armeabi-v7a/
-/ReactAndroid/src/main/jni/prebuilt/lib/x86/
+/ReactAndroid/src/main/jni/prebuilt/lib/
 /ReactAndroid/src/main/gen
+
+# Android Studio
+.project
+.settings
+.classpath
 
 # Watchman
 .watchmanconfig
@@ -87,9 +94,14 @@ RNTester/Pods/*
 !RNTester/Pods/__offline_mirrors
 
 # react-native-codegen
+/packages/react-native-codegen/lib
 /ReactCommon/fabric/components/rncore/
+/schema-native-modules.json
 /schema-rncore.json
 
 # Visual studio
 .vscode
 .vs
+
+# Android memory profiler files
+*.hprof

@@ -10,31 +10,20 @@
 
 'use strict';
 
-import * as React from 'react';
 import Platform from '../Utilities/Platform';
 import RCTLog from '../Utilities/RCTLog';
-import LogBoxContainer from './UI/LogBoxContainer';
-import * as LogBoxData from './Data/LogBoxData';
-import {parseLogBoxLog} from './Data/parseLogBoxLog';
 
-import type {LogBoxLogs, Subscription, IgnorePattern} from './Data/LogBoxData';
+import type {IgnorePattern} from './Data/LogBoxData';
 
-import LogBoxLog from './Data/LogBoxLog';
-
-type Props = $ReadOnly<{||}>;
-type State = {|
-  logs: LogBoxLogs,
-  isDisabled: boolean,
-  hasError: boolean,
-  selectedLogIndex: number,
-|};
-
-let LogBoxComponent;
+let LogBox;
 
 /**
  * LogBox displays logs in the app.
  */
 if (__DEV__) {
+  const LogBoxData = require('./Data/LogBoxData');
+  const {parseLogBoxLog, parseInterpolation} = require('./Data/parseLogBoxLog');
+
   // LogBox needs to insert itself early,
   // in order to access the component stacks appended by React DevTools.
   const {error, warn} = console;
@@ -48,25 +37,25 @@ if (__DEV__) {
     warnImpl(...args);
   };
 
-  LogBoxComponent = class LogBox extends React.Component<Props, State> {
-    static getDerivedStateFromError() {
-      return {hasError: true};
-    }
-
-    componentDidCatch(err, errorInfo) {
-      LogBoxData.reportLogBoxError(err, errorInfo.componentStack);
-    }
-
-    // TODO: deprecated, replace with ignoreLogs
-    static ignoreWarnings(patterns: $ReadOnlyArray<IgnorePattern>): void {
-      LogBox.ignoreLogs(patterns);
-    }
-
-    static ignoreLogs(patterns: $ReadOnlyArray<IgnorePattern>): void {
+  LogBox = {
+    ignoreLogs: (patterns: $ReadOnlyArray<IgnorePattern>): void => {
       LogBoxData.addIgnorePatterns(patterns);
-    }
+    },
 
-    static install(): void {
+    ignoreAllLogs: (value?: ?boolean): void => {
+      LogBoxData.setDisabled(value == null ? true : value);
+    },
+
+    uninstall: (): void => {
+      errorImpl = error;
+      warnImpl = warn;
+      delete (console: any).disableLogBox;
+    },
+
+    install: (): void => {
+      // Trigger lazy initialization of module.
+      require('../NativeModules/specs/NativeLogBox');
+
       errorImpl = function(...args) {
         registerError(...args);
       };
@@ -75,79 +64,32 @@ if (__DEV__) {
         registerWarning(...args);
       };
 
-      if ((console: any).disableLogBox === true) {
+      if ((console: any).disableYellowBox === true) {
         LogBoxData.setDisabled(true);
+        console.warn(
+          'console.disableYellowBox has been deprecated and will be removed in a future release. Please use LogBox.ignoreAllLogs(value) instead.',
+        );
       }
 
-      (Object.defineProperty: any)(console, 'disableLogBox', {
+      (Object.defineProperty: any)(console, 'disableYellowBox', {
         configurable: true,
         get: () => LogBoxData.isDisabled(),
-        set: value => LogBoxData.setDisabled(value),
+        set: value => {
+          LogBoxData.setDisabled(value);
+          console.warn(
+            'console.disableYellowBox has been deprecated and will be removed in a future release. Please use LogBox.ignoreAllLogs(value) instead.',
+          );
+        },
       });
 
       if (Platform.isTesting) {
-        (console: any).disableLogBox = true;
+        LogBoxData.setDisabled(true);
       }
 
       RCTLog.setWarningHandler((...args) => {
         registerWarning(...args);
       });
-    }
-
-    static uninstall(): void {
-      errorImpl = error;
-      warnImpl = warn;
-      delete (console: any).disableLogBox;
-    }
-
-    _subscription: ?Subscription;
-
-    state = {
-      logs: new Set(),
-      isDisabled: false,
-      hasError: false,
-      selectedLogIndex: -1,
-    };
-
-    render(): React.Node {
-      if (this.state.hasError) {
-        // This happens when the component failed to render, in which case we delegate to the native redbox.
-        // We can't show anyback fallback UI here, because the error may be with <View> or <Text>.
-        return null;
-      }
-
-      return this.state.logs == null ? null : (
-        <LogBoxContainer
-          onDismiss={this._handleDismiss}
-          onDismissWarns={LogBoxData.clearWarnings}
-          onDismissErrors={LogBoxData.clearErrors}
-          logs={this.state.logs}
-          isDisabled={this.state.isDisabled}
-          selectedLogIndex={this.state.selectedLogIndex}
-          setSelectedLog={this._handleSetSelectedLog}
-        />
-      );
-    }
-
-    componentDidMount(): void {
-      this._subscription = LogBoxData.observe(data => {
-        this.setState(data);
-      });
-    }
-
-    componentWillUnmount(): void {
-      if (this._subscription != null) {
-        this._subscription.unsubscribe();
-      }
-    }
-
-    _handleDismiss(log: LogBoxLog): void {
-      LogBoxData.dismiss(log);
-    }
-
-    _handleSetSelectedLog(index: number): void {
-      LogBoxData.setSelectedLog(index);
-    }
+    },
   };
 
   const isRCTLogAdviceWarning = (...args) => {
@@ -161,6 +103,12 @@ if (__DEV__) {
   };
 
   const registerWarning = (...args): void => {
+    // Let warnings within LogBox itself fall through.
+    if (LogBoxData.isLogBoxErrorMessage(String(args[0]))) {
+      error.call(console, ...args);
+      return;
+    }
+
     try {
       if (!isRCTLogAdviceWarning(...args)) {
         const {category, message, componentStack} = parseLogBoxLog(args);
@@ -169,14 +117,12 @@ if (__DEV__) {
           // Be sure to pass LogBox warnings through.
           warn.call(console, ...args);
 
-          if (!LogBoxData.isLogBoxErrorMessage(message.content)) {
-            LogBoxData.addLog({
-              level: 'warn',
-              category,
-              message,
-              componentStack,
-            });
-          }
+          LogBoxData.addLog({
+            level: 'warn',
+            category,
+            message,
+            componentStack,
+          });
         }
       }
     } catch (err) {
@@ -185,9 +131,21 @@ if (__DEV__) {
   };
 
   const registerError = (...args): void => {
+    // Let errors within LogBox itself fall through.
+    if (LogBoxData.isLogBoxErrorMessage(args[0])) {
+      error.call(console, ...args);
+      return;
+    }
+
     try {
       if (!isWarningModuleWarning(...args)) {
-        // Only show LogBox for the `warning` module, otherwise pass through and skip.
+        // Only show LogBox for the 'warning' module, otherwise pass through.
+        // By passing through, this will get picked up by the React console override,
+        // potentially adding the component stack. React then passes it back to the
+        // React Native ExceptionsManager, which reports it to LogBox as an error.
+        //
+        // The 'warning' module needs to be handled here because React internally calls
+        // `console.error('Warning: ')` with the component stack already included.
         error.call(console, ...args);
         return;
       }
@@ -210,51 +168,45 @@ if (__DEV__) {
       const {category, message, componentStack} = parseLogBoxLog(args);
 
       if (!LogBoxData.isMessageIgnored(message.content)) {
-        // Be sure to pass LogBox errors through.
-        error.call(console, ...args);
+        // Interpolate the message so they are formatted for adb and other CLIs.
+        // This is different than the message.content above because it includes component stacks.
+        const interpolated = parseInterpolation(args);
+        error.call(console, interpolated.message.content);
 
-        if (!LogBoxData.isLogBoxErrorMessage(message.content)) {
-          LogBoxData.addLog({
-            level,
-            category,
-            message,
-            componentStack,
-          });
-        }
+        LogBoxData.addLog({
+          level,
+          category,
+          message,
+          componentStack,
+        });
       }
     } catch (err) {
       LogBoxData.reportLogBoxError(err);
     }
   };
 } else {
-  LogBoxComponent = class extends React.Component<Props, State> {
-    // TODO: deprecated, replace with ignoreLogs
-    static ignoreWarnings(patterns: $ReadOnlyArray<IgnorePattern>): void {
+  LogBox = {
+    ignoreLogs: (patterns: $ReadOnlyArray<IgnorePattern>): void => {
       // Do nothing.
-    }
+    },
 
-    static ignoreLogs(patterns: $ReadOnlyArray<IgnorePattern>): void {
+    ignoreAllLogs: (value?: ?boolean): void => {
       // Do nothing.
-    }
+    },
 
-    static install(): void {
+    install: (): void => {
       // Do nothing.
-    }
+    },
 
-    static uninstall(): void {
+    uninstall: (): void => {
       // Do nothing.
-    }
-
-    render(): React.Node {
-      return null;
-    }
+    },
   };
 }
 
-module.exports = (LogBoxComponent: Class<React.Component<Props, State>> & {
-  // TODO: deprecated, replace with ignoreLogs
-  ignoreWarnings($ReadOnlyArray<IgnorePattern>): void,
+module.exports = (LogBox: {
   ignoreLogs($ReadOnlyArray<IgnorePattern>): void,
+  ignoreAllLogs(?boolean): void,
   install(): void,
   uninstall(): void,
   ...

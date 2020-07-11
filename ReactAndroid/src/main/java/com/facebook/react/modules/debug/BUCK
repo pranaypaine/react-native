@@ -4,6 +4,7 @@ rn_android_library(
     name = "debug",
     srcs = glob(["*.java"]),
     is_androidx = True,
+    labels = ["supermodule:xplat/default/public.react_native.infra"],
     visibility = [
         "PUBLIC",
     ],
@@ -21,11 +22,15 @@ rn_android_library(
         react_native_target("java/com/facebook/react/turbomodule/core/interfaces:interfaces"),
         react_native_target("java/com/facebook/react/uimanager:uimanager"),
     ],
+    exported_deps = [
+        react_native_target("java/com/facebook/fbreact/specs:FBReactNativeSpec"),
+    ],
 )
 
 rn_android_library(
     name = "interfaces",
     srcs = glob(["interfaces/*.java"]),
+    labels = ["supermodule:xplat/default/public.react_native.infra"],
     visibility = [
         "PUBLIC",
     ],

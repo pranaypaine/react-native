@@ -7,13 +7,11 @@
 
 #pragma once
 
-#include <memory>
-
 #include <react/attributedstring/AttributedString.h>
-#include <react/attributedstring/ParagraphAttributes.h>
+#include <react/attributedstring/AttributedStringBox.h>
 #include <react/core/LayoutConstraints.h>
+#include <react/textlayoutmanager/TextMeasureCache.h>
 #include <react/utils/ContextContainer.h>
-#include <react/utils/SimpleThreadSafeCache.h>
 
 namespace facebook {
 namespace react {
@@ -34,8 +32,8 @@ class TextLayoutManager {
   /*
    * Measures `attributedString` using native text rendering infrastructure.
    */
-  Size measure(
-      AttributedString attributedString,
+  TextMeasurement measure(
+      AttributedStringBox attributedStringBox,
       ParagraphAttributes paragraphAttributes,
       LayoutConstraints layoutConstraints) const;
 
@@ -46,18 +44,14 @@ class TextLayoutManager {
   void *getNativeTextLayoutManager() const;
 
  private:
-  Size doMeasure(
+  TextMeasurement doMeasure(
       AttributedString attributedString,
       ParagraphAttributes paragraphAttributes,
       LayoutConstraints layoutConstraints) const;
 
-  using MeasureCacheKey =
-      std::tuple<AttributedString, ParagraphAttributes, LayoutConstraints>;
-  using MeasureCache = SimpleThreadSafeCache<MeasureCacheKey, Size, 256>;
-
   void *self_;
   ContextContainer::Shared contextContainer_;
-  MeasureCache measureCache_{};
+  TextMeasureCache measureCache_{};
 };
 
 } // namespace react

@@ -9,7 +9,8 @@
  */
 
 import {ansiToJson} from 'anser';
-import {Text, View} from 'react-native';
+import Text from '../../Text/Text';
+import View from '../../Components/View/View';
 import * as React from 'react';
 
 import type {TextStyleProp} from 'react-native/Libraries/StyleSheet/StyleSheet';
@@ -41,6 +42,7 @@ export default function Ansi({
 }: {
   text: string,
   style: TextStyleProp,
+  ...
 }): React.Node {
   let commonWhitespaceLength = Infinity;
   const parsedLines = text.split(/\n/).map(line =>
@@ -56,7 +58,7 @@ export default function Ansi({
     // We are looking for the least amount of common whitespace to trim all lines.
     // Example: Array [" ", " 96 |", "     text", ...]
     const match = lines[2] && lines[2]?.content?.match(/^ +/);
-    const whitespaceLength = (match && match[0]?.length) || Infinity;
+    const whitespaceLength = (match && match[0]?.length) || 0;
     if (whitespaceLength < commonWhitespaceLength) {
       commonWhitespaceLength = whitespaceLength;
     }

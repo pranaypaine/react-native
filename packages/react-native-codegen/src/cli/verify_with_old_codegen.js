@@ -4,7 +4,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @flow
+ * @flow strict-local
  * @format
  */
 
@@ -45,9 +45,7 @@ if (t1.length !== t2.length) {
   for (let i = 0; i < t1.length; i++) {
     if (t1[i] !== t2[i]) {
       throw new Error(
-        `Old and new codegen does not produce similar output! ${i}  ${
-          t1[i]
-        } | ${t2[i]}`,
+        `Old and new codegen does not produce similar output! ${i}  ${t1[i]} | ${t2[i]}`,
       );
     }
   }

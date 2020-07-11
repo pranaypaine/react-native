@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  *
  * @format
- * @flow
+ * @flow strict-local
  */
 
 /* globals window: true */
@@ -29,6 +29,7 @@
 const start = Date.now();
 
 require('./setUpGlobals');
+require('./setUpPerformance');
 require('./setUpSystrace');
 require('./setUpErrorHandling');
 require('./polyfillPromise');

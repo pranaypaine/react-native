@@ -23,7 +23,6 @@ import com.facebook.react.bridge.queue.MessageQueueThread;
 import com.facebook.react.bridge.queue.ReactQueueConfiguration;
 import com.facebook.react.common.LifecycleState;
 import com.facebook.react.common.ReactConstants;
-import com.facebook.react.config.ReactFeatureFlags;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -33,10 +32,17 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public class ReactContext extends ContextWrapper {
 
+  private static final String TAG = "ReactContext";
   private static final String EARLY_JS_ACCESS_EXCEPTION_MESSAGE =
       "Tried to access a JS module before the React instance was fully set up. Calls to "
           + "ReactContext#getJSModule should only happen once initialize() has been called on your "
           + "native module.";
+  private static final String LATE_JS_ACCESS_EXCEPTION_MESSAGE =
+      "Tried to access a JS module after the React instance was destroyed.";
+  private static final String EARLY_NATIVE_MODULE_EXCEPTION_MESSAGE =
+      "Trying to call native module before CatalystInstance has been set!";
+  private static final String LATE_NATIVE_MODULE_EXCEPTION_MESSAGE =
+      "Trying to call native module after CatalystInstance has been destroyed!";
 
   private final CopyOnWriteArraySet<LifecycleEventListener> mLifecycleEventListeners =
       new CopyOnWriteArraySet<>();
@@ -47,6 +53,7 @@ public class ReactContext extends ContextWrapper {
 
   private LifecycleState mLifecycleState = LifecycleState.BEFORE_CREATE;
 
+  private volatile boolean mDestroyed = false;
   private @Nullable CatalystInstance mCatalystInstance;
   private @Nullable LayoutInflater mInflater;
   private @Nullable MessageQueueThread mUiMessageQueueThread;
@@ -55,20 +62,9 @@ public class ReactContext extends ContextWrapper {
   private @Nullable NativeModuleCallExceptionHandler mNativeModuleCallExceptionHandler;
   private @Nullable NativeModuleCallExceptionHandler mExceptionHandlerWrapper;
   private @Nullable WeakReference<Activity> mCurrentActivity;
-  private final @Nullable String mInstanceKey;
 
   public ReactContext(Context base) {
     super(base);
-    mInstanceKey = null;
-  }
-
-  /**
-   * A constructor that takes a unique string identifier for the React instance. For bridgeless mode
-   * only - do not use.
-   */
-  /* package */ ReactContext(Context base, String instanceKey) {
-    super(base);
-    mInstanceKey = instanceKey;
   }
 
   /** Set and initialize CatalystInstance for this Context. This should be called exactly once. */
@@ -78,6 +74,11 @@ public class ReactContext extends ContextWrapper {
     }
     if (mCatalystInstance != null) {
       throw new IllegalStateException("ReactContext has been already initialized");
+    }
+    if (mDestroyed) {
+      ReactSoftException.logSoftException(
+          TAG,
+          new IllegalStateException("Cannot initialize ReactContext after it has been destroyed."));
     }
 
     mCatalystInstance = catalystInstance;
@@ -115,6 +116,11 @@ public class ReactContext extends ContextWrapper {
     mNativeModuleCallExceptionHandler = nativeModuleCallExceptionHandler;
   }
 
+  private void raiseCatalystInstanceMissingException() {
+    throw new IllegalStateException(
+        mDestroyed ? LATE_NATIVE_MODULE_EXCEPTION_MESSAGE : EARLY_NATIVE_MODULE_EXCEPTION_MESSAGE);
+  }
+
   // We override the following method so that views inflated with the inflater obtained from this
   // context return the ReactContext in #getContext(). The default implementation uses the base
   // context instead, so it couldn't be cast to ReactContext.
@@ -135,24 +141,26 @@ public class ReactContext extends ContextWrapper {
    */
   public <T extends JavaScriptModule> T getJSModule(Class<T> jsInterface) {
     if (mCatalystInstance == null) {
-      throw new RuntimeException(EARLY_JS_ACCESS_EXCEPTION_MESSAGE);
+      if (mDestroyed) {
+        throw new IllegalStateException(LATE_JS_ACCESS_EXCEPTION_MESSAGE);
+      }
+      throw new IllegalStateException(EARLY_JS_ACCESS_EXCEPTION_MESSAGE);
     }
     return mCatalystInstance.getJSModule(jsInterface);
   }
 
   public <T extends NativeModule> boolean hasNativeModule(Class<T> nativeModuleInterface) {
     if (mCatalystInstance == null) {
-      throw new RuntimeException(
-          "Trying to call native module before CatalystInstance has been set!");
+      raiseCatalystInstanceMissingException();
     }
     return mCatalystInstance.hasNativeModule(nativeModuleInterface);
   }
 
   /** @return the instance of the specified module interface associated with this ReactContext. */
+  @Nullable
   public <T extends NativeModule> T getNativeModule(Class<T> nativeModuleInterface) {
     if (mCatalystInstance == null) {
-      throw new RuntimeException(
-          "Trying to call native module before CatalystInstance has been set!");
+      raiseCatalystInstanceMissingException();
     }
     return mCatalystInstance.getNativeModule(nativeModuleInterface);
   }
@@ -197,7 +205,7 @@ public class ReactContext extends ContextWrapper {
               });
           break;
         default:
-          throw new RuntimeException("Unhandled lifecycle state.");
+          throw new IllegalStateException("Unhandled lifecycle state.");
       }
     }
   }
@@ -284,11 +292,9 @@ public class ReactContext extends ContextWrapper {
   public void destroy() {
     UiThreadUtil.assertOnUiThread();
 
+    mDestroyed = true;
     if (mCatalystInstance != null) {
       mCatalystInstance.destroy();
-      if (ReactFeatureFlags.nullifyCatalystInstanceOnDestroy) {
-        mCatalystInstance = null;
-      }
     }
   }
 
@@ -378,7 +384,7 @@ public class ReactContext extends ContextWrapper {
               + " - hasExceptionHandler: "
               + hasExceptionHandler,
           e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -424,6 +430,11 @@ public class ReactContext extends ContextWrapper {
     return mCurrentActivity.get();
   }
 
+  /** @deprecated DO NOT USE, this method will be removed in the near future. */
+  public boolean isBridgeless() {
+    return false;
+  }
+
   /**
    * Get the C pointer (as a long) to the JavaScriptCore context associated with this instance. Use
    * the following pattern to ensure that the JS context is not cleared while you are using it:
@@ -434,13 +445,21 @@ public class ReactContext extends ContextWrapper {
     return mCatalystInstance.getJavaScriptContextHolder();
   }
 
+  public JSIModule getJSIModule(JSIModuleType moduleType) {
+    if (!hasActiveCatalystInstance()) {
+      throw new IllegalStateException(
+          "Unable to retrieve a JSIModule if CatalystInstance is not active.");
+    }
+    return mCatalystInstance.getJSIModule(moduleType);
+  }
+
   /**
-   * TODO T43898341 Make this package-private once we've consolidated the classes that need this in
-   * this package
+   * Get the sourceURL for the JS bundle from the CatalystInstance. This method is needed for
+   * compatibility with bridgeless mode, which has no CatalystInstance.
    *
-   * @return The key for the associated React instance
+   * @return The JS bundle URL set when the bundle was loaded
    */
-  public @Nullable String getInstanceKey() {
-    return mInstanceKey;
+  public @Nullable String getSourceURL() {
+    return mCatalystInstance.getSourceURL();
   }
 }

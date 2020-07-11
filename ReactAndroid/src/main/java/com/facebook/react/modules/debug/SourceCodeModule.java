@@ -7,6 +7,7 @@
 
 package com.facebook.react.modules.debug;
 
+import com.facebook.fbreact.specs.NativeSourceCodeSpec;
 import com.facebook.infer.annotation.Assertions;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.module.annotations.ReactModule;
@@ -36,7 +37,7 @@ public class SourceCodeModule extends NativeSourceCodeSpec {
 
     String sourceURL =
         Assertions.assertNotNull(
-            getReactApplicationContext().getCatalystInstance().getSourceURL(),
+            getReactApplicationContext().getSourceURL(),
             "No source URL loaded, have you initialised the instance?");
 
     constants.put("scriptURL", sourceURL);

@@ -36,6 +36,8 @@ emoji=true
 esproposal.optional_chaining=enable
 esproposal.nullish_coalescing=enable
 
+exact_by_default=true
+
 module.file_ext=.js
 module.file_ext=.json
 module.file_ext=.ios.js
@@ -52,12 +54,8 @@ suppress_type=$FlowFixMeProps
 suppress_type=$FlowFixMeState
 suppress_type=$FlowFixMeEmpty
 
-suppress_comment=\\(.\\|\n\\)*\\$FlowFixMe\\($\\|[^(]\\|(\\(<VERSION>\\)? *\\(site=[a-z,_]*react_native\\(_ios\\)?_\\(oss\\|fb\\)[a-z,_]*\\)?)\\)
-suppress_comment=\\(.\\|\n\\)*\\$FlowIssue\\((\\(<VERSION>\\)? *\\(site=[a-z,_]*react_native\\(_ios\\)?_\\(oss\\|fb\\)[a-z,_]*\\)?)\\)?:? #[0-9]+
-suppress_comment=\\(.\\|\n\\)*\\$FlowExpectedError
-
-experimental.well_formed_exports=true
-experimental.types_first=true
+well_formed_exports=true
+types_first=true
 experimental.abstract_locations=true
 
 [lints]
@@ -68,10 +66,10 @@ untyped-type-import=warn
 nonstrict-import=warn
 deprecated-type=warn
 unsafe-getters-setters=warn
-inexact-spread=warn
 unnecessary-invariant=warn
 signature-verification-failure=warn
 deprecated-utility=error
+unsafe-addition=error
 
 [strict]
 deprecated-type
@@ -83,4 +81,4 @@ untyped-import
 untyped-type-import
 
 [version]
-^0.112.0
+^0.129.0

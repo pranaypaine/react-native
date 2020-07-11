@@ -10,6 +10,7 @@
 #import <FBReactNativeSpec/FBReactNativeSpec.h>
 #import <React/RCTAccessibilityManager.h>
 #import <React/RCTAssert.h>
+#import <React/RCTConstants.h>
 #import <React/RCTEventDispatcher.h>
 #import <React/RCTUIUtils.h>
 #import <React/RCTUtils.h>
@@ -64,10 +65,17 @@ RCT_EXPORT_MODULE()
                                            selector:@selector(interfaceFrameDidChange)
                                                name:UIApplicationDidBecomeActiveNotification
                                              object:nil];
+
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(interfaceFrameDidChange)
+                                               name:RCTUserInterfaceStyleDidChangeNotification
+                                             object:nil];
+
 #endif
 }
 
-static BOOL RCTIsIPhoneX() {
+static BOOL RCTIsIPhoneX()
+{
   static BOOL isIPhoneX = NO;
   static dispatch_once_t onceToken;
 
@@ -79,10 +87,8 @@ static BOOL RCTIsIPhoneX() {
     CGSize iPhoneXMaxScreenSize = CGSizeMake(1242, 2688);
     CGSize iPhoneXRScreenSize = CGSizeMake(828, 1792);
 
-    isIPhoneX =
-      CGSizeEqualToSize(screenSize, iPhoneXScreenSize) ||
-      CGSizeEqualToSize(screenSize, iPhoneXMaxScreenSize) ||
-      CGSizeEqualToSize(screenSize, iPhoneXRScreenSize);
+    isIPhoneX = CGSizeEqualToSize(screenSize, iPhoneXScreenSize) ||
+        CGSizeEqualToSize(screenSize, iPhoneXMaxScreenSize) || CGSizeEqualToSize(screenSize, iPhoneXRScreenSize);
   });
 
   return isIPhoneX;
@@ -92,24 +98,21 @@ static NSDictionary *RCTExportedDimensions(RCTBridge *bridge)
 {
   RCTAssertMainQueue();
   RCTDimensions dimensions = RCTGetDimensions(bridge.accessibilityManager.multiplier);
-  __typeof (dimensions.window) window = dimensions.window;
+  __typeof(dimensions.window) window = dimensions.window;
   NSDictionary<NSString *, NSNumber *> *dimsWindow = @{
-      @"width": @(window.width),
-      @"height": @(window.height),
-      @"scale": @(window.scale),
-      @"fontScale": @(window.fontScale)
+    @"width" : @(window.width),
+    @"height" : @(window.height),
+    @"scale" : @(window.scale),
+    @"fontScale" : @(window.fontScale)
   };
   __typeof(dimensions.screen) screen = dimensions.screen;
   NSDictionary<NSString *, NSNumber *> *dimsScreen = @{
-      @"width": @(screen.width),
-      @"height": @(screen.height),
-      @"scale": @(screen.scale),
-      @"fontScale": @(screen.fontScale)
+    @"width" : @(screen.width),
+    @"height" : @(screen.height),
+    @"scale" : @(screen.scale),
+    @"fontScale" : @(screen.fontScale)
   };
-  return @{
-      @"window": dimsWindow,
-      @"screen": dimsScreen
-  };
+  return @{@"window" : dimsWindow, @"screen" : dimsScreen};
 }
 
 - (NSDictionary<NSString *, id> *)constantsToExport
@@ -119,25 +122,29 @@ static NSDictionary *RCTExportedDimensions(RCTBridge *bridge)
 
 - (NSDictionary<NSString *, id> *)getConstants
 {
-  return @{
-    @"Dimensions": RCTExportedDimensions(_bridge),
-    // Note:
-    // This prop is deprecated and will be removed in a future release.
-    // Please use this only for a quick and temporary solution.
-    // Use <SafeAreaView> instead.
-    @"isIPhoneX_deprecated": @(RCTIsIPhoneX()),
-  };
+  __block NSDictionary<NSString *, id> *constants;
+  RCTUnsafeExecuteOnMainQueueSync(^{
+    constants = @{
+      @"Dimensions" : RCTExportedDimensions(self->_bridge),
+      // Note:
+      // This prop is deprecated and will be removed in a future release.
+      // Please use this only for a quick and temporary solution.
+      // Use <SafeAreaView> instead.
+      @"isIPhoneX_deprecated" : @(RCTIsIPhoneX()),
+    };
+  });
+
+  return constants;
 }
 
 - (void)didReceiveNewContentSizeMultiplier
 {
   RCTBridge *bridge = _bridge;
   RCTExecuteOnMainQueue(^{
-    // Report the event across the bridge.
+  // Report the event across the bridge.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    [bridge.eventDispatcher sendDeviceEventWithName:@"didUpdateDimensions"
-                                        body:RCTExportedDimensions(bridge)];
+    [bridge.eventDispatcher sendDeviceEventWithName:@"didUpdateDimensions" body:RCTExportedDimensions(bridge)];
 #pragma clang diagnostic pop
   });
 }
@@ -152,7 +159,6 @@ static NSDictionary *RCTExportedDimensions(RCTBridge *bridge)
   });
 }
 
-
 - (void)_interfaceOrientationDidChange
 {
   UIInterfaceOrientation nextOrientation = [RCTSharedApplication() statusBarOrientation];
@@ -164,14 +170,12 @@ static NSDictionary *RCTExportedDimensions(RCTBridge *bridge)
        !UIInterfaceOrientationIsLandscape(nextOrientation))) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        [_bridge.eventDispatcher sendDeviceEventWithName:@"didUpdateDimensions"
-                                                    body:RCTExportedDimensions(_bridge)];
+    [_bridge.eventDispatcher sendDeviceEventWithName:@"didUpdateDimensions" body:RCTExportedDimensions(_bridge)];
 #pragma clang diagnostic pop
-      }
+  }
 
   _currentInterfaceOrientation = nextOrientation;
 }
-
 
 - (void)interfaceFrameDidChange
 {
@@ -181,7 +185,6 @@ static NSDictionary *RCTExportedDimensions(RCTBridge *bridge)
   });
 }
 
-
 - (void)_interfaceFrameDidChange
 {
   NSDictionary *nextInterfaceDimensions = RCTExportedDimensions(_bridge);
@@ -189,8 +192,7 @@ static NSDictionary *RCTExportedDimensions(RCTBridge *bridge)
   if (!([nextInterfaceDimensions isEqual:_currentInterfaceDimensions])) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-      [_bridge.eventDispatcher sendDeviceEventWithName:@"didUpdateDimensions"
-                                                  body:nextInterfaceDimensions];
+    [_bridge.eventDispatcher sendDeviceEventWithName:@"didUpdateDimensions" body:nextInterfaceDimensions];
 #pragma clang diagnostic pop
   }
 
@@ -199,13 +201,14 @@ static NSDictionary *RCTExportedDimensions(RCTBridge *bridge)
 
 #endif // TARGET_OS_TV
 
-- (std::shared_ptr<TurboModule>)getTurboModuleWithJsInvoker:(std::shared_ptr<CallInvoker>)jsInvoker
+- (std::shared_ptr<TurboModule>)getTurboModule:(const ObjCTurboModule::InitParams &)params
 {
-  return std::make_shared<NativeDeviceInfoSpecJSI>(self, jsInvoker);
+  return std::make_shared<NativeDeviceInfoSpecJSI>(params);
 }
 
 @end
 
-Class RCTDeviceInfoCls(void) {
+Class RCTDeviceInfoCls(void)
+{
   return RCTDeviceInfo.class;
 }

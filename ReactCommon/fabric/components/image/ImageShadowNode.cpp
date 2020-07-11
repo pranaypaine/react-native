@@ -8,9 +8,9 @@
 #include <cstdlib>
 #include <limits>
 
-#include <react/components/image/ImageLocalData.h>
 #include <react/components/image/ImageShadowNode.h>
 #include <react/core/LayoutContext.h>
+#include "ImageState.h"
 
 namespace facebook {
 namespace react {
@@ -22,45 +22,46 @@ void ImageShadowNode::setImageManager(const SharedImageManager &imageManager) {
   imageManager_ = imageManager;
 }
 
-void ImageShadowNode::updateLocalData() {
-  const auto &imageSource = getImageSource();
-  const auto &currentLocalData = getLocalData();
-  if (currentLocalData) {
-    assert(std::dynamic_pointer_cast<const ImageLocalData>(currentLocalData));
-    auto currentImageLocalData =
-        std::static_pointer_cast<const ImageLocalData>(currentLocalData);
-    if (currentImageLocalData->getImageSource() == imageSource) {
-      // Same `imageSource` is already in `localData`,
-      // no need to (re)request an image resource.
-      return;
-    }
-  }
-
-  // Now we are about to mutate the Shadow Node.
+void ImageShadowNode::updateStateIfNeeded() {
   ensureUnsealed();
 
-  auto imageRequest = imageManager_->requestImage(imageSource, getSurfaceId());
-  auto imageLocalData =
-      std::make_shared<ImageLocalData>(imageSource, std::move(imageRequest));
-  setLocalData(imageLocalData);
+  auto const &imageSource = getImageSource();
+  auto const &currentState = getStateData();
+  bool hasSameRadius =
+      getConcreteProps().blurRadius == currentState.getBlurRadius();
+  bool hasSameImageSource = currentState.getImageSource() == imageSource;
+
+  if (hasSameImageSource && hasSameRadius) {
+    return;
+  }
+
+  auto state =
+      ImageState{imageSource,
+                 imageManager_->requestImage(imageSource, getSurfaceId()),
+                 getConcreteProps().blurRadius};
+  setStateData(std::move(state));
 }
 
 ImageSource ImageShadowNode::getImageSource() const {
-  auto sources = getProps()->sources;
+  auto sources = getConcreteProps().sources;
 
-  if (sources.size() == 0) {
+  if (sources.empty()) {
     return {
         /* .type = */ ImageSource::Type::Invalid,
     };
   }
 
-  if (sources.size() == 1) {
-    return sources[0];
-  }
-
   auto layoutMetrics = getLayoutMetrics();
   auto size = layoutMetrics.getContentFrame().size;
   auto scale = layoutMetrics.pointScaleFactor;
+
+  if (sources.size() == 1) {
+    auto source = sources[0];
+    source.size = size;
+    source.scale = scale;
+    return source;
+  }
+
   auto targetImageArea = size.width * size.height * scale * scale;
   auto bestFit = std::numeric_limits<Float>::infinity();
 
@@ -80,13 +81,16 @@ ImageSource ImageShadowNode::getImageSource() const {
     }
   }
 
+  bestSource.size = size;
+  bestSource.scale = scale;
+
   return bestSource;
 }
 
 #pragma mark - LayoutableShadowNode
 
 void ImageShadowNode::layout(LayoutContext layoutContext) {
-  updateLocalData();
+  updateStateIfNeeded();
   ConcreteViewShadowNode::layout(layoutContext);
 }
 

@@ -17,17 +17,19 @@ namespace facebook {
 namespace react {
 
 ScrollViewProps::ScrollViewProps(
-    const ScrollViewProps &sourceProps,
-    const RawProps &rawProps)
+    ScrollViewProps const &sourceProps,
+    RawProps const &rawProps)
     : ViewProps(sourceProps, rawProps),
       alwaysBounceHorizontal(convertRawProp(
           rawProps,
           "alwaysBounceHorizontal",
-          sourceProps.alwaysBounceHorizontal)),
+          sourceProps.alwaysBounceHorizontal,
+          {})),
       alwaysBounceVertical(convertRawProp(
           rawProps,
           "alwaysBounceVertical",
-          sourceProps.alwaysBounceVertical)),
+          sourceProps.alwaysBounceVertical,
+          {})),
       bounces(convertRawProp(rawProps, "bounces", sourceProps.bounces, true)),
       bouncesZoom(convertRawProp(
           rawProps,
@@ -37,13 +39,18 @@ ScrollViewProps::ScrollViewProps(
       canCancelContentTouches(convertRawProp(
           rawProps,
           "canCancelContentTouches",
-          sourceProps.canCancelContentTouches)),
-      centerContent(
-          convertRawProp(rawProps, "centerContent", sourceProps.centerContent)),
+          sourceProps.canCancelContentTouches,
+          true)),
+      centerContent(convertRawProp(
+          rawProps,
+          "centerContent",
+          sourceProps.centerContent,
+          {})),
       automaticallyAdjustContentInsets(convertRawProp(
           rawProps,
           "automaticallyAdjustContentInsets",
-          sourceProps.automaticallyAdjustContentInsets)),
+          sourceProps.automaticallyAdjustContentInsets,
+          {})),
       decelerationRate(convertRawProp(
           rawProps,
           "decelerationRate",
@@ -52,15 +59,18 @@ ScrollViewProps::ScrollViewProps(
       directionalLockEnabled(convertRawProp(
           rawProps,
           "directionalLockEnabled",
-          sourceProps.directionalLockEnabled)),
+          sourceProps.directionalLockEnabled,
+          {})),
       indicatorStyle(convertRawProp(
           rawProps,
           "indicatorStyle",
-          sourceProps.indicatorStyle)),
+          sourceProps.indicatorStyle,
+          {})),
       keyboardDismissMode(convertRawProp(
           rawProps,
           "keyboardDismissMode",
-          sourceProps.keyboardDismissMode)),
+          sourceProps.keyboardDismissMode,
+          {})),
       maximumZoomScale(convertRawProp(
           rawProps,
           "maximumZoomScale",
@@ -76,8 +86,11 @@ ScrollViewProps::ScrollViewProps(
           "scrollEnabled",
           sourceProps.scrollEnabled,
           true)),
-      pagingEnabled(
-          convertRawProp(rawProps, "pagingEnabled", sourceProps.pagingEnabled)),
+      pagingEnabled(convertRawProp(
+          rawProps,
+          "pagingEnabled",
+          sourceProps.pagingEnabled,
+          {})),
       pinchGestureEnabled(convertRawProp(
           rawProps,
           "pinchGestureEnabled",
@@ -101,26 +114,38 @@ ScrollViewProps::ScrollViewProps(
       scrollEventThrottle(convertRawProp(
           rawProps,
           "scrollEventThrottle",
-          sourceProps.scrollEventThrottle)),
+          sourceProps.scrollEventThrottle,
+          {})),
       zoomScale(convertRawProp(
           rawProps,
           "zoomScale",
           sourceProps.zoomScale,
           (Float)1.0)),
-      contentInset(
-          convertRawProp(rawProps, "contentInset", sourceProps.contentInset)),
+      contentInset(convertRawProp(
+          rawProps,
+          "contentInset",
+          sourceProps.contentInset,
+          {})),
+      contentOffset(convertRawProp(
+          rawProps,
+          "contentOffset",
+          sourceProps.contentOffset,
+          {})),
       scrollIndicatorInsets(convertRawProp(
           rawProps,
           "scrollIndicatorInsets",
-          sourceProps.scrollIndicatorInsets)),
+          sourceProps.scrollIndicatorInsets,
+          {})),
       snapToInterval(convertRawProp(
           rawProps,
           "snapToInterval",
-          sourceProps.snapToInterval)),
+          sourceProps.snapToInterval,
+          {})),
       snapToAlignment(convertRawProp(
           rawProps,
           "snapToAlignment",
-          sourceProps.snapToAlignment)) {}
+          sourceProps.snapToAlignment,
+          {})) {}
 
 #pragma mark - DebugStringConvertible
 
@@ -212,6 +237,10 @@ SharedDebugStringConvertibleList ScrollViewProps::getDebugProps() const {
               "contentInset",
               contentInset,
               defaultScrollViewProps.contentInset),
+          debugStringConvertibleItem(
+              "contentOffset",
+              contentOffset,
+              defaultScrollViewProps.contentOffset),
           debugStringConvertibleItem(
               "scrollIndicatorInsets",
               scrollIndicatorInsets,

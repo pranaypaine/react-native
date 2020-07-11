@@ -5,13 +5,13 @@
  * LICENSE file in the root directory of this source tree.
  *
  * @format
- * @flow
+ * @flow strict-local
  */
 
 'use strict';
 
 import type {ViewProps} from 'react-native/Libraries/Components/View/ViewPropTypes';
-import type {ColorValue} from 'react-native/Libraries/StyleSheet/StyleSheetTypes';
+import type {ColorValue} from 'react-native/Libraries/StyleSheet/StyleSheet';
 import type {
   WithDefault,
   DirectEventHandler,

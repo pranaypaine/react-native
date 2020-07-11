@@ -12,6 +12,7 @@
 
 #include <react/core/LayoutMetrics.h>
 #include <react/core/State.h>
+#include <react/debug/debugStringConvertibleUtils.h>
 #include <react/mounting/ShadowView.h>
 
 namespace facebook {
@@ -42,12 +43,13 @@ bool operator!=(StubView const &lhs, StubView const &rhs);
 #if RN_DEBUG_STRING_CONVERTIBLE
 
 std::string getDebugName(StubView const &stubView);
+
 std::vector<DebugStringConvertibleObject> getDebugProps(
     StubView const &stubView,
-    DebugStringConvertibleOptions options = {});
+    DebugStringConvertibleOptions options);
 std::vector<StubView> getDebugChildren(
     StubView const &stubView,
-    DebugStringConvertibleOptions options = {});
+    DebugStringConvertibleOptions options);
 
 #endif
 

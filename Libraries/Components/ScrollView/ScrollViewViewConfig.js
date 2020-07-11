@@ -4,7 +4,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @flow
+ * @flow strict-local
  * @format
  */
 
@@ -69,8 +69,6 @@ const ScrollViewViewConfig = {
     snapToOffsets: true,
     snapToStart: true,
     zoomScale: true,
-
-    DEPRECATED_sendUpdatedChildFrames: true,
   },
 };
 

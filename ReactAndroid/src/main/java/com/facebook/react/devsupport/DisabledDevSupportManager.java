@@ -7,11 +7,13 @@
 
 package com.facebook.react.devsupport;
 
+import android.view.View;
 import androidx.annotation.Nullable;
 import com.facebook.react.bridge.DefaultNativeModuleCallExceptionHandler;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.devsupport.interfaces.DevOptionHandler;
+import com.facebook.react.devsupport.interfaces.DevSplitBundleCallback;
 import com.facebook.react.devsupport.interfaces.DevSupportManager;
 import com.facebook.react.devsupport.interfaces.ErrorCustomizer;
 import com.facebook.react.devsupport.interfaces.PackagerStatusCallback;
@@ -39,6 +41,14 @@ public class DisabledDevSupportManager implements DevSupportManager {
 
   @Override
   public void showNewJSError(String message, ReadableArray details, int errorCookie) {}
+
+  @Override
+  public @Nullable View createRootView(String appKey) {
+    return null;
+  }
+
+  @Override
+  public void destroyRootView(View rootView) {}
 
   @Override
   public void updateJSError(String message, ReadableArray details, int errorCookie) {}
@@ -121,7 +131,10 @@ public class DisabledDevSupportManager implements DevSupportManager {
   public void reloadJSFromServer(String bundleURL) {}
 
   @Override
-  public void isPackagerRunning(PackagerStatusCallback callback) {}
+  public void loadSplitBundleFromServer(String bundlePath, DevSplitBundleCallback callback) {}
+
+  @Override
+  public void isPackagerRunning(final PackagerStatusCallback callback) {}
 
   @Override
   public @Nullable File downloadBundleResourceFromUrlSync(
@@ -141,6 +154,10 @@ public class DisabledDevSupportManager implements DevSupportManager {
 
   @Override
   public void registerErrorCustomizer(ErrorCustomizer errorCustomizer) {}
+
+  @Override
+  public void setPackagerLocationCustomizer(
+      DevSupportManager.PackagerLocationCustomizer packagerLocationCustomizer) {}
 
   @Override
   public void handleException(Exception e) {
