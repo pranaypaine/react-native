@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -15,6 +15,10 @@ std::unique_ptr<NativeModulePerfLogger> g_perfLogger = nullptr;
 
 void enableLogging(std::unique_ptr<NativeModulePerfLogger> &&newPerfLogger) {
   g_perfLogger = std::move(newPerfLogger);
+}
+
+void disableLogging() {
+  g_perfLogger = nullptr;
 }
 
 void moduleDataCreateStart(const char *moduleName, int32_t id) {
@@ -246,6 +250,13 @@ void asyncMethodCallEnd(const char *moduleName, const char *methodName) {
   NativeModulePerfLogger *logger = g_perfLogger.get();
   if (logger != nullptr) {
     logger->asyncMethodCallEnd(moduleName, methodName);
+  }
+}
+
+void asyncMethodCallFail(const char *moduleName, const char *methodName) {
+  NativeModulePerfLogger *logger = g_perfLogger.get();
+  if (logger != nullptr) {
+    logger->asyncMethodCallFail(moduleName, methodName);
   }
 }
 

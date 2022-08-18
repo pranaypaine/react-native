@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -19,8 +19,8 @@
 - (instancetype)initWithBridge:(RCTBridge *)bridge
 {
   if (self = [super initWithBridge:bridge]) {
-    // `blurOnSubmit` defaults to `true` for <TextInput multiline={false}> by design.
-    self.blurOnSubmit = YES;
+    // `submitBehavior` defaults to `"blurAndSubmit"` for <TextInput multiline={false}> by design.
+    self.submitBehavior = @"blurAndSubmit";
 
     _backedTextInputView = [[RCTUITextField alloc] initWithFrame:self.bounds];
     _backedTextInputView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -7,6 +7,7 @@
 
 package com.facebook.react.animated;
 
+import androidx.annotation.AnyThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
@@ -17,11 +18,14 @@ import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.ReactSoftExceptionLogger;
+import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.UIManager;
 import com.facebook.react.bridge.UIManagerListener;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.common.annotations.VisibleForTesting;
+import com.facebook.react.config.ReactFeatureFlags;
 import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.modules.core.ReactChoreographer;
@@ -32,9 +36,11 @@ import com.facebook.react.uimanager.UIManagerHelper;
 import com.facebook.react.uimanager.UIManagerModule;
 import com.facebook.react.uimanager.common.UIManagerType;
 import com.facebook.react.uimanager.common.ViewUtil;
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Module that exposes interface for creating and managing animated nodes on the "native" side.
@@ -87,23 +93,156 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
   public static final String NAME = "NativeAnimatedModule";
   public static final boolean ANIMATED_MODULE_DEBUG = false;
 
-  private interface UIThreadOperation {
-    void execute(NativeAnimatedNodesManager animatedNodesManager);
+  // For `queueAndExecuteBatchedOperations`
+  private enum BatchExecutionOpCodes {
+    OP_CODE_CREATE_ANIMATED_NODE(1),
+    OP_CODE_UPDATE_ANIMATED_NODE_CONFIG(2),
+    OP_CODE_GET_VALUE(3),
+    OP_START_LISTENING_TO_ANIMATED_NODE_VALUE(4),
+    OP_STOP_LISTENING_TO_ANIMATED_NODE_VALUE(5),
+    OP_CODE_CONNECT_ANIMATED_NODES(6),
+    OP_CODE_DISCONNECT_ANIMATED_NODES(7),
+    OP_CODE_START_ANIMATING_NODE(8),
+    OP_CODE_STOP_ANIMATION(9),
+    OP_CODE_SET_ANIMATED_NODE_VALUE(10),
+    OP_CODE_SET_ANIMATED_NODE_OFFSET(11),
+    OP_CODE_FLATTEN_ANIMATED_NODE_OFFSET(12),
+    OP_CODE_EXTRACT_ANIMATED_NODE_OFFSET(13),
+    OP_CODE_CONNECT_ANIMATED_NODE_TO_VIEW(14),
+    OP_CODE_DISCONNECT_ANIMATED_NODE_FROM_VIEW(15),
+    OP_CODE_RESTORE_DEFAULT_VALUES(16),
+    OP_CODE_DROP_ANIMATED_NODE(17),
+    OP_CODE_ADD_ANIMATED_EVENT_TO_VIEW(18),
+    OP_CODE_REMOVE_ANIMATED_EVENT_FROM_VIEW(19),
+    OP_CODE_ADD_LISTENER(20), // ios only
+    OP_CODE_REMOVE_LISTENERS(21); // ios only
+
+    private static BatchExecutionOpCodes[] valueMap = null;
+    private final int value;
+
+    private BatchExecutionOpCodes(int value) {
+      this.value = value;
+    }
+
+    public int getValue() {
+      return this.value;
+    }
+
+    public static BatchExecutionOpCodes fromId(int id) {
+      if (BatchExecutionOpCodes.valueMap == null) {
+        BatchExecutionOpCodes.valueMap = BatchExecutionOpCodes.values();
+      }
+      // Enum values are 1-indexed, but the value array is 0-indexed
+      return BatchExecutionOpCodes.valueMap[id - 1];
+    }
+  }
+
+  private abstract class UIThreadOperation {
+    abstract void execute(NativeAnimatedNodesManager animatedNodesManager);
+
+    long mBatchNumber = -1;
+
+    public void setBatchNumber(long batchNumber) {
+      mBatchNumber = batchNumber;
+    }
+
+    public long getBatchNumber() {
+      return mBatchNumber;
+    }
+  }
+
+  private class ConcurrentOperationQueue {
+    private final Queue<UIThreadOperation> mQueue = new ConcurrentLinkedQueue<>();
+    @Nullable private UIThreadOperation mPeekedOperation = null;
+    private boolean mSynchronizedAccess = false;
+
+    @AnyThread
+    boolean isEmpty() {
+      return mQueue.isEmpty() && mPeekedOperation == null;
+    }
+
+    void setSynchronizedAccess(boolean isSynchronizedAccess) {
+      mSynchronizedAccess = isSynchronizedAccess;
+    }
+
+    @AnyThread
+    void add(UIThreadOperation operation) {
+      if (mSynchronizedAccess) {
+        synchronized (this) {
+          mQueue.add(operation);
+        }
+      } else {
+        mQueue.add(operation);
+      }
+    }
+
+    @UiThread
+    void executeBatch(long maxBatchNumber, NativeAnimatedNodesManager nodesManager) {
+      List<UIThreadOperation> operations;
+      if (mSynchronizedAccess) {
+        synchronized (this) {
+          operations = drainQueueIntoList(maxBatchNumber);
+        }
+      } else {
+        operations = drainQueueIntoList(maxBatchNumber);
+      }
+      if (operations != null) {
+        for (UIThreadOperation operation : operations) {
+          operation.execute(nodesManager);
+        }
+      }
+    }
+
+    @UiThread
+    private @Nullable List<UIThreadOperation> drainQueueIntoList(long maxBatchNumber) {
+      if (isEmpty()) {
+        return null;
+      }
+
+      List<UIThreadOperation> operations = new ArrayList<>();
+      while (true) {
+        // Due to a race condition, we manually "carry-over" a polled item from previous batch
+        // instead of peeking the queue itself for consistency.
+        // TODO(T112522554): Clean up the queue access
+        if (mPeekedOperation != null) {
+          if (mPeekedOperation.getBatchNumber() > maxBatchNumber) {
+            break;
+          }
+          operations.add(mPeekedOperation);
+          mPeekedOperation = null;
+        }
+
+        UIThreadOperation polledOperation = mQueue.poll();
+        if (polledOperation == null) {
+          // This is the same as mQueue.isEmpty()
+          break;
+        }
+
+        if (polledOperation.getBatchNumber() > maxBatchNumber) {
+          // Because the operation is already retrieved from the queue, there's no way of placing it
+          // back as the head element, so we remember it manually here
+          mPeekedOperation = polledOperation;
+          break;
+        }
+        operations.add(polledOperation);
+      }
+
+      return operations;
+    }
   }
 
   @NonNull private final GuardedFrameCallback mAnimatedFrameCallback;
   private final ReactChoreographer mReactChoreographer;
 
-  @NonNull
-  private ConcurrentLinkedQueue<UIThreadOperation> mOperations = new ConcurrentLinkedQueue<>();
+  @NonNull private final ConcurrentOperationQueue mOperations = new ConcurrentOperationQueue();
+  @NonNull private final ConcurrentOperationQueue mPreOperations = new ConcurrentOperationQueue();
 
-  @NonNull
-  private ConcurrentLinkedQueue<UIThreadOperation> mPreOperations = new ConcurrentLinkedQueue<>();
+  private final AtomicReference<NativeAnimatedNodesManager> mNodesManager = new AtomicReference<>();
 
-  private @Nullable NativeAnimatedNodesManager mNodesManager;
+  private boolean mBatchingControlledByJS = false; // TODO T71377544: delete
+  private volatile long mCurrentFrameNumber; // TODO T71377544: delete
+  private volatile long mCurrentBatchNumber;
 
-  private volatile boolean mFabricBatchCompleted = false;
-  private int mFabricFramesSkipped = 0;
   private boolean mInitializedForFabric = false;
   private boolean mInitializedForNonFabric = false;
   private @UIManagerType int mUIManagerType = UIManagerType.DEFAULT;
@@ -141,6 +280,10 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
             }
           }
         };
+
+    // If shipping this flag, make sure to migrate to non-concurrent queue for efficiency
+    mOperations.setSynchronizedAccess(ReactFeatureFlags.enableSynchronizationForAnimated);
+    mPreOperations.setSynchronizedAccess(ReactFeatureFlags.enableSynchronizationForAnimated);
   }
 
   @Override
@@ -157,14 +300,25 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
     enqueueFrameCallback();
   }
 
+  private void addOperation(UIThreadOperation operation) {
+    operation.setBatchNumber(mCurrentBatchNumber);
+    mOperations.add(operation);
+  }
+
+  private void addUnbatchedOperation(UIThreadOperation operation) {
+    operation.setBatchNumber(-1);
+    mOperations.add(operation);
+  }
+
+  private void addPreOperation(UIThreadOperation operation) {
+    operation.setBatchNumber(mCurrentBatchNumber);
+    mPreOperations.add(operation);
+  }
+
   // For FabricUIManager only
   @Override
   public void didScheduleMountItems(UIManager uiManager) {
-    if (mUIManagerType != UIManagerType.FABRIC) {
-      return;
-    }
-
-    mFabricBatchCompleted = true;
+    mCurrentFrameNumber++;
   }
 
   // For FabricUIManager only
@@ -175,36 +329,28 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
       return;
     }
 
-    // The problem we're trying to solve here: we could be in the middle of queueing
-    // a batch of related animation operations when Fabric flushes a batch of MountItems.
-    // It's visually bad if we execute half of the animation ops and then wait another frame
-    // (or more) to execute the rest.
-    // Therefore, we wait until either `didScheduleMountItems` has been called, or a certain
-    // number of frames have been skipped.
-    // We wait a max of 2 frames or about 32ms before flushing.
-    // The reason to execute in some cases without a Fabric commit is that there might be
-    // animations that are triggered without any Fabric commits.
-    if (!mFabricBatchCompleted && mFabricFramesSkipped < 3) {
-      mFabricFramesSkipped++;
+    long batchNumber = mCurrentBatchNumber - 1;
+
+    // TODO T71377544: delete this when the JS method is confirmed safe
+    if (!mBatchingControlledByJS) {
+      // The problem we're trying to solve here: we could be in the middle of queueing
+      // a batch of related animation operations when Fabric flushes a batch of MountItems.
+      // It's visually bad if we execute half of the animation ops and then wait another frame
+      // (or more) to execute the rest.
+      // See mFrameNumber. If the dispatchedFrameNumber drifts too far - that
+      // is, if no MountItems are scheduled for a while, which can happen if a tree
+      // is committed but there are no changes - bring these counts back in sync and
+      // execute any queued operations. This number is arbitrary, but we want it low
+      // enough that the user shouldn't be able to see this delay in most cases.
+      mCurrentFrameNumber++;
+      if ((mCurrentFrameNumber - mCurrentBatchNumber) > 2) {
+        mCurrentBatchNumber = mCurrentFrameNumber;
+        batchNumber = mCurrentBatchNumber;
+      }
     }
 
-    // This will execute all operations and preOperations queued
-    // since the last time this was run, and will race with anything
-    // being queued from the JS thread. That is, if the JS thread
-    // is still queuing operations, we might execute some of them
-    // at the very end until we exhaust the queue faster than the
-    // JS thread can queue up new items.
-    executeAllOperations(mPreOperations);
-    executeAllOperations(mOperations);
-    mFabricBatchCompleted = false;
-    mFabricFramesSkipped = 0;
-  }
-
-  private void executeAllOperations(Queue<UIThreadOperation> operationQueue) {
-    NativeAnimatedNodesManager nodesManager = getNodesManager();
-    while (!operationQueue.isEmpty()) {
-      operationQueue.poll().execute(nodesManager);
-    }
+    mPreOperations.executeBatch(batchNumber, getNodesManager());
+    mOperations.executeBatch(batchNumber, getNodesManager());
   }
 
   // For non-FabricUIManager only
@@ -218,20 +364,13 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
       return;
     }
 
-    final Queue<UIThreadOperation> preOperations = new LinkedList<>();
-    final Queue<UIThreadOperation> operations = new LinkedList<>();
-    while (!mPreOperations.isEmpty()) {
-      preOperations.add(mPreOperations.poll());
-    }
-    while (!mOperations.isEmpty()) {
-      operations.add(mOperations.poll());
-    }
+    final long frameNo = mCurrentBatchNumber++;
 
     UIBlock preOperationsUIBlock =
         new UIBlock() {
           @Override
           public void execute(NativeViewHierarchyManager nativeViewHierarchyManager) {
-            executeAllOperations(preOperations);
+            mPreOperations.executeBatch(frameNo, getNodesManager());
           }
         };
 
@@ -239,8 +378,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
         new UIBlock() {
           @Override
           public void execute(NativeViewHierarchyManager nativeViewHierarchyManager) {
-            NativeAnimatedNodesManager nodesManager = getNodesManager();
-            executeAllOperations(operations);
+            mOperations.executeBatch(frameNo, getNodesManager());
           }
         };
 
@@ -273,16 +411,16 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
    * @return {@link NativeAnimatedNodesManager}
    */
   @Nullable
-  private NativeAnimatedNodesManager getNodesManager() {
-    if (mNodesManager == null) {
+  public NativeAnimatedNodesManager getNodesManager() {
+    if (mNodesManager.get() == null) {
       ReactApplicationContext reactApplicationContext = getReactApplicationContextIfActiveOrWarn();
 
       if (reactApplicationContext != null) {
-        mNodesManager = new NativeAnimatedNodesManager(reactApplicationContext);
+        mNodesManager.compareAndSet(null, new NativeAnimatedNodesManager(reactApplicationContext));
       }
     }
 
-    return mNodesManager;
+    return mNodesManager.get();
   }
 
   private void clearFrameCallback() {
@@ -299,13 +437,13 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
 
   @VisibleForTesting
   public void setNodesManager(NativeAnimatedNodesManager nodesManager) {
-    mNodesManager = nodesManager;
+    mNodesManager.set(nodesManager);
   }
 
   /**
    * Given a viewTag, detect if we're running in Fabric or non-Fabric and attach an event listener
-   * to the correct UIManager, if necessary. This is expected to only be called from the JS thread,
-   * and not concurrently.
+   * to the correct UIManager, if necessary. This is expected to only be called from the native
+   * module thread, and not concurrently.
    *
    * @param viewTag
    */
@@ -317,13 +455,18 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
       mNumNonFabricAnimations++;
     }
 
-    if (mNodesManager != null) {
-      mNodesManager.initializeEventListenerForUIManagerType(mUIManagerType);
+    NativeAnimatedNodesManager nodesManager = getNodesManager();
+    if (nodesManager != null) {
+      nodesManager.initializeEventListenerForUIManagerType(mUIManagerType);
+    } else {
+      ReactSoftExceptionLogger.logSoftException(
+          NAME,
+          new RuntimeException(
+              "initializeLifecycleEventListenersForViewTag could not get NativeAnimatedNodesManager"));
     }
 
     // Subscribe to UIManager (Fabric or non-Fabric) lifecycle events if we haven't yet
-    if ((mInitializedForFabric && mUIManagerType == UIManagerType.FABRIC)
-        || (mInitializedForNonFabric && mUIManagerType == UIManagerType.DEFAULT)) {
+    if (mUIManagerType == UIManagerType.FABRIC ? mInitializedForFabric : mInitializedForNonFabric) {
       return;
     }
 
@@ -374,6 +517,18 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
   }
 
   @Override
+  public void startOperationBatch() {
+    mBatchingControlledByJS = true;
+    mCurrentBatchNumber++;
+  }
+
+  @Override
+  public void finishOperationBatch() {
+    mBatchingControlledByJS = true;
+    mCurrentBatchNumber++;
+  }
+
+  @Override
   public void createAnimatedNode(final double tagDouble, final ReadableMap config) {
     final int tag = (int) tagDouble;
     if (ANIMATED_MODULE_DEBUG) {
@@ -381,7 +536,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
           NAME, "queue createAnimatedNode: " + tag + " config: " + config.toHashMap().toString());
     }
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -394,6 +549,32 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
                       + config.toHashMap().toString());
             }
             animatedNodesManager.createAnimatedNode(tag, config);
+          }
+        });
+  }
+
+  @Override
+  public void updateAnimatedNodeConfig(final double tagDouble, final ReadableMap config) {
+    final int tag = (int) tagDouble;
+    if (ANIMATED_MODULE_DEBUG) {
+      FLog.d(
+          NAME,
+          "queue updateAnimatedNodeConfig: " + tag + " config: " + config.toHashMap().toString());
+    }
+
+    addOperation(
+        new UIThreadOperation() {
+          @Override
+          public void execute(NativeAnimatedNodesManager animatedNodesManager) {
+            if (ANIMATED_MODULE_DEBUG) {
+              FLog.d(
+                  NAME,
+                  "execute updateAnimatedNodeConfig: "
+                      + tag
+                      + " config: "
+                      + config.toHashMap().toString());
+            }
+            animatedNodesManager.updateAnimatedNodeConfig(tag, config);
           }
         });
   }
@@ -422,7 +603,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
           }
         };
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -441,7 +622,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
       FLog.d(NAME, "queue stopListeningToAnimatedNodeValue: " + tag);
     }
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -460,7 +641,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
       FLog.d(NAME, "queue dropAnimatedNode: " + tag);
     }
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -479,7 +660,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
       FLog.d(NAME, "queue setAnimatedNodeValue: " + tag + " value: " + value);
     }
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -498,7 +679,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
       FLog.d(NAME, "queue setAnimatedNodeOffset: " + tag + " offset: " + value);
     }
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -517,7 +698,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
       FLog.d(NAME, "queue flattenAnimatedNodeOffset: " + tag);
     }
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -536,7 +717,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
       FLog.d(NAME, "queue extractAnimatedNodeOffset: " + tag);
     }
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -560,7 +741,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
       FLog.d(NAME, "queue startAnimatingNode: ID: " + animationId + " tag: " + animatedNodeTag);
     }
 
-    mOperations.add(
+    addUnbatchedOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -582,7 +763,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
       FLog.d(NAME, "queue stopAnimation: ID: " + animationId);
     }
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -604,7 +785,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
           NAME, "queue connectAnimatedNodes: parent: " + parentNodeTag + " child: " + childNodeTag);
     }
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -632,7 +813,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
           "queue disconnectAnimatedNodes: parent: " + parentNodeTag + " child: " + childNodeTag);
     }
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -665,7 +846,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
 
     initializeLifecycleEventListenersForViewTag(viewTag);
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -690,22 +871,19 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
     if (ANIMATED_MODULE_DEBUG) {
       FLog.d(
           NAME,
-          "queue connectAnimatedNodeToView: disconnectAnimatedNodeFromView: "
-              + animatedNodeTag
-              + " viewTag: "
-              + viewTag);
+          "queue: disconnectAnimatedNodeFromView: " + animatedNodeTag + " viewTag: " + viewTag);
     }
 
     decrementInFlightAnimationsForViewTag(viewTag);
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
             if (ANIMATED_MODULE_DEBUG) {
               FLog.d(
                   NAME,
-                  "execute connectAnimatedNodeToView: disconnectAnimatedNodeFromView: "
+                  "execute: disconnectAnimatedNodeFromView: "
                       + animatedNodeTag
                       + " viewTag: "
                       + viewTag);
@@ -723,7 +901,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
           NAME, "queue restoreDefaultValues: disconnectAnimatedNodeFromView: " + animatedNodeTag);
     }
 
-    mPreOperations.add(
+    addPreOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -755,7 +933,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
 
     initializeLifecycleEventListenersForViewTag(viewTag);
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
@@ -782,7 +960,7 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
     if (ANIMATED_MODULE_DEBUG) {
       FLog.d(
           NAME,
-          "queue addAnimatedEventToView: removeAnimatedEventFromView: "
+          "queue removeAnimatedEventFromView: viewTag: "
               + viewTag
               + " eventName: "
               + eventName
@@ -792,14 +970,14 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
 
     decrementInFlightAnimationsForViewTag(viewTag);
 
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
             if (ANIMATED_MODULE_DEBUG) {
               FLog.d(
                   NAME,
-                  "execute addAnimatedEventToView: removeAnimatedEventFromView: "
+                  "execute removeAnimatedEventFromView: viewTag: "
                       + viewTag
                       + " eventName: "
                       + eventName
@@ -824,12 +1002,207 @@ public class NativeAnimatedModule extends NativeAnimatedModuleSpec
   @Override
   public void getValue(final double animatedValueNodeTagDouble, final Callback callback) {
     final int animatedValueNodeTag = (int) animatedValueNodeTagDouble;
-    mOperations.add(
+    addOperation(
         new UIThreadOperation() {
           @Override
           public void execute(NativeAnimatedNodesManager animatedNodesManager) {
             animatedNodesManager.getValue(animatedValueNodeTag, callback);
           }
         });
+  }
+
+  @Override
+  public void invalidate() {
+    ReactApplicationContext context = getReactApplicationContextIfActiveOrWarn();
+    if (context != null) {
+      context.removeLifecycleEventListener(this);
+    }
+  }
+
+  /**
+   * This is a currently-experimental method that allows JS to queue and immediately execute many
+   * instructions at once. Since we make 1 JNI/JSI call instead of N, this should significantly
+   * improve performance.
+   *
+   * <p>The arguments operate as a byte buffer. All integer command IDs and any args are packed into
+   * opsAndArgs.
+   *
+   * <p>For the getValue callback: since this is batched, we accumulate a list of all requested
+   * values, in order, and call the callback once at the end (if present) with the list of requested
+   * values.
+   */
+  @Override
+  public void queueAndExecuteBatchedOperations(final ReadableArray opsAndArgs) {
+    final int opBufferSize = opsAndArgs.size();
+
+    if (ANIMATED_MODULE_DEBUG) {
+      FLog.e(NAME, "queueAndExecuteBatchedOperations: opBufferSize: " + opBufferSize);
+    }
+
+    // This block of code is unfortunate and should be refactored - we just want to
+    // extract the ViewTags in the ReadableArray to mark animations on views as being enabled.
+    // We only do this for initializing animations on views - disabling animations on views
+    // happens later, when the disconnect/stop operations are actually executed.
+    for (int i = 0; i < opBufferSize; ) {
+      BatchExecutionOpCodes command = BatchExecutionOpCodes.fromId(opsAndArgs.getInt(i++));
+      switch (command) {
+        case OP_CODE_GET_VALUE:
+        case OP_START_LISTENING_TO_ANIMATED_NODE_VALUE:
+        case OP_STOP_LISTENING_TO_ANIMATED_NODE_VALUE:
+        case OP_CODE_STOP_ANIMATION:
+        case OP_CODE_FLATTEN_ANIMATED_NODE_OFFSET:
+        case OP_CODE_EXTRACT_ANIMATED_NODE_OFFSET:
+        case OP_CODE_RESTORE_DEFAULT_VALUES:
+        case OP_CODE_DROP_ANIMATED_NODE:
+        case OP_CODE_ADD_LISTENER:
+        case OP_CODE_REMOVE_LISTENERS:
+          i++;
+          break;
+        case OP_CODE_CREATE_ANIMATED_NODE:
+        case OP_CODE_UPDATE_ANIMATED_NODE_CONFIG:
+        case OP_CODE_CONNECT_ANIMATED_NODES:
+        case OP_CODE_DISCONNECT_ANIMATED_NODES:
+        case OP_CODE_SET_ANIMATED_NODE_VALUE:
+        case OP_CODE_SET_ANIMATED_NODE_OFFSET:
+        case OP_CODE_DISCONNECT_ANIMATED_NODE_FROM_VIEW:
+          i += 2;
+          break;
+        case OP_CODE_START_ANIMATING_NODE:
+        case OP_CODE_REMOVE_ANIMATED_EVENT_FROM_VIEW:
+          i += 3;
+          break;
+        case OP_CODE_CONNECT_ANIMATED_NODE_TO_VIEW:
+          i++; // tag
+          initializeLifecycleEventListenersForViewTag(opsAndArgs.getInt(i++)); // viewTag
+          break;
+        case OP_CODE_ADD_ANIMATED_EVENT_TO_VIEW:
+          initializeLifecycleEventListenersForViewTag(opsAndArgs.getInt(i++)); // viewTag
+          i++; // eventName
+          i++; // eventMapping
+          break;
+        default:
+          throw new IllegalArgumentException(
+              "Batch animation execution op: fetching viewTag: unknown op code");
+      }
+    }
+
+    // Batching happens inside this operation - so signal to the thread loop that
+    // this operation should be executed as soon as possible, "unbatched" with other
+    // UIThreadOperations
+    startOperationBatch();
+    addUnbatchedOperation(
+        new UIThreadOperation() {
+          @Override
+          public void execute(NativeAnimatedNodesManager animatedNodesManager) {
+            ReactApplicationContext reactApplicationContext =
+                getReactApplicationContextIfActiveOrWarn();
+
+            int viewTag = -1;
+            for (int i = 0; i < opBufferSize; ) {
+              BatchExecutionOpCodes command = BatchExecutionOpCodes.fromId(opsAndArgs.getInt(i++));
+
+              switch (command) {
+                case OP_CODE_CREATE_ANIMATED_NODE:
+                  animatedNodesManager.createAnimatedNode(
+                      opsAndArgs.getInt(i++), opsAndArgs.getMap(i++));
+                  break;
+                case OP_CODE_UPDATE_ANIMATED_NODE_CONFIG:
+                  animatedNodesManager.updateAnimatedNodeConfig(
+                      opsAndArgs.getInt(i++), opsAndArgs.getMap(i++));
+                  break;
+                case OP_CODE_GET_VALUE:
+                  animatedNodesManager.getValue(opsAndArgs.getInt(i++), null);
+                  break;
+                case OP_START_LISTENING_TO_ANIMATED_NODE_VALUE:
+                  final int tag = opsAndArgs.getInt(i++);
+                  final AnimatedNodeValueListener listener =
+                      new AnimatedNodeValueListener() {
+                        public void onValueUpdate(double value) {
+                          WritableMap onAnimatedValueData = Arguments.createMap();
+                          onAnimatedValueData.putInt("tag", tag);
+                          onAnimatedValueData.putDouble("value", value);
+
+                          ReactApplicationContext reactApplicationContext =
+                              getReactApplicationContextIfActiveOrWarn();
+                          if (reactApplicationContext != null) {
+                            reactApplicationContext
+                                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                .emit("onAnimatedValueUpdate", onAnimatedValueData);
+                          }
+                        }
+                      };
+                  animatedNodesManager.startListeningToAnimatedNodeValue(tag, listener);
+                  break;
+                case OP_STOP_LISTENING_TO_ANIMATED_NODE_VALUE:
+                  animatedNodesManager.stopListeningToAnimatedNodeValue(opsAndArgs.getInt(i++));
+                  break;
+                case OP_CODE_CONNECT_ANIMATED_NODES:
+                  animatedNodesManager.connectAnimatedNodes(
+                      opsAndArgs.getInt(i++), opsAndArgs.getInt(i++));
+                  break;
+                case OP_CODE_DISCONNECT_ANIMATED_NODES:
+                  animatedNodesManager.disconnectAnimatedNodes(
+                      opsAndArgs.getInt(i++), opsAndArgs.getInt(i++));
+                  break;
+                case OP_CODE_START_ANIMATING_NODE:
+                  animatedNodesManager.startAnimatingNode(
+                      opsAndArgs.getInt(i++), opsAndArgs.getInt(i++), opsAndArgs.getMap(i++), null);
+                  break;
+                case OP_CODE_STOP_ANIMATION:
+                  animatedNodesManager.stopAnimation(opsAndArgs.getInt(i++));
+                  break;
+                case OP_CODE_SET_ANIMATED_NODE_VALUE:
+                  animatedNodesManager.setAnimatedNodeValue(
+                      opsAndArgs.getInt(i++), opsAndArgs.getDouble(i++));
+                  break;
+                case OP_CODE_SET_ANIMATED_NODE_OFFSET:
+                  animatedNodesManager.setAnimatedNodeValue(
+                      opsAndArgs.getInt(i++), opsAndArgs.getDouble(i++));
+                  break;
+                case OP_CODE_FLATTEN_ANIMATED_NODE_OFFSET:
+                  animatedNodesManager.flattenAnimatedNodeOffset(opsAndArgs.getInt(i++));
+                  break;
+                case OP_CODE_EXTRACT_ANIMATED_NODE_OFFSET:
+                  animatedNodesManager.extractAnimatedNodeOffset(opsAndArgs.getInt(i++));
+                  break;
+                case OP_CODE_CONNECT_ANIMATED_NODE_TO_VIEW:
+                  animatedNodesManager.connectAnimatedNodeToView(
+                      opsAndArgs.getInt(i++), opsAndArgs.getInt(i++));
+                  break;
+                case OP_CODE_DISCONNECT_ANIMATED_NODE_FROM_VIEW:
+                  int animatedNodeTag = opsAndArgs.getInt(i++);
+                  viewTag = opsAndArgs.getInt(i++);
+                  decrementInFlightAnimationsForViewTag(viewTag);
+                  animatedNodesManager.disconnectAnimatedNodeFromView(animatedNodeTag, viewTag);
+                  break;
+                case OP_CODE_RESTORE_DEFAULT_VALUES:
+                  animatedNodesManager.restoreDefaultValues(opsAndArgs.getInt(i++));
+                  break;
+                case OP_CODE_DROP_ANIMATED_NODE:
+                  animatedNodesManager.dropAnimatedNode(opsAndArgs.getInt(i++));
+                  break;
+                case OP_CODE_ADD_ANIMATED_EVENT_TO_VIEW:
+                  animatedNodesManager.addAnimatedEventToView(
+                      opsAndArgs.getInt(i++), opsAndArgs.getString(i++), opsAndArgs.getMap(i++));
+                  break;
+                case OP_CODE_REMOVE_ANIMATED_EVENT_FROM_VIEW:
+                  viewTag = opsAndArgs.getInt(i++);
+                  decrementInFlightAnimationsForViewTag(viewTag);
+                  animatedNodesManager.removeAnimatedEventFromView(
+                      viewTag, opsAndArgs.getString(i++), opsAndArgs.getInt(i++));
+                  break;
+                case OP_CODE_ADD_LISTENER:
+                case OP_CODE_REMOVE_LISTENERS:
+                  i++;
+                  // ios only, do nothing on android besides incrementing the arg counter
+                  break;
+                default:
+                  throw new IllegalArgumentException(
+                      "Batch animation execution op: unknown op code");
+              }
+            }
+          }
+        });
+    finishOperationBatch();
   }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -9,13 +9,17 @@
  */
 
 'use strict';
+import type {ASTNode} from '../utils';
 
 const {getValueFromTypes} = require('../utils.js');
 
-import type {PropTypeShape} from '../../../CodegenSchema.js';
-import type {TypeMap} from '../utils.js';
+import type {NamedShape, PropTypeAnnotation} from '../../../CodegenSchema.js';
+import type {TypeDeclarationMap} from '../utils.js';
 
-function getPropProperties(propsTypeName: string, types: TypeMap): $FlowFixMe {
+function getPropProperties(
+  propsTypeName: string,
+  types: TypeDeclarationMap,
+): $FlowFixMe {
   const typeAlias = types[propsTypeName];
   try {
     return typeAlias.right.typeParameters.params[0].properties;
@@ -26,7 +30,12 @@ function getPropProperties(propsTypeName: string, types: TypeMap): $FlowFixMe {
   }
 }
 
-function getTypeAnnotationForArray(name, typeAnnotation, defaultValue, types) {
+function getTypeAnnotationForArray(
+  name: string,
+  typeAnnotation: $FlowFixMe,
+  defaultValue: $FlowFixMe | null,
+  types: TypeDeclarationMap,
+) {
   const extractedTypeAnnotation = getValueFromTypes(typeAnnotation, types);
   if (extractedTypeAnnotation.type === 'NullableTypeAnnotation') {
     throw new Error(
@@ -150,7 +159,7 @@ function getTypeAnnotationForArray(name, typeAnnotation, defaultValue, types) {
         return {
           type: 'StringEnumTypeAnnotation',
           default: (defaultValue: string),
-          options: typeAnnotation.types.map(option => ({name: option.value})),
+          options: typeAnnotation.types.map(option => option.value),
         };
       } else if (unionType === 'NumberLiteralTypeAnnotation') {
         throw new Error(
@@ -158,7 +167,7 @@ function getTypeAnnotationForArray(name, typeAnnotation, defaultValue, types) {
         );
       } else {
         throw new Error(
-          `Unsupported union type for "${name}", recieved "${unionType}"`,
+          `Unsupported union type for "${name}", received "${unionType}"`,
         );
       }
     default:
@@ -168,11 +177,11 @@ function getTypeAnnotationForArray(name, typeAnnotation, defaultValue, types) {
 }
 
 function getTypeAnnotation(
-  name,
-  annotation,
-  defaultValue,
-  withNullDefault,
-  types,
+  name: string,
+  annotation: $FlowFixMe | ASTNode,
+  defaultValue: $FlowFixMe | null,
+  withNullDefault: boolean,
+  types: TypeDeclarationMap,
 ) {
   const typeAnnotation = getValueFromTypes(annotation, types);
 
@@ -298,19 +307,23 @@ function getTypeAnnotation(
         return {
           type: 'StringEnumTypeAnnotation',
           default: (defaultValue: string),
-          options: typeAnnotation.types.map(option => ({name: option.value})),
+          options: typeAnnotation.types.map(option => option.value),
         };
       } else if (unionType === 'NumberLiteralTypeAnnotation') {
         return {
           type: 'Int32EnumTypeAnnotation',
           default: (defaultValue: number),
-          options: typeAnnotation.types.map(option => ({value: option.value})),
+          options: typeAnnotation.types.map(option => option.value),
         };
       } else {
         throw new Error(
           `Unsupported union type for "${name}", received "${unionType}"`,
         );
       }
+    case 'ObjectTypeAnnotation':
+      throw new Error(
+        `Cannot use "${type}" type annotation for "${name}": object types must be declared using $ReadOnly<>`,
+      );
     case 'NumberTypeAnnotation':
       throw new Error(
         `Cannot use "${type}" type annotation for "${name}": must use a specific numeric type like Int32, Double, or Float`,
@@ -321,7 +334,10 @@ function getTypeAnnotation(
   }
 }
 
-function buildPropSchema(property, types: TypeMap): ?PropTypeShape {
+function buildPropSchema(
+  property: PropAST,
+  types: TypeDeclarationMap,
+): ?NamedShape<PropTypeAnnotation> {
   const name = property.key.name;
 
   const value = getValueFromTypes(property.value, types);
@@ -410,7 +426,7 @@ function buildPropSchema(property, types: TypeMap): ?PropTypeShape {
   };
 }
 
-// $FlowFixMe there's no flowtype for ASTs
+// $FlowFixMe[unclear-type] there's no flowtype for ASTs
 type PropAST = Object;
 
 function verifyPropNotAlreadyDefined(
@@ -426,7 +442,7 @@ function verifyPropNotAlreadyDefined(
 
 function flattenProperties(
   typeDefinition: $ReadOnlyArray<PropAST>,
-  types: TypeMap,
+  types: TypeDeclarationMap,
 ) {
   return typeDefinition
     .map(property => {
@@ -456,8 +472,8 @@ function flattenProperties(
 
 function getProps(
   typeDefinition: $ReadOnlyArray<PropAST>,
-  types: TypeMap,
-): $ReadOnlyArray<PropTypeShape> {
+  types: TypeDeclarationMap,
+): $ReadOnlyArray<NamedShape<PropTypeAnnotation>> {
   return flattenProperties(typeDefinition, types)
     .map(property => buildPropSchema(property, types))
     .filter(Boolean);

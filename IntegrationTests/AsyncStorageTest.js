@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -16,6 +16,7 @@ const {AsyncStorage, Text, View, StyleSheet} = ReactNative;
 const {TestModule} = ReactNative.NativeModules;
 
 const deepDiffer = require('react-native/Libraries/Utilities/differ/deepDiffer');
+const nullthrows = require('nullthrows');
 
 const DEBUG = false;
 
@@ -32,7 +33,7 @@ const VAL_MERGE_EXPECT = {foo: 1, bar: {hoo: 2, boo: 1}, baz: 2, moo: {a: 3}};
 let done = (result: ?boolean) => {};
 let updateMessage = (message: string) => {};
 
-function runTestCase(description: string, fn) {
+function runTestCase(description: string, fn: () => void) {
   updateMessage(description);
   fn();
 }
@@ -43,25 +44,58 @@ function expectTrue(condition: boolean, message: string) {
   }
 }
 
-function expectEqual(lhs, rhs, testname: string) {
+// Type-safe wrapper around JSON.stringify
+function stringify(
+  value:
+    | void
+    | null
+    | string
+    | number
+    | boolean
+    | {...}
+    | $ReadOnlyArray<mixed>,
+): string {
+  if (typeof value === 'undefined') {
+    return 'undefined';
+  }
+  return JSON.stringify(value);
+}
+
+function expectEqual(
+  lhs: ?(any | string | Array<Array<string>>),
+  rhs:
+    | null
+    | string
+    | {
+        bar: {boo: number, hoo: number},
+        baz: number,
+        foo: number,
+        moo: {a: number},
+      }
+    | Array<Array<string>>,
+  testname: string,
+) {
   expectTrue(
     !deepDiffer(lhs, rhs),
     'Error in test ' +
       testname +
       ': expected\n' +
-      JSON.stringify(rhs) +
+      stringify(rhs) +
       '\ngot\n' +
-      JSON.stringify(lhs),
+      stringify(lhs),
   );
 }
 
-function expectAsyncNoError(place, err) {
+function expectAsyncNoError(
+  place: string,
+  err: ?(Error | string | Array<Error>),
+) {
   if (err instanceof Error) {
     err = err.message;
   }
   expectTrue(
     err === null,
-    'Unexpected error in ' + place + ': ' + JSON.stringify(err),
+    'Unexpected error in ' + place + ': ' + stringify(err),
   );
 }
 
@@ -71,7 +105,7 @@ function testSetAndGet() {
     AsyncStorage.getItem(KEY_1, (err2, result) => {
       expectAsyncNoError('testSetAndGet/getItem', err2);
       expectEqual(result, VAL_1, 'testSetAndGet setItem');
-      updateMessage('get(key_1) correctly returned ' + result);
+      updateMessage('get(key_1) correctly returned ' + String(result));
       runTestCase('should get null for missing key', testMissingGet);
     });
   });
@@ -81,7 +115,7 @@ function testMissingGet() {
   AsyncStorage.getItem(KEY_2, (err, result) => {
     expectAsyncNoError('testMissingGet/setItem', err);
     expectEqual(result, null, 'testMissingGet');
-    updateMessage('missing get(key_2) correctly returned ' + result);
+    updateMessage('missing get(key_2) correctly returned ' + String(result));
     runTestCase('check set twice results in a single key', testSetTwice);
   });
 }
@@ -105,8 +139,9 @@ function testRemoveItem() {
       AsyncStorage.getAllKeys((err, result) => {
         expectAsyncNoError('testRemoveItem/getAllKeys', err);
         expectTrue(
-          result.indexOf(KEY_1) >= 0 && result.indexOf(KEY_2) >= 0,
-          'Missing KEY_1 or KEY_2 in ' + '(' + result + ')',
+          nullthrows(result).indexOf(KEY_1) >= 0 &&
+            nullthrows(result).indexOf(KEY_2) >= 0,
+          'Missing KEY_1 or KEY_2 in ' + '(' + nullthrows(result).join() + ')',
         );
         updateMessage('testRemoveItem - add two items');
         AsyncStorage.removeItem(KEY_1, err2 => {
@@ -123,8 +158,8 @@ function testRemoveItem() {
             AsyncStorage.getAllKeys((err4, result3) => {
               expectAsyncNoError('testRemoveItem/getAllKeys', err4);
               expectTrue(
-                result3.indexOf(KEY_1) === -1,
-                'Unexpected: KEY_1 present in ' + result3,
+                nullthrows(result3).indexOf(KEY_1) === -1,
+                'Unexpected: KEY_1 present in ' + nullthrows(result3).join(),
               );
               updateMessage('proper length returned.');
               runTestCase('should merge values', testMerge);
@@ -137,13 +172,17 @@ function testRemoveItem() {
 }
 
 function testMerge() {
-  AsyncStorage.setItem(KEY_MERGE, JSON.stringify(VAL_MERGE_1), err1 => {
+  AsyncStorage.setItem(KEY_MERGE, stringify(VAL_MERGE_1), err1 => {
     expectAsyncNoError('testMerge/setItem', err1);
-    AsyncStorage.mergeItem(KEY_MERGE, JSON.stringify(VAL_MERGE_2), err2 => {
+    AsyncStorage.mergeItem(KEY_MERGE, stringify(VAL_MERGE_2), err2 => {
       expectAsyncNoError('testMerge/mergeItem', err2);
       AsyncStorage.getItem(KEY_MERGE, (err3, result) => {
         expectAsyncNoError('testMerge/setItem', err3);
-        expectEqual(JSON.parse(result), VAL_MERGE_EXPECT, 'testMerge');
+        expectEqual(
+          JSON.parse(nullthrows(result)),
+          VAL_MERGE_EXPECT,
+          'testMerge',
+        );
         updateMessage('objects deeply merged\nDone!');
         runTestCase('multi set and get', testOptimizedMultiGet);
       });
@@ -165,8 +204,7 @@ function testOptimizedMultiGet() {
         expectAsyncNoError(`${i} testOptimizedMultiGet/multiGet`, err2);
         expectEqual(result, batch, `${i} testOptimizedMultiGet multiGet`);
         updateMessage(
-          'multiGet([key_1, key_2]) correctly returned ' +
-            JSON.stringify(result),
+          'multiGet([key_1, key_2]) correctly returned ' + stringify(result),
         );
         done();
       });
@@ -185,7 +223,7 @@ class AsyncStorageTest extends React.Component<{...}, $FlowFixMeState> {
       this.setState({done: true}, () => {
         TestModule.markTestCompleted();
       });
-    updateMessage = msg => {
+    updateMessage = (msg: string) => {
       this.setState({messages: this.state.messages.concat('\n' + msg)});
       DEBUG && console.log(msg);
     };
@@ -196,10 +234,13 @@ class AsyncStorageTest extends React.Component<{...}, $FlowFixMeState> {
     return (
       <View style={styles.container}>
         <Text>
-          {/* $FlowFixMe(>=0.54.0 site=react_native_fb,react_native_oss) This
-           * comment suppresses an error found when Flow v0.54 was deployed.
-           * To see the error delete this comment and run Flow. */
-          this.constructor.displayName + ': '}
+          {
+            /* $FlowFixMe[incompatible-type] (>=0.54.0 site=react_native_fb,react_
+             * native_oss) This comment suppresses an error found when Flow v0.54
+             * was deployed. To see the error delete this comment and run Flow.
+             */
+            this.constructor.displayName + ': '
+          }
           {this.state.done ? 'Done' : 'Testing...'}
           {'\n\n' + this.state.messages}
         </Text>

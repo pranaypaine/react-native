@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -7,9 +7,11 @@
 
 #import "RCTLegacyViewManagerInteropComponentView.h"
 
+#import <React/RCTAssert.h>
+#import <React/RCTConstants.h>
 #import <React/UIView+React.h>
-#import <react/components/legacyviewmanagerinterop/LegacyViewManagerInteropComponentDescriptor.h>
-#import <react/components/legacyviewmanagerinterop/LegacyViewManagerInteropViewProps.h>
+#import <react/renderer/components/legacyviewmanagerinterop/LegacyViewManagerInteropComponentDescriptor.h>
+#import <react/renderer/components/legacyviewmanagerinterop/LegacyViewManagerInteropViewProps.h>
 #import <react/utils/ManagedObjectWrapper.h>
 #import "RCTLegacyViewManagerInteropCoordinatorAdapter.h"
 
@@ -23,6 +25,7 @@ static NSString *const kRCTLegacyInteropChildIndexKey = @"index";
   NSMutableArray<UIView *> *_viewsToBeUnmounted;
   RCTLegacyViewManagerInteropCoordinatorAdapter *_adapter;
   LegacyViewManagerInteropShadowNode::ConcreteState::Shared _state;
+  BOOL _hasInvokedForwardingWarning;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame
@@ -32,37 +35,24 @@ static NSString *const kRCTLegacyInteropChildIndexKey = @"index";
     _props = defaultProps;
     _viewsToBeMounted = [NSMutableArray new];
     _viewsToBeUnmounted = [NSMutableArray new];
+    _hasInvokedForwardingWarning = NO;
   }
 
   return self;
 }
 
-+ (NSMutableSet<NSString *> *)supportedViewManagers
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
 {
-  static NSMutableSet<NSString *> *supported = [NSMutableSet setWithObjects:@"Picker",
-                                                                            @"DatePicker",
-                                                                            @"ProgressView",
-                                                                            @"SegmentedControl",
-                                                                            @"MaskedView",
-                                                                            @"ARTSurfaceView",
-                                                                            @"ARTText",
-                                                                            @"ARTShape",
-                                                                            @"ARTGroup",
-                                                                            nil];
-  return supported;
+  UIView *result = [super hitTest:point withEvent:event];
+
+  if (result == _adapter.paperView) {
+    return self;
+  }
+
+  return result;
 }
 
-+ (BOOL)isSupported:(NSString *)componentName
-{
-  return [[RCTLegacyViewManagerInteropComponentView supportedViewManagers] containsObject:componentName];
-}
-
-+ (void)supportLegacyViewManagerWithName:(NSString *)componentName
-{
-  [[RCTLegacyViewManagerInteropComponentView supportedViewManagers] addObject:componentName];
-}
-
-- (RCTLegacyViewManagerInteropCoordinator *)coordinator
+- (RCTLegacyViewManagerInteropCoordinator *)_coordinator
 {
   if (_state != nullptr) {
     const auto &state = _state->getData();
@@ -79,6 +69,73 @@ static NSString *const kRCTLegacyInteropChildIndexKey = @"index";
   return coordinator.componentViewName;
 }
 
+#pragma mark - Method forwarding
+
+- (void)forwardInvocation:(NSInvocation *)anInvocation
+{
+  if (!_hasInvokedForwardingWarning) {
+    _hasInvokedForwardingWarning = YES;
+    NSLog(
+        @"Invoked unsupported method on RCTLegacyViewManagerInteropComponentView. Resulting to noop instead of a crash.");
+  }
+}
+
+- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
+{
+  return [super methodSignatureForSelector:aSelector] ?: [self.contentView methodSignatureForSelector:aSelector];
+}
+
+#pragma mark - Supported ViewManagers
+
++ (NSMutableSet<NSString *> *)supportedViewManagers
+{
+  static NSMutableSet<NSString *> *supported = [NSMutableSet setWithObjects:@"DatePicker",
+                                                                            @"ProgressView",
+                                                                            @"SegmentedControl",
+                                                                            @"MaskedView",
+                                                                            @"ARTSurfaceView",
+                                                                            @"ARTText",
+                                                                            @"ARTShape",
+                                                                            @"ARTGroup",
+                                                                            nil];
+  return supported;
+}
+
++ (NSMutableSet<NSString *> *)supportedViewManagersPrefixes
+{
+  static NSMutableSet<NSString *> *supported = [NSMutableSet new];
+  return supported;
+}
+
++ (BOOL)isSupported:(NSString *)componentName
+{
+  // Step 1: check if ViewManager with specified name is supported.
+  BOOL isComponentNameSupported =
+      [[RCTLegacyViewManagerInteropComponentView supportedViewManagers] containsObject:componentName];
+  if (isComponentNameSupported) {
+    return YES;
+  }
+
+  // Step 2: check if component has supported prefix.
+  for (NSString *item in [RCTLegacyViewManagerInteropComponentView supportedViewManagersPrefixes]) {
+    if ([componentName hasPrefix:item]) {
+      return YES;
+    }
+  }
+
+  return NO;
+}
+
++ (void)supportLegacyViewManagersWithPrefix:(NSString *)prefix
+{
+  [[RCTLegacyViewManagerInteropComponentView supportedViewManagersPrefixes] addObject:prefix];
+}
+
++ (void)supportLegacyViewManagerWithName:(NSString *)componentName
+{
+  [[RCTLegacyViewManagerInteropComponentView supportedViewManagers] addObject:componentName];
+}
+
 #pragma mark - RCTComponentViewProtocol
 
 - (void)prepareForRecycle
@@ -88,6 +145,7 @@ static NSString *const kRCTLegacyInteropChildIndexKey = @"index";
   [_viewsToBeUnmounted removeAllObjects];
   _state.reset();
   self.contentView = nil;
+  _hasInvokedForwardingWarning = NO;
   [super prepareForRecycle];
 }
 
@@ -101,7 +159,11 @@ static NSString *const kRCTLegacyInteropChildIndexKey = @"index";
 
 - (void)unmountChildComponentView:(UIView<RCTComponentViewProtocol> *)childComponentView index:(NSInteger)index
 {
-  [_viewsToBeUnmounted addObject:childComponentView];
+  if (_adapter) {
+    [_adapter.paperView removeReactSubview:childComponentView];
+  } else {
+    [_viewsToBeUnmounted addObject:childComponentView];
+  }
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
@@ -119,7 +181,7 @@ static NSString *const kRCTLegacyInteropChildIndexKey = @"index";
   [super finalizeUpdates:updateMask];
 
   if (!_adapter) {
-    _adapter = [[RCTLegacyViewManagerInteropCoordinatorAdapter alloc] initWithCoordinator:self.coordinator
+    _adapter = [[RCTLegacyViewManagerInteropCoordinatorAdapter alloc] initWithCoordinator:[self _coordinator]
                                                                                  reactTag:self.tag];
     __weak __typeof(self) weakSelf = self;
     _adapter.eventInterceptor = ^(std::string eventName, folly::dynamic event) {
@@ -136,7 +198,12 @@ static NSString *const kRCTLegacyInteropChildIndexKey = @"index";
   for (NSDictionary *mountInstruction in _viewsToBeMounted) {
     NSNumber *index = mountInstruction[kRCTLegacyInteropChildIndexKey];
     UIView *childView = mountInstruction[kRCTLegacyInteropChildComponentKey];
-    [_adapter.paperView insertReactSubview:childView atIndex:index.integerValue];
+    if ([childView isKindOfClass:[RCTLegacyViewManagerInteropComponentView class]]) {
+      UIView *target = ((RCTLegacyViewManagerInteropComponentView *)childView).contentView;
+      [_adapter.paperView insertReactSubview:target atIndex:index.integerValue];
+    } else {
+      [_adapter.paperView insertReactSubview:childView atIndex:index.integerValue];
+    }
   }
 
   [_viewsToBeMounted removeAllObjects];

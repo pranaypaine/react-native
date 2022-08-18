@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -151,5 +151,36 @@ describe('FlatList', () => {
     expect(scrollRef.measure).toBeInstanceOf(jest.fn().constructor);
     expect(scrollRef.measureLayout).toBeInstanceOf(jest.fn().constructor);
     expect(scrollRef.measureInWindow).toBeInstanceOf(jest.fn().constructor);
+  });
+
+  it('calls renderItem for all data items', () => {
+    const data = [
+      {key: 'i1'},
+      null,
+      undefined,
+      {key: 'i2'},
+      null,
+      undefined,
+      {key: 'i3'},
+    ];
+
+    const renderItemInOneColumn = jest.fn();
+    ReactTestRenderer.create(
+      <FlatList data={data} renderItem={renderItemInOneColumn} />,
+    );
+
+    expect(renderItemInOneColumn).toHaveBeenCalledTimes(7);
+
+    const renderItemInThreeColumns = jest.fn();
+
+    ReactTestRenderer.create(
+      <FlatList
+        data={data}
+        renderItem={renderItemInThreeColumns}
+        numColumns={3}
+      />,
+    );
+
+    expect(renderItemInThreeColumns).toHaveBeenCalledTimes(7);
   });
 });

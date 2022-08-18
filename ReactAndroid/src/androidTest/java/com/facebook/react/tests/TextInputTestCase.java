@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -199,14 +199,45 @@ public class TextInputTestCase extends ReactAppInstrumentationTestCase {
     assertFalse(reactEditText.isFocused());
   }
 
-  private void fireEditorActionAndCheckRecording(
-      final ReactEditText reactEditText, final int actionId) throws Throwable {
-    fireEditorActionAndCheckRecording(reactEditText, actionId, true);
-    fireEditorActionAndCheckRecording(reactEditText, actionId, false);
+  public void testAccessibilityFocus_notEmpty_selectionSetAtEnd() throws Throwable {
+    String testId = "textInput1";
+    String text = "Testing";
+
+    final ReactEditText reactEditText = getViewByTestId(testId);
+    reactEditText.setText(text);
+    runTestOnUiThread(
+        new Runnable() {
+          @Override
+          public void run() {
+            reactEditText.clearFocus();
+          }
+        });
+    waitForBridgeAndUIIdle();
+    assertFalse(reactEditText.isFocused());
+    assertEquals(0, reactEditText.getSelectionStart());
+
+    runTestOnUiThread(
+        new Runnable() {
+          @Override
+          public void run() {
+            reactEditText.performAccessibilityAction(
+                AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null);
+            reactEditText.performAccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK, null);
+          }
+        });
+    waitForBridgeAndUIIdle();
+    assertTrue(reactEditText.isFocused());
+    assertEquals(text.length(), reactEditText.getSelectionStart());
   }
 
   private void fireEditorActionAndCheckRecording(
-      final ReactEditText reactEditText, final int actionId, final boolean blurOnSubmit)
+      final ReactEditText reactEditText, final int actionId) throws Throwable {
+    fireEditorActionAndCheckRecording(reactEditText, actionId, "blurAndSubmit");
+    fireEditorActionAndCheckRecording(reactEditText, actionId, "newline");
+  }
+
+  private void fireEditorActionAndCheckRecording(
+      final ReactEditText reactEditText, final int actionId, final String submitBehavior)
       throws Throwable {
     mRecordingModule.reset();
 
@@ -215,21 +246,20 @@ public class TextInputTestCase extends ReactAppInstrumentationTestCase {
           @Override
           public void run() {
             reactEditText.requestFocusFromJS();
-            reactEditText.setBlurOnSubmit(blurOnSubmit);
+            reactEditText.setSubmitBehavior(submitBehavior);
             reactEditText.onEditorAction(actionId);
           }
         });
     waitForBridgeAndUIIdle();
 
     assertEquals(1, mRecordingModule.getCalls().size());
-    assertEquals(!blurOnSubmit, reactEditText.isFocused());
+    assertEquals(!submitBehavior.equals("blurAndSubmit"), reactEditText.isFocused());
   }
 
   /**
    * Test that the mentions input has colors displayed correctly. Removed for being flaky in open
    * source, December 2016 public void testMetionsInputColors() throws Throwable { EventDispatcher
-   * eventDispatcher =
-   * getReactContext().getNativeModule(UIManagerModule.class).getEventDispatcher(); ReactEditText
+   * eventDispatcher = UIManagerHelper.getEventEmitterForReactTag(reactContext, tag); ReactEditText
    * reactEditText = getViewByTestId("tokenizedInput"); String newText = "#Things and more #things";
    * int contentWidth = reactEditText.getWidth(); int contentHeight = reactEditText.getHeight(); int
    * start = 0; int count = newText.length();

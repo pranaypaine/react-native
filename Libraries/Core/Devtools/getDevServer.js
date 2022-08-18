@@ -1,14 +1,12 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
  * @format
- * @flow
+ * @flow strict
  */
-
-'use strict';
 
 import NativeSourceCode from '../../NativeModules/specs/NativeSourceCode';
 
@@ -36,7 +34,7 @@ function getDevServer(): DevServerInfo {
   }
 
   return {
-    url: _cachedDevServerURL || FALLBACK,
+    url: _cachedDevServerURL ?? FALLBACK,
     fullBundleUrl: _cachedFullBundleURL,
     bundleLoadedFromServer: _cachedDevServerURL !== null,
   };

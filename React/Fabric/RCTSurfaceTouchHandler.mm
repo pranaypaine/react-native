@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -7,6 +7,7 @@
 
 #import "RCTSurfaceTouchHandler.h"
 
+#import <React/RCTReactTaggedView.h>
 #import <React/RCTUtils.h>
 #import <React/RCTViewComponentView.h>
 #import <UIKit/UIGestureRecognizerSubclass.h>
@@ -59,6 +60,46 @@ struct ActiveTouch {
   SharedTouchEventEmitter eventEmitter;
 
   /*
+   * The type of touch received.
+   */
+  UITouchType touchType;
+
+  /*
+   * The radius (in points) of the touch.
+   */
+  CGFloat majorRadius;
+
+  /*
+   * The altitude (in radians) of the stylus.
+   */
+  CGFloat altitudeAngle;
+
+  /*
+   * The azimuth angle (in radians) of the stylus.
+   */
+  CGFloat azimuthAngle;
+
+  /*
+   * The button mask of the touch
+   */
+  UIEventButtonMask buttonMask;
+
+  /*
+   * The bit mask of modifier flags in the gesture represented by the receiver.
+   */
+  UIKeyModifierFlags modifierFlags;
+
+  /*
+   * Indicates if the active touch represents the primary pointer of this pointer type.
+   */
+  bool isPrimary;
+
+  /*
+   * The button number that was pressed (if applicable) when the event was fired.
+   */
+  int button;
+
+  /*
    * A component view on which the touch was begun.
    */
   __strong UIView<RCTComponentViewProtocol> *componentView = nil;
@@ -78,11 +119,83 @@ struct ActiveTouch {
   };
 };
 
-static void UpdateActiveTouchWithUITouch(ActiveTouch &activeTouch, UITouch *uiTouch, UIView *rootComponentView)
+// Mouse and Pen pointers get reserved IDs so they stay consistent no matter the order
+// at which events come in
+static int const kMousePointerId = 0;
+static int const kPencilPointerId = 1;
+
+// If a new reserved ID is added above this should be incremented to ensure touch events
+// do not conflict
+static int const kTouchIdentifierPoolOffset = 2;
+
+// Returns a CGPoint which represents the tiltX/Y values (in RADIANS)
+// Adapted from https://gist.github.com/k3a/2903719bb42b48c9198d20c2d6f73ac1
+static CGPoint SphericalToTilt(CGFloat altitudeAngleRad, CGFloat azimuthAngleRad)
+{
+  if (altitudeAngleRad == M_PI / 2.0) {
+    return CGPointMake(0.0, 0.0);
+  } else if (altitudeAngleRad == 0.0) {
+    // when pen is laying on the pad it is impossible to precisely encode but at least approximate for 4 cases
+    if (azimuthAngleRad > 7.0 * M_PI / 4.0 || azimuthAngleRad <= M_PI / 4.0) {
+      // for azimuthRad == 0, the pen is on the positive Y axis
+      return CGPointMake(0.0, M_PI / 2.0);
+    } else if (azimuthAngleRad > M_PI / 4.0 && azimuthAngleRad <= 3 * M_PI / 4.0) {
+      // for azimuthRad == math.pi/2 the pen is on the positive X axis
+      return CGPointMake(M_PI / 2.0, 0.0);
+    } else if (azimuthAngleRad > 3.0 * M_PI / 4.0 && azimuthAngleRad <= 5.0 * M_PI / 4.0) {
+      // for azimuthRad == math.pi, the pen is on the negative Y axis
+      return CGPointMake(0.0, -M_PI / 2.0);
+    } else if (azimuthAngleRad > 5.0 * M_PI / 4.0 && azimuthAngleRad <= 7.0 * M_PI / 4.0) {
+      // for azimuthRad == math.pi + math.pi/2 pen on negative X axis
+      return CGPointMake(-M_PI / 2.0, 0.0);
+    }
+  }
+
+  CGFloat tanAlt = tan(altitudeAngleRad); // tan(x) = sin(x)/cos(x)
+
+  CGFloat tiltXrad = atan(sin(azimuthAngleRad) / tanAlt);
+  CGFloat tiltYrad = atan(cos(azimuthAngleRad) / tanAlt);
+
+  return CGPointMake(tiltXrad, tiltYrad);
+}
+
+static CGFloat RadsToDegrees(CGFloat rads)
+{
+  return rads * 180 / M_PI;
+}
+
+static int ButtonMaskToButtons(UIEventButtonMask buttonMask)
+{
+  if (@available(iOS 13.4, *)) {
+    return (((buttonMask & UIEventButtonMaskPrimary) > 0) ? 1 : 0) |
+        (((buttonMask & UIEventButtonMaskSecondary) > 0) ? 2 : 0);
+  }
+  return 0;
+}
+
+static int ButtonMaskToButton(UIEventButtonMask buttonMask)
+{
+  if (@available(iOS 13.4, *)) {
+    if ((buttonMask & UIEventButtonMaskSecondary) > 0) {
+      return 2;
+    }
+  }
+  return 0;
+}
+
+static void UpdateActiveTouchWithUITouch(
+    ActiveTouch &activeTouch,
+    UITouch *uiTouch,
+    UIEvent *uiEvent,
+    UIView *rootComponentView,
+    CGPoint rootViewOriginOffset)
 {
   CGPoint offsetPoint = [uiTouch locationInView:activeTouch.componentView];
-  CGPoint screenPoint = [uiTouch locationInView:uiTouch.window];
   CGPoint pagePoint = [uiTouch locationInView:rootComponentView];
+  CGPoint screenPoint = [rootComponentView convertPoint:pagePoint
+                                      toCoordinateSpace:rootComponentView.window.screen.coordinateSpace];
+
+  pagePoint = CGPointMake(pagePoint.x + rootViewOriginOffset.x, pagePoint.y + rootViewOriginOffset.y);
 
   activeTouch.touch.offsetPoint = RCTPointFromCGPoint(offsetPoint);
   activeTouch.touch.screenPoint = RCTPointFromCGPoint(screenPoint);
@@ -91,26 +204,189 @@ static void UpdateActiveTouchWithUITouch(ActiveTouch &activeTouch, UITouch *uiTo
   activeTouch.touch.timestamp = uiTouch.timestamp;
 
   if (RCTForceTouchAvailable()) {
-    activeTouch.touch.force = uiTouch.force / uiTouch.maximumPossibleForce;
+    activeTouch.touch.force = RCTZeroIfNaN(uiTouch.force / uiTouch.maximumPossibleForce);
+  }
+
+  activeTouch.touchType = uiTouch.type;
+  activeTouch.majorRadius = uiTouch.majorRadius;
+  activeTouch.altitudeAngle = uiTouch.altitudeAngle;
+  activeTouch.azimuthAngle = [uiTouch azimuthAngleInView:nil];
+  if (@available(iOS 13.4, *)) {
+    activeTouch.buttonMask = uiEvent.buttonMask;
+    activeTouch.modifierFlags = uiEvent.modifierFlags;
+  } else {
+    activeTouch.buttonMask = 0;
+    activeTouch.modifierFlags = 0;
   }
 }
 
-static ActiveTouch CreateTouchWithUITouch(UITouch *uiTouch, UIView *rootComponentView)
+static ActiveTouch
+CreateTouchWithUITouch(UITouch *uiTouch, UIEvent *uiEvent, UIView *rootComponentView, CGPoint rootViewOriginOffset)
 {
-  UIView *componentView = uiTouch.view;
-
   ActiveTouch activeTouch = {};
 
-  if ([componentView respondsToSelector:@selector(touchEventEmitterAtPoint:)]) {
-    activeTouch.eventEmitter = [(id<RCTTouchableComponentViewProtocol>)componentView
-        touchEventEmitterAtPoint:[uiTouch locationInView:componentView]];
-    activeTouch.touch.target = (Tag)componentView.tag;
+  // Find closest Fabric-managed touchable view
+  UIView *componentView = uiTouch.view;
+  while (componentView) {
+    if ([componentView respondsToSelector:@selector(touchEventEmitterAtPoint:)]) {
+      activeTouch.eventEmitter = [(id<RCTTouchableComponentViewProtocol>)componentView
+          touchEventEmitterAtPoint:[uiTouch locationInView:componentView]];
+      activeTouch.touch.target = (Tag)componentView.tag;
+      activeTouch.componentView = componentView;
+      break;
+    }
+    componentView = componentView.superview;
   }
 
-  activeTouch.componentView = componentView;
-
-  UpdateActiveTouchWithUITouch(activeTouch, uiTouch, rootComponentView);
+  UpdateActiveTouchWithUITouch(activeTouch, uiTouch, uiEvent, rootComponentView, rootViewOriginOffset);
   return activeTouch;
+}
+
+static UIView *FindClosestFabricManagedTouchableView(UIView *componentView)
+{
+  while (componentView) {
+    if ([componentView respondsToSelector:@selector(touchEventEmitterAtPoint:)]) {
+      return componentView;
+    }
+    componentView = componentView.superview;
+  }
+  return nil;
+}
+
+static NSOrderedSet<RCTReactTaggedView *> *GetTouchableViewsInPathToRoot(UIView *componentView)
+{
+  NSMutableOrderedSet *results = [NSMutableOrderedSet orderedSet];
+  do {
+    if ([componentView respondsToSelector:@selector(touchEventEmitterAtPoint:)]) {
+      [results addObject:[RCTReactTaggedView wrap:componentView]];
+    }
+    componentView = componentView.superview;
+  } while (componentView);
+  return results;
+}
+
+static SharedTouchEventEmitter GetTouchEmitterFromView(UIView *componentView, CGPoint point)
+{
+  return [(id<RCTTouchableComponentViewProtocol>)componentView touchEventEmitterAtPoint:point];
+}
+
+static const char *PointerTypeCStringFromUITouchType(UITouchType type)
+{
+  switch (type) {
+    case UITouchTypeDirect:
+      return "touch";
+    case UITouchTypePencil:
+      return "pen";
+    case UITouchTypeIndirectPointer:
+      return "mouse";
+    case UITouchTypeIndirect:
+    default:
+      return "";
+  }
+}
+
+static void UpdatePointerEventModifierFlags(PointerEvent &event, UIKeyModifierFlags flags)
+{
+  if (@available(iOS 13.4, *)) {
+    event.ctrlKey = (flags & UIKeyModifierControl) != 0;
+    event.shiftKey = (flags & UIKeyModifierShift) != 0;
+    event.altKey = (flags & UIKeyModifierAlternate) != 0;
+    event.metaKey = (flags & UIKeyModifierCommand) != 0;
+  } else {
+    event.ctrlKey = false;
+    event.shiftKey = false;
+    event.altKey = false;
+    event.metaKey = false;
+  }
+}
+
+static PointerEvent CreatePointerEventFromActiveTouch(ActiveTouch activeTouch, RCTTouchEventType eventType)
+{
+  Touch touch = activeTouch.touch;
+
+  PointerEvent event = {};
+  event.pointerId = touch.identifier;
+  event.pointerType = PointerTypeCStringFromUITouchType(activeTouch.touchType);
+  event.clientPoint = touch.pagePoint;
+  event.screenPoint = touch.screenPoint;
+  event.offsetPoint = touch.offsetPoint;
+
+  event.pressure = touch.force;
+  if (@available(iOS 13.4, *)) {
+    if (activeTouch.touchType == UITouchTypeIndirectPointer) {
+      // pointer events with a mouse button pressed should report a pressure of 0.5
+      // when the touch is down and 0.0 when it is lifted regardless of how it is reported by the OS
+      event.pressure = eventType != RCTTouchEventTypeTouchEnd ? 0.5 : 0.0;
+    }
+  }
+
+  CGFloat pointerSize = activeTouch.majorRadius * 2.0;
+  if (@available(iOS 13.4, *)) {
+    if (activeTouch.touchType == UITouchTypeIndirectPointer) {
+      // mouse type pointers should always report a size of 1
+      pointerSize = 1.0;
+    }
+  }
+  event.width = pointerSize;
+  event.height = pointerSize;
+
+  CGPoint tilt = SphericalToTilt(activeTouch.altitudeAngle, activeTouch.azimuthAngle);
+  event.tiltX = RadsToDegrees(tilt.x);
+  event.tiltY = RadsToDegrees(tilt.y);
+
+  event.detail = 0;
+
+  event.button = -1;
+  if (eventType == RCTTouchEventTypeTouchStart || eventType == RCTTouchEventTypeTouchEnd) {
+    event.button = activeTouch.button;
+  }
+
+  event.buttons = ButtonMaskToButtons(activeTouch.buttonMask);
+  UpdatePointerEventModifierFlags(event, activeTouch.modifierFlags);
+
+  // UIEvent's button mask for touch end events still marks the button as down
+  // so this ensures it's set to 0 as per the pointer event spec
+  if (eventType == RCTTouchEventTypeTouchEnd) {
+    event.buttons = 0;
+  }
+
+  event.tangentialPressure = 0.0;
+  event.twist = 0;
+  event.isPrimary = activeTouch.isPrimary;
+
+  return event;
+}
+
+static PointerEvent CreatePointerEventFromIncompleteHoverData(
+    UIView *view,
+    CGPoint clientLocation,
+    CGPoint screenLocation,
+    CGPoint offsetLocation,
+    UIKeyModifierFlags modifierFlags)
+{
+  PointerEvent event = {};
+  // "touch" events produced from a mouse cursor on iOS always have the ID 0 so
+  // we can just assume that here since these sort of hover events only ever come
+  // from the mouse
+  event.pointerId = kMousePointerId;
+  event.pressure = 0.0;
+  event.pointerType = "mouse";
+  event.clientPoint = RCTPointFromCGPoint(clientLocation);
+  event.screenPoint = RCTPointFromCGPoint(screenLocation);
+  event.offsetPoint = RCTPointFromCGPoint(offsetLocation);
+  event.width = 1.0;
+  event.height = 1.0;
+  event.tiltX = 0;
+  event.tiltY = 0;
+  event.detail = 0;
+  event.button = -1;
+  event.buttons = 0;
+  UpdatePointerEventModifierFlags(event, modifierFlags);
+  event.tangentialPressure = 0.0;
+  event.twist = 0;
+  event.isPrimary = true;
+
+  return event;
 }
 
 static BOOL AllTouchesAreCancelledOrEnded(NSSet<UITouch *> *touches)
@@ -127,6 +403,28 @@ static BOOL AnyTouchesChanged(NSSet<UITouch *> *touches)
 {
   for (UITouch *touch in touches) {
     if (touch.phase == UITouchPhaseBegan || touch.phase == UITouchPhaseMoved) {
+      return YES;
+    }
+  }
+  return NO;
+}
+
+static BOOL IsViewListeningToEvent(RCTReactTaggedView *taggedView, ViewEvents::Offset eventType)
+{
+  UIView *view = taggedView.view;
+  if (view && [view.class conformsToProtocol:@protocol(RCTComponentViewProtocol)]) {
+    auto props = ((id<RCTComponentViewProtocol>)view).props;
+    if (SharedViewProps viewProps = std::dynamic_pointer_cast<ViewProps const>(props)) {
+      return viewProps->events[eventType];
+    }
+  }
+  return NO;
+}
+
+static BOOL IsAnyViewInPathListeningToEvent(NSOrderedSet<RCTReactTaggedView *> *viewPath, ViewEvents::Offset eventType)
+{
+  for (RCTReactTaggedView *taggedView in viewPath) {
+    if (IsViewListeningToEvent(taggedView, eventType)) {
       return YES;
     }
   }
@@ -154,8 +452,16 @@ struct PointerHasher {
   std::unordered_map<__unsafe_unretained UITouch *, ActiveTouch, PointerHasher<__unsafe_unretained UITouch *>>
       _activeTouches;
 
-  UIView *_rootComponentView;
+  /*
+   * We hold the view weakly to prevent a retain cycle.
+   */
+  __weak UIView *_rootComponentView;
   IdentifierPool<11> _identifierPool;
+
+  UIHoverGestureRecognizer *_hoverRecognizer API_AVAILABLE(ios(13.0));
+  NSOrderedSet<RCTReactTaggedView *> *_currentlyHoveredViews;
+
+  int _primaryTouchPointerId;
 }
 
 - (instancetype)init
@@ -170,6 +476,10 @@ struct PointerHasher {
     self.delaysTouchesEnded = NO;
 
     self.delegate = self;
+
+    _hoverRecognizer = nil;
+    _currentlyHoveredViews = [NSOrderedSet orderedSet];
+    _primaryTouchPointerId = -1;
   }
 
   return self;
@@ -183,6 +493,13 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithTarget : (id)target action : (SEL)act
 
   [view addGestureRecognizer:self];
   _rootComponentView = view;
+
+  if (RCTGetDispatchW3CPointerEvents()) {
+    if (@available(iOS 13.0, *)) {
+      _hoverRecognizer = [[UIHoverGestureRecognizer alloc] initWithTarget:self action:@selector(hovering:)];
+      [view addGestureRecognizer:_hoverRecognizer];
+    }
+  }
 }
 
 - (void)detachFromView:(UIView *)view
@@ -192,18 +509,55 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithTarget : (id)target action : (SEL)act
 
   [view removeGestureRecognizer:self];
   _rootComponentView = nil;
+
+  if (_hoverRecognizer != nil) {
+    [view removeGestureRecognizer:_hoverRecognizer];
+    _hoverRecognizer = nil;
+  }
 }
 
-- (void)_registerTouches:(NSSet<UITouch *> *)touches
+- (void)_registerTouches:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
   for (UITouch *touch in touches) {
-    auto activeTouch = CreateTouchWithUITouch(touch, _rootComponentView);
-    activeTouch.touch.identifier = _identifierPool.dequeue();
+    auto activeTouch = CreateTouchWithUITouch(touch, event, _rootComponentView, _viewOriginOffset);
+
+    if (@available(iOS 13.4, *)) {
+      switch (touch.type) {
+        case UITouchTypeIndirectPointer:
+          activeTouch.touch.identifier = kMousePointerId;
+          activeTouch.isPrimary = true;
+          break;
+        case UITouchTypePencil:
+          activeTouch.touch.identifier = kPencilPointerId;
+          activeTouch.isPrimary = true;
+          break;
+        default:
+          // use the identifier pool offset to ensure no conflicts between the reserved IDs and the
+          // touch IDs
+          activeTouch.touch.identifier = _identifierPool.dequeue() + kTouchIdentifierPoolOffset;
+          if (_primaryTouchPointerId == -1) {
+            _primaryTouchPointerId = activeTouch.touch.identifier;
+            activeTouch.isPrimary = true;
+          }
+          break;
+      }
+
+      activeTouch.button = ButtonMaskToButton(event.buttonMask);
+    } else {
+      activeTouch.touch.identifier = _identifierPool.dequeue();
+      if (_primaryTouchPointerId == -1) {
+        _primaryTouchPointerId = activeTouch.touch.identifier;
+        activeTouch.isPrimary = true;
+      }
+
+      activeTouch.button = 0;
+    }
+
     _activeTouches.emplace(touch, activeTouch);
   }
 }
 
-- (void)_updateTouches:(NSSet<UITouch *> *)touches
+- (void)_updateTouches:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
   for (UITouch *touch in touches) {
     auto iterator = _activeTouches.find(touch);
@@ -212,7 +566,7 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithTarget : (id)target action : (SEL)act
       continue;
     }
 
-    UpdateActiveTouchWithUITouch(iterator->second, touch, _rootComponentView);
+    UpdateActiveTouchWithUITouch(iterator->second, touch, event, _rootComponentView, _viewOriginOffset);
   }
 }
 
@@ -225,7 +579,25 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithTarget : (id)target action : (SEL)act
       continue;
     }
     auto &activeTouch = iterator->second;
-    _identifierPool.enqueue(activeTouch.touch.identifier);
+
+    if (activeTouch.touch.identifier == _primaryTouchPointerId) {
+      _primaryTouchPointerId = -1;
+    }
+
+    if (@available(iOS 13.4, *)) {
+      // only need to enqueue if the touch type isn't one with a reserved identifier
+      switch (touch.type) {
+        case UITouchTypeIndirectPointer:
+        case UITouchTypePencil:
+          break;
+        default:
+          // since the touch's identifier has been offset we need to re-normalize it to 0-based
+          // which is what the identifier pool expects
+          _identifierPool.enqueue(activeTouch.touch.identifier - kTouchIdentifierPoolOffset);
+      }
+    } else {
+      _identifierPool.enqueue(activeTouch.touch.identifier);
+    }
     _activeTouches.erase(touch);
   }
 }
@@ -262,6 +634,25 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithTarget : (id)target action : (SEL)act
     changedActiveTouches.insert(activeTouch);
     event.changedTouches.insert(activeTouch.touch);
     uniqueEventEmitters.insert(activeTouch.eventEmitter);
+
+    // emit w3c pointer events
+    if (RCTGetDispatchW3CPointerEvents()) {
+      PointerEvent pointerEvent = CreatePointerEventFromActiveTouch(activeTouch, eventType);
+      switch (eventType) {
+        case RCTTouchEventTypeTouchStart:
+          activeTouch.eventEmitter->onPointerDown(pointerEvent);
+          break;
+        case RCTTouchEventTypeTouchMove:
+          activeTouch.eventEmitter->onPointerMove(pointerEvent);
+          break;
+        case RCTTouchEventTypeTouchEnd:
+          activeTouch.eventEmitter->onPointerUp(pointerEvent);
+          break;
+        case RCTTouchEventTypeTouchCancel:
+          activeTouch.eventEmitter->onPointerCancel(pointerEvent);
+          break;
+      }
+    }
   }
 
   for (const auto &pair : _activeTouches) {
@@ -308,7 +699,7 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithTarget : (id)target action : (SEL)act
 {
   [super touchesBegan:touches withEvent:event];
 
-  [self _registerTouches:touches];
+  [self _registerTouches:touches withEvent:event];
   [self _dispatchActiveTouches:[self _activeTouchesFromTouches:touches] eventType:RCTTouchEventTypeTouchStart];
 
   if (self.state == UIGestureRecognizerStatePossible) {
@@ -322,7 +713,7 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithTarget : (id)target action : (SEL)act
 {
   [super touchesMoved:touches withEvent:event];
 
-  [self _updateTouches:touches];
+  [self _updateTouches:touches withEvent:event];
   [self _dispatchActiveTouches:[self _activeTouchesFromTouches:touches] eventType:RCTTouchEventTypeTouchMove];
 
   self.state = UIGestureRecognizerStateChanged;
@@ -332,7 +723,7 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithTarget : (id)target action : (SEL)act
 {
   [super touchesEnded:touches withEvent:event];
 
-  [self _updateTouches:touches];
+  [self _updateTouches:touches withEvent:event];
   [self _dispatchActiveTouches:[self _activeTouchesFromTouches:touches] eventType:RCTTouchEventTypeTouchEnd];
   [self _unregisterTouches:touches];
 
@@ -347,7 +738,7 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithTarget : (id)target action : (SEL)act
 {
   [super touchesCancelled:touches withEvent:event];
 
-  [self _updateTouches:touches];
+  [self _updateTouches:touches withEvent:event];
   [self _dispatchActiveTouches:[self _activeTouchesFromTouches:touches] eventType:RCTTouchEventTypeTouchCancel];
   [self _unregisterTouches:touches];
 
@@ -397,6 +788,155 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithTarget : (id)target action : (SEL)act
 {
   // Same condition for `failure of` as for `be prevented by`.
   return [self canBePreventedByGestureRecognizer:otherGestureRecognizer];
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer
+    shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+  BOOL canBePrevented = [self canBePreventedByGestureRecognizer:otherGestureRecognizer];
+  if (canBePrevented) {
+    [self _cancelTouches];
+  }
+  return NO;
+}
+
+#pragma mark -
+
+- (void)_cancelTouches
+{
+  [self setEnabled:NO];
+  [self setEnabled:YES];
+}
+
+- (void)hovering:(UIHoverGestureRecognizer *)recognizer API_AVAILABLE(ios(13.0))
+{
+  UIView *listenerView = recognizer.view;
+  CGPoint clientLocation = [recognizer locationInView:listenerView];
+  CGPoint screenLocation = [listenerView convertPoint:clientLocation
+                                    toCoordinateSpace:listenerView.window.screen.coordinateSpace];
+
+  UIView *targetView = [listenerView hitTest:clientLocation withEvent:nil];
+  targetView = FindClosestFabricManagedTouchableView(targetView);
+
+  RCTReactTaggedView *targetTaggedView = [RCTReactTaggedView wrap:targetView];
+  RCTReactTaggedView *prevTargetTaggedView = [_currentlyHoveredViews firstObject];
+  UIView *prevTargetView = prevTargetTaggedView.view;
+
+  CGPoint offsetLocation = [recognizer locationInView:targetView];
+
+  UIKeyModifierFlags modifierFlags;
+  if (@available(iOS 13.4, *)) {
+    modifierFlags = recognizer.modifierFlags;
+  } else {
+    modifierFlags = 0;
+  }
+
+  NSOrderedSet<RCTReactTaggedView *> *eventPathViews = GetTouchableViewsInPathToRoot(targetView);
+
+  BOOL hasMoveListenerInEventPath = NO;
+
+  // Over
+  if (prevTargetTaggedView.tag != targetTaggedView.tag) {
+    BOOL shouldEmitOverEvent = IsAnyViewInPathListeningToEvent(eventPathViews, ViewEvents::Offset::PointerOver);
+    SharedTouchEventEmitter eventEmitter = GetTouchEmitterFromView(targetView, [recognizer locationInView:targetView]);
+    if (shouldEmitOverEvent && eventEmitter != nil) {
+      PointerEvent event = CreatePointerEventFromIncompleteHoverData(
+          targetView, clientLocation, screenLocation, offsetLocation, modifierFlags);
+      eventEmitter->onPointerOver(event);
+    }
+  }
+
+  // Entering
+
+  // We only want to emit events to JS if there is a view that is currently listening to said event
+  // so we only send those event to the JS side if the element which has been entered is itself listening,
+  // or if one of its parents is listening in case those listeners care about the capturing phase. Adding the ability
+  // for native to distingusih between capturing listeners and not could be an optimization to futher reduce the number
+  // of events we send to JS
+  BOOL hasParentEnterListener = NO;
+
+  for (RCTReactTaggedView *taggedView in [eventPathViews reverseObjectEnumerator]) {
+    UIView *componentView = taggedView.view;
+
+    BOOL shouldEmitEvent = componentView != nil &&
+        (hasParentEnterListener || IsViewListeningToEvent(taggedView, ViewEvents::Offset::PointerEnter));
+
+    if (shouldEmitEvent && ![_currentlyHoveredViews containsObject:taggedView]) {
+      SharedTouchEventEmitter eventEmitter =
+          GetTouchEmitterFromView(componentView, [recognizer locationInView:componentView]);
+      if (eventEmitter != nil) {
+        PointerEvent event = CreatePointerEventFromIncompleteHoverData(
+            componentView, clientLocation, screenLocation, offsetLocation, modifierFlags);
+        eventEmitter->onPointerEnter(event);
+      }
+    }
+
+    if (shouldEmitEvent && !hasParentEnterListener) {
+      hasParentEnterListener = YES;
+    }
+
+    if (!hasMoveListenerInEventPath && IsViewListeningToEvent(taggedView, ViewEvents::Offset::PointerMove)) {
+      hasMoveListenerInEventPath = YES;
+    }
+  }
+
+  // Moving
+  if (hasMoveListenerInEventPath) {
+    SharedTouchEventEmitter eventEmitter = GetTouchEmitterFromView(targetView, [recognizer locationInView:targetView]);
+    if (eventEmitter != nil) {
+      PointerEvent event = CreatePointerEventFromIncompleteHoverData(
+          targetView, clientLocation, screenLocation, offsetLocation, modifierFlags);
+      eventEmitter->onPointerMove(event);
+    }
+  }
+
+  // Out
+  if (prevTargetView != nil && prevTargetTaggedView.tag != targetTaggedView.tag) {
+    BOOL shouldEmitOutEvent = IsAnyViewInPathListeningToEvent(_currentlyHoveredViews, ViewEvents::Offset::PointerOut);
+    SharedTouchEventEmitter eventEmitter =
+        GetTouchEmitterFromView(prevTargetView, [recognizer locationInView:prevTargetView]);
+    if (shouldEmitOutEvent && eventEmitter != nil) {
+      PointerEvent event = CreatePointerEventFromIncompleteHoverData(
+          prevTargetView, clientLocation, screenLocation, offsetLocation, modifierFlags);
+      eventEmitter->onPointerOut(event);
+    }
+  }
+
+  // Leaving
+
+  // pointerleave events need to be emited from the deepest target to the root but
+  // we also need to efficiently keep track of if a view has a parent which is listening to the leave events,
+  // so we first iterate from the root to the target, collecting the views which need events fired for, of which
+  // we reverse iterate (now from target to root), actually emitting the events.
+  NSMutableOrderedSet<UIView *> *viewsToEmitLeaveEventsTo = [NSMutableOrderedSet orderedSet];
+
+  BOOL hasParentLeaveListener = NO;
+  for (RCTReactTaggedView *taggedView in [_currentlyHoveredViews reverseObjectEnumerator]) {
+    UIView *componentView = taggedView.view;
+
+    BOOL shouldEmitEvent = componentView != nil &&
+        (hasParentLeaveListener || IsViewListeningToEvent(taggedView, ViewEvents::Offset::PointerLeave));
+
+    if (shouldEmitEvent && ![eventPathViews containsObject:taggedView]) {
+      [viewsToEmitLeaveEventsTo addObject:componentView];
+    }
+
+    if (shouldEmitEvent && !hasParentLeaveListener) {
+      hasParentLeaveListener = YES;
+    }
+  }
+
+  for (UIView *componentView in [viewsToEmitLeaveEventsTo reverseObjectEnumerator]) {
+    SharedTouchEventEmitter eventEmitter =
+        GetTouchEmitterFromView(componentView, [recognizer locationInView:componentView]);
+    if (eventEmitter != nil) {
+      PointerEvent event = CreatePointerEventFromIncompleteHoverData(
+          componentView, clientLocation, screenLocation, offsetLocation, modifierFlags);
+      eventEmitter->onPointerLeave(event);
+    }
+  }
+
+  _currentlyHoveredViews = eventPathViews;
 }
 
 @end

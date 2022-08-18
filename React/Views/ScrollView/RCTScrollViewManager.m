@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -36,9 +36,6 @@ RCT_ENUM_CONVERTER(
     UIScrollViewIndicatorStyleDefault,
     integerValue)
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunguarded-availability-new"
-#if defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000 /* __IPHONE_11_0 */
 RCT_ENUM_CONVERTER(
     UIScrollViewContentInsetAdjustmentBehavior,
     (@{
@@ -49,8 +46,6 @@ RCT_ENUM_CONVERTER(
     }),
     UIScrollViewContentInsetAdjustmentNever,
     integerValue)
-#endif
-#pragma clang diagnostic pop
 
 @end
 
@@ -71,6 +66,7 @@ RCT_EXPORT_VIEW_PROPERTY(canCancelContentTouches, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(centerContent, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(maintainVisibleContentPosition, NSDictionary)
 RCT_EXPORT_VIEW_PROPERTY(automaticallyAdjustContentInsets, BOOL)
+RCT_EXPORT_VIEW_PROPERTY(automaticallyAdjustKeyboardInsets, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(decelerationRate, CGFloat)
 RCT_EXPORT_VIEW_PROPERTY(directionalLockEnabled, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(indicatorStyle, UIScrollViewIndicatorStyle)
@@ -78,11 +74,9 @@ RCT_EXPORT_VIEW_PROPERTY(keyboardDismissMode, UIScrollViewKeyboardDismissMode)
 RCT_EXPORT_VIEW_PROPERTY(maximumZoomScale, CGFloat)
 RCT_EXPORT_VIEW_PROPERTY(minimumZoomScale, CGFloat)
 RCT_EXPORT_VIEW_PROPERTY(scrollEnabled, BOOL)
-#if !TARGET_OS_TV
 RCT_EXPORT_VIEW_PROPERTY(pagingEnabled, BOOL)
 RCT_REMAP_VIEW_PROPERTY(pinchGestureEnabled, scrollView.pinchGestureEnabled, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(scrollsToTop, BOOL)
-#endif
 RCT_EXPORT_VIEW_PROPERTY(showsHorizontalScrollIndicator, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(showsVerticalScrollIndicator, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(scrollEventThrottle, NSTimeInterval)
@@ -104,9 +98,10 @@ RCT_EXPORT_VIEW_PROPERTY(onScrollEndDrag, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onMomentumScrollBegin, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onMomentumScrollEnd, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(inverted, BOOL)
-#if defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000 /* __IPHONE_11_0 */
-RCT_EXPORT_VIEW_PROPERTY(contentInsetAdjustmentBehavior, UIScrollViewContentInsetAdjustmentBehavior)
+#if defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 130000 /* __IPHONE_13_0 */
+RCT_EXPORT_VIEW_PROPERTY(automaticallyAdjustsScrollIndicatorInsets, BOOL)
 #endif
+RCT_EXPORT_VIEW_PROPERTY(contentInsetAdjustmentBehavior, UIScrollViewContentInsetAdjustmentBehavior)
 
 // overflow is used both in css-layout as well as by react-native. In css-layout
 // we always want to treat overflow as scroll but depending on what the overflow

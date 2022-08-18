@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -9,26 +9,27 @@
 
 #import <Foundation/NSMapTable.h>
 #import <React/RCTAssert.h>
+#import <React/RCTConstants.h>
 
 #import "RCTImageComponentView.h"
 #import "RCTParagraphComponentView.h"
 #import "RCTViewComponentView.h"
 
-#import <better/map.h>
+#import <butter/map.h>
 
 using namespace facebook::react;
 
 const NSInteger RCTComponentViewRegistryRecyclePoolMaxSize = 1024;
 
 @implementation RCTComponentViewRegistry {
-  better::map<Tag, RCTComponentViewDescriptor> _registry;
-  better::map<ComponentHandle, std::vector<RCTComponentViewDescriptor>> _recyclePool;
+  butter::map<Tag, RCTComponentViewDescriptor> _registry;
+  butter::map<ComponentHandle, std::vector<RCTComponentViewDescriptor>> _recyclePool;
 }
 
 - (instancetype)init
 {
   if (self = [super init]) {
-    _componentViewFactory = [RCTComponentViewFactory standardComponentViewFactory];
+    _componentViewFactory = [RCTComponentViewFactory currentComponentViewFactory];
 
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(handleApplicationDidReceiveMemoryWarningNotification)
@@ -46,6 +47,10 @@ const NSInteger RCTComponentViewRegistryRecyclePoolMaxSize = 1024;
 
 - (void)preallocateViewComponents
 {
+  if (RCTExperimentGetPreemptiveViewAllocationDisabled()) {
+    return;
+  }
+
   // This data is based on empirical evidence which should represent the reality pretty well.
   // Regular `<View>` has magnitude equals to `1` by definition.
   std::vector<std::pair<ComponentHandle, float>> componentMagnitudes = {

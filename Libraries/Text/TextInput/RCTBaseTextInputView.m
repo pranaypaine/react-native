@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -9,7 +9,7 @@
 
 #import <React/RCTBridge.h>
 #import <React/RCTConvert.h>
-#import <React/RCTEventDispatcher.h>
+#import <React/RCTEventDispatcherProtocol.h>
 #import <React/RCTUIManager.h>
 #import <React/RCTUtils.h>
 #import <React/UIView+React.h>
@@ -21,7 +21,7 @@
 
 @implementation RCTBaseTextInputView {
   __weak RCTBridge *_bridge;
-  __weak RCTEventDispatcher *_eventDispatcher;
+  __weak id<RCTEventDispatcherProtocol> _eventDispatcher;
   BOOL _hasInputAccesoryView;
   NSString *_Nullable _predictedText;
   BOOL _didMoveToWindow;
@@ -104,6 +104,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
   // Similarly, when the user is in the middle of inputting some text in Japanese/Chinese, there will be styling on the
   // text that we should disregard. See https://developer.apple.com/documentation/uikit/uitextinput/1614489-markedtextrange?language=objc
   // for more info.
+  // Also, updating the attributed text while inputting Korean language will break input mechanism.
   // If the user added an emoji, the system adds a font attribute for the emoji and stores the original font in NSOriginalFont.
   // Lastly, when entering a password, etc., there will be additional styling on the field as the native text view
   // handles showing the last character for a split second.
@@ -116,6 +117,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
 
   BOOL shouldFallbackToBareTextComparison =
     [self.backedTextInputView.textInputMode.primaryLanguage isEqualToString:@"dictation"] ||
+    [self.backedTextInputView.textInputMode.primaryLanguage isEqualToString:@"ko-KR"] ||
     self.backedTextInputView.markedTextRange ||
     self.backedTextInputView.isSecureTextEntry ||
     fontHasBeenUpdatedBySystem;
@@ -242,22 +244,12 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
                           @"streetAddressLine2": UITextContentTypeStreetAddressLine2,
                           @"sublocality": UITextContentTypeSublocality,
                           @"telephoneNumber": UITextContentTypeTelephoneNumber,
+                          @"username": UITextContentTypeUsername,
+                          @"password": UITextContentTypePassword,
                           };
 
-      #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000 /* __IPHONE_11_0 */
-        if (@available(iOS 11.0, tvOS 11.0, *)) {
-          NSDictionary<NSString *, NSString *> * iOS11extras = @{@"username": UITextContentTypeUsername,
-                                                                  @"password": UITextContentTypePassword};
-
-          NSMutableDictionary<NSString *, NSString *> * iOS11baseMap = [contentTypeMap mutableCopy];
-          [iOS11baseMap addEntriesFromDictionary:iOS11extras];
-
-          contentTypeMap = [iOS11baseMap copy];
-        }
-      #endif
-
       #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 120000 /* __IPHONE_12_0 */
-        if (@available(iOS 12.0, tvOS 12.0, *)) {
+        if (@available(iOS 12.0, *)) {
           NSDictionary<NSString *, NSString *> * iOS12extras = @{@"newPassword": UITextContentTypeNewPassword,
                                                                   @"oneTimeCode": UITextContentTypeOneTimeCode};
 
@@ -310,7 +302,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
     self.backedTextInputView.inputView = nil;
   } else {
     // Hides keyboard, but keeps blinking cursor.
-    self.backedTextInputView.inputView = [[UIView alloc] init];
+    self.backedTextInputView.inputView = [UIView new];
   }
 }
 
@@ -333,7 +325,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
 
   [_eventDispatcher sendTextEventWithType:RCTTextEventTypeFocus
                                  reactTag:self.reactTag
-                                     text:self.backedTextInputView.attributedText.string
+                                     text:[self.backedTextInputView.attributedText.string copy]
                                       key:nil
                                eventCount:_nativeEventCount];
 }
@@ -347,31 +339,38 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
 {
   [_eventDispatcher sendTextEventWithType:RCTTextEventTypeEnd
                                  reactTag:self.reactTag
-                                     text:self.backedTextInputView.attributedText.string
+                                     text:[self.backedTextInputView.attributedText.string copy]
                                       key:nil
                                eventCount:_nativeEventCount];
 
   [_eventDispatcher sendTextEventWithType:RCTTextEventTypeBlur
                                  reactTag:self.reactTag
-                                     text:self.backedTextInputView.attributedText.string
+                                     text:[self.backedTextInputView.attributedText.string copy]
                                       key:nil
                                eventCount:_nativeEventCount];
 }
 
+- (BOOL)textInputShouldSubmitOnReturn
+{
+  const BOOL shouldSubmit = [_submitBehavior isEqualToString:@"blurAndSubmit"] || [_submitBehavior isEqualToString:@"submit"];
+  if (shouldSubmit) {
+    // We send `submit` event here, in `textInputShouldSubmit`
+    // (not in `textInputDidReturn)`, because of semantic of the event:
+    // `onSubmitEditing` is called when "Submit" button
+    // (the blue key on onscreen keyboard) did pressed
+    // (no connection to any specific "submitting" process).
+    [_eventDispatcher sendTextEventWithType:RCTTextEventTypeSubmit
+                                   reactTag:self.reactTag
+                                       text:[self.backedTextInputView.attributedText.string copy]
+                                        key:nil
+                                 eventCount:_nativeEventCount];
+  }
+  return shouldSubmit;
+}
+
 - (BOOL)textInputShouldReturn
 {
-  // We send `submit` event here, in `textInputShouldReturn`
-  // (not in `textInputDidReturn)`, because of semantic of the event:
-  // `onSubmitEditing` is called when "Submit" button
-  // (the blue key on onscreen keyboard) did pressed
-  // (no connection to any specific "submitting" process).
-  [_eventDispatcher sendTextEventWithType:RCTTextEventTypeSubmit
-                                 reactTag:self.reactTag
-                                     text:self.backedTextInputView.attributedText.string
-                                      key:nil
-                               eventCount:_nativeEventCount];
-
-  return _blurOnSubmit;
+  return [_submitBehavior isEqualToString:@"blurAndSubmit"];
 }
 
 - (void)textInputDidReturn
@@ -397,6 +396,14 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
     if (text.length > allowedLength) {
       // If we typed/pasted more than one character, limit the text inputted.
       if (text.length > 1) {
+        if (allowedLength > 0) {
+          //make sure unicode characters that are longer than 16 bits (such as emojis) are not cut off
+          NSRange cutOffCharacterRange = [text rangeOfComposedCharacterSequenceAtIndex: allowedLength - 1];
+          if (cutOffCharacterRange.location + cutOffCharacterRange.length > allowedLength) {
+            //the character at the length limit takes more than 16bits, truncation should end at the character before
+            allowedLength = cutOffCharacterRange.location;
+          }
+        }
         // Truncate the input string so the result is exactly maxLength
         NSString *limitedString = [text substringToIndex:allowedLength];
         NSMutableAttributedString *newAttributedText = [backedTextInputView.attributedText mutableCopy];
@@ -422,7 +429,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
     }
   }
 
-  NSString *previousText = backedTextInputView.attributedText.string ?: @"";
+  NSString *previousText = [backedTextInputView.attributedText.string copy] ?: @"";
 
   if (range.location + range.length > backedTextInputView.attributedText.string.length) {
     _predictedText = backedTextInputView.attributedText.string;
@@ -432,7 +439,8 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
 
   if (_onTextInput) {
     _onTextInput(@{
-      @"text": text,
+      // We copy the string here because if it's a mutable string it may get released before we stop using it on a different thread, causing a crash.
+      @"text": [text copy],
       @"previousText": previousText,
       @"range": @{
         @"start": @(range.location),
@@ -468,7 +476,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
 
   if (_onChange) {
     _onChange(@{
-       @"text": self.attributedText.string,
+       @"text": [self.attributedText.string copy],
        @"target": self.reactTag,
        @"eventCount": @(_nativeEventCount),
     });
@@ -572,7 +580,6 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
 
 - (void)setCustomInputAccessoryViewWithNativeID:(NSString *)nativeID
 {
-  #if !TARGET_OS_TV
   __weak RCTBaseTextInputView *weakSelf = self;
   [_bridge.uiManager rootViewForReactTag:self.reactTag withCompletion:^(UIView *rootView) {
     RCTBaseTextInputView *strongSelf = weakSelf;
@@ -585,20 +592,16 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
       }
     }
   }];
-  #endif /* !TARGET_OS_TV */
 }
 
 - (void)setDefaultInputAccessoryView
 {
-  #if !TARGET_OS_TV
   UIView<RCTBackedTextInputViewProtocol> *textInputView = self.backedTextInputView;
   UIKeyboardType keyboardType = textInputView.keyboardType;
 
   // These keyboard types (all are number pads) don't have a "Done" button by default,
   // so we create an `inputAccessoryView` with this button for them.
-  BOOL shouldHaveInputAccesoryView;
-  if (@available(iOS 10.0, *)) {
-      shouldHaveInputAccesoryView =
+  BOOL shouldHaveInputAccesoryView =
       (
        keyboardType == UIKeyboardTypeNumberPad ||
        keyboardType == UIKeyboardTypePhonePad ||
@@ -606,15 +609,6 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
        keyboardType == UIKeyboardTypeASCIICapableNumberPad
       ) &&
       textInputView.returnKeyType == UIReturnKeyDone;
-  } else {
-      shouldHaveInputAccesoryView =
-      (
-       keyboardType == UIKeyboardTypeNumberPad ||
-       keyboardType == UIKeyboardTypePhonePad ||
-       keyboardType == UIKeyboardTypeDecimalPad
-      ) &&
-      textInputView.returnKeyType == UIReturnKeyDone;
-  }
 
   if (_hasInputAccesoryView == shouldHaveInputAccesoryView) {
     return;
@@ -623,7 +617,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
   _hasInputAccesoryView = shouldHaveInputAccesoryView;
 
   if (shouldHaveInputAccesoryView) {
-    UIToolbar *toolbarView = [[UIToolbar alloc] init];
+    UIToolbar *toolbarView = [UIToolbar new];
     [toolbarView sizeToFit];
     UIBarButtonItem *flexibleSpace =
       [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace
@@ -640,7 +634,6 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
     textInputView.inputAccessoryView = nil;
   }
   [self reloadInputViewsIfNecessary];
-  #endif /* !TARGET_OS_TV */
 }
 
 - (void)reloadInputViewsIfNecessary
@@ -653,6 +646,8 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
 
 - (void)handleInputAccessoryDoneButton
 {
+  // Ignore the value of whether we submitted; just make sure the submit event is called if necessary.
+  [self textInputShouldSubmitOnReturn];
   if ([self textInputShouldReturn]) {
     [self.backedTextInputView endEditing:YES];
   }

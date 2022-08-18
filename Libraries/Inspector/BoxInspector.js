@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -49,7 +49,7 @@ class BoxInspector extends React.Component<$FlowFixMeProps> {
 }
 
 class BoxContainer extends React.Component<$FlowFixMeProps> {
-  render() {
+  render(): React.Node {
     const box = this.props.box;
     return (
       <View style={styles.box}>

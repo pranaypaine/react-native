@@ -4,12 +4,13 @@
     "danger": "node ./node_modules/.bin/danger"
   },
   "devDependencies": {
-    "danger": "^7.1.4",
+    "@seadub/danger-plugin-eslint": "^3.0.2",
+    "danger": "^11.0.2",
     "lodash.includes": "^4.3.0",
     "minimatch": "^3.0.4"
   },
   "dependencies": {
-    "@octokit/rest": "^16.43.0",
-    "firebase": "^7.10.0"
+    "@octokit/rest": "^18.12.0",
+    "firebase": "^9.6.5"
   }
 }

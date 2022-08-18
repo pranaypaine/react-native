@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -40,10 +40,14 @@ RCT_EXTERN void RCTExecuteOnMainQueue(dispatch_block_t block);
 // Please do not use this unless you know what you're doing.
 RCT_EXTERN void RCTUnsafeExecuteOnMainQueueSync(dispatch_block_t block);
 
+// Get screen scale, can be only used on main
+RCT_EXTERN void RCTComputeScreenScale(void);
+
 // Get screen metrics in a thread-safe way
 RCT_EXTERN CGFloat RCTScreenScale(void);
 RCT_EXTERN CGFloat RCTFontSizeMultiplier(void);
 RCT_EXTERN CGSize RCTScreenSize(void);
+RCT_EXTERN CGSize RCTViewportSize(void);
 
 // Round float coordinates to nearest whole screen pixel (not point)
 RCT_EXTERN CGFloat RCTRoundPixelValue(CGFloat value);
@@ -96,6 +100,9 @@ RCT_EXTERN BOOL RCTForceTouchAvailable(void);
 
 // Create an NSError in the RCTErrorDomain
 RCT_EXTERN NSError *RCTErrorWithMessage(NSString *message);
+
+// Creates an NSError from given an NSException
+RCT_EXTERN NSError *RCTErrorWithNSException(NSException *exception);
 
 // Convert nil values to NSNull, and vice-versa
 #define RCTNullIfNil(value) ((value) ?: (id)kCFNull)
@@ -178,5 +185,7 @@ RCT_EXTERN BOOL RCTValidateTypeOfViewCommandArgument(
     NSString const *componentName,
     NSString const *commandName,
     NSString const *argPos);
+
+RCT_EXTERN BOOL RCTIsAppActive(void);
 
 NS_ASSUME_NONNULL_END

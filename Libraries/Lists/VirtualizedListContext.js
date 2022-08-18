@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -8,9 +8,6 @@
  * @format
  */
 
-'use strict';
-
-import type VirtualizedList from './VirtualizedList.js';
 import * as React from 'react';
 import {useMemo, useContext} from 'react';
 
@@ -49,14 +46,15 @@ type Context = $ReadOnly<{
     timestamp: number,
     velocity: number,
     visibleLength: number,
+    zoomScale: number,
   },
   horizontal: ?boolean,
-  getOutermostParentListRef: () => VirtualizedList,
+  getOutermostParentListRef: () => React.ElementRef<typeof React.Component>,
   getNestedChildState: string => ?ChildListState,
   registerAsNestedChild: ({
     cellKey: string,
     key: string,
-    ref: VirtualizedList,
+    ref: React.ElementRef<typeof React.Component>,
     parentDebugInfo: ListDebugInfo,
   }) => ?ChildListState,
   unregisterAsNestedChild: ({
@@ -66,9 +64,11 @@ type Context = $ReadOnly<{
   debugInfo: ListDebugInfo,
 }>;
 
-export const VirtualizedListContext: React.Context<?Context> = React.createContext(
-  null,
-);
+export const VirtualizedListContext: React.Context<?Context> =
+  React.createContext(null);
+if (__DEV__) {
+  VirtualizedListContext.displayName = 'VirtualizedListContext';
+}
 
 /**
  * Resets the context. Intended for use by portal-like components (e.g. Modal).
@@ -142,10 +142,14 @@ export function VirtualizedListCellContextProvider({
   cellKey: string,
   children: React.Node,
 }): React.Node {
-  const context = useContext(VirtualizedListContext);
+  // Avoid setting a newly created context object if the values are identical.
+  const currContext = useContext(VirtualizedListContext);
+  const context = useMemo(
+    () => (currContext == null ? null : {...currContext, cellKey}),
+    [currContext, cellKey],
+  );
   return (
-    <VirtualizedListContext.Provider
-      value={context == null ? null : {...context, cellKey}}>
+    <VirtualizedListContext.Provider value={context}>
       {children}
     </VirtualizedListContext.Provider>
   );

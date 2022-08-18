@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -51,7 +51,7 @@ const observe = () => {
   };
 };
 
-const addLogs = logs => {
+const addLogs = (logs: Array<string>, options: void | {flush: boolean}) => {
   logs.forEach(message => {
     LogBoxData.addLog({
       level: 'warn',
@@ -62,83 +62,91 @@ const addLogs = logs => {
       category: message,
       componentStack: [],
     });
+    if (options == null || options.flush !== false) {
+      jest.runOnlyPendingTimers();
+    }
   });
 };
 
-const addSoftErrors = errors => {
+const addSoftErrors = (
+  errors: Array<string>,
+  options: void | {flush: boolean},
+) => {
   errors.forEach(error => {
-    LogBoxData.addException(
-      Object.assign(
-        {},
-        {
-          message: '',
-          isComponentError: false,
-          originalMessage: '',
-          name: 'console.error',
-          componentStack: '',
-          stack: [],
-          id: 0,
-          isFatal: false,
-        },
-        typeof error === 'string'
-          ? {message: error, originalMessage: error}
-          : error,
-      ),
-    );
+    LogBoxData.addException({
+      message: '',
+      isComponentError: false,
+      originalMessage: '',
+      name: 'console.error',
+      componentStack: '',
+      stack: [],
+      id: 0,
+      isFatal: false,
+      ...(typeof error === 'string'
+        ? {message: error, originalMessage: error}
+        : error),
+    });
+    if (options == null || options.flush !== false) {
+      jest.runOnlyPendingTimers();
+    }
   });
 };
 
-const addFatalErrors = errors => {
+const addFatalErrors = (
+  errors: Array<$FlowFixMe>,
+  options: void | {flush: boolean},
+) => {
   errors.forEach(error => {
-    LogBoxData.addException(
-      Object.assign(
-        {},
-        {
-          message: '',
-          isComponentError: false,
-          originalMessage: '',
-          name: 'console.error',
-          componentStack: '',
-          stack: [],
-          id: 0,
-          isFatal: true,
-        },
-        typeof error === 'string'
-          ? {message: error, originalMessage: error}
-          : error,
-      ),
-    );
+    LogBoxData.addException({
+      message: '',
+      isComponentError: false,
+      originalMessage: '',
+      name: 'console.error',
+      componentStack: '',
+      stack: [],
+      id: 0,
+      isFatal: true,
+      ...(typeof error === 'string'
+        ? {message: error, originalMessage: error}
+        : error),
+    });
+    if (options == null || options.flush !== false) {
+      // Errors include two timers, the second is for optimistic symbolication.
+      jest.runOnlyPendingTimers();
+      jest.runOnlyPendingTimers();
+    }
   });
 };
 
-const addSyntaxError = () => {
-  addFatalErrors([
-    {
-      message: `
-
+const addSyntaxError = (options: $FlowFixMe) => {
+  addFatalErrors(
+    [
+      {
+        message: `
   197 | });
   198 |
 > 199 | export default CrashReactApp;
       | ^
   200 |`,
-      originalMessage: `TransformError SyntaxError: /path/to/RKJSModules/Apps/CrashReact/CrashReactApp.js: 'import' and 'export' may only appear at the top level (199:0)
-
+        originalMessage: `TransformError SyntaxError: /path/to/RKJSModules/Apps/CrashReact/CrashReactApp.js: 'import' and 'export' may only appear at the top level (199:0)
   197 | });
   198 |
 > 199 | export default CrashReactApp;
       | ^
   200 |`,
-    },
-  ]);
+      },
+    ],
+    options,
+  );
 };
 
 beforeEach(() => {
   jest.resetModules();
 });
 
-const flushLogs = () => {
-  jest.runAllImmediates();
-  jest.runAllTimers();
+const flushToObservers = () => {
+  // Observer updates are debounced and need to advance timers to flush.
+  jest.runOnlyPendingTimers();
 };
 
 describe('LogBoxData', () => {
@@ -147,7 +155,6 @@ describe('LogBoxData', () => {
     addSoftErrors(['B']);
     addFatalErrors(['C']);
     addSyntaxError();
-    flushLogs();
 
     expect(registry().length).toBe(4);
     expect(registry()[0]).toBeDefined();
@@ -169,10 +176,9 @@ describe('LogBoxData', () => {
     addSoftErrors(['C', 'D']);
     addFatalErrors(['E', 'F']);
     addSyntaxError();
-    flushLogs();
 
     expect(registry().length).toBe(7);
-    expect(selectedLogIndex()).toBe(4); // Fatal index.
+    expect(selectedLogIndex()).toBe(6); // Syntax error index.
 
     LogBoxData.clear();
     expect(registry().length).toBe(0);
@@ -183,14 +189,13 @@ describe('LogBoxData', () => {
     addLogs(['A', 'B']);
     addSoftErrors(['C', 'D', 'E']);
     addSyntaxError();
-    flushLogs();
 
     expect(registry().length).toBe(6);
-    expect(selectedLogIndex()).toBe(5); // Fatal index.
+    expect(selectedLogIndex()).toBe(5); // Syntax error index.
 
     LogBoxData.clearWarnings();
     expect(registry().length).toBe(4);
-    expect(selectedLogIndex()).toBe(3); // New fatal index.
+    expect(selectedLogIndex()).toBe(3); // New syntax error index.
   });
 
   it('clears errors and fatals, but not syntax errors.', () => {
@@ -198,14 +203,13 @@ describe('LogBoxData', () => {
     addSoftErrors(['C', 'D', 'E']);
     addFatalErrors(['F']);
     addSyntaxError();
-    flushLogs();
 
     expect(registry().length).toBe(7);
-    expect(selectedLogIndex()).toBe(5); // Fatal index.
+    expect(selectedLogIndex()).toBe(6); // Syntax error index.
 
     LogBoxData.clearErrors();
     expect(registry().length).toBe(3);
-    expect(selectedLogIndex()).toBe(2); // New Fatal index.
+    expect(selectedLogIndex()).toBe(2); // New syntax error index.
   });
 
   it('clears all types except syntax errors', () => {
@@ -213,24 +217,25 @@ describe('LogBoxData', () => {
     addSoftErrors(['C', 'D', 'E']);
     addFatalErrors(['F']);
     addSyntaxError();
-    flushLogs();
 
     expect(registry().length).toBe(7);
-    expect(selectedLogIndex()).toBe(5); // Fatal index.
+    expect(selectedLogIndex()).toBe(6); // Syntax error index.
 
     LogBoxData.clearErrors();
     LogBoxData.clearWarnings();
     expect(registry().length).toBe(1);
-    expect(selectedLogIndex()).toBe(0); // New Fatal index.
+    expect(selectedLogIndex()).toBe(0); // New syntax error index.
   });
 
   it('keeps logs in chronological order', () => {
-    addLogs(['A']);
-    addSoftErrors(['B']);
-    addFatalErrors(['C']);
-    flushLogs();
+    addLogs(['A'], {flush: false});
+    addSoftErrors(['B'], {flush: false});
+    addFatalErrors(['C'], {flush: false});
+
+    // Flush logs manually.
+    jest.runAllTimers();
+
     addLogs(['D']);
-    flushLogs();
 
     let logs = registry();
     expect(logs.length).toBe(4);
@@ -240,7 +245,6 @@ describe('LogBoxData', () => {
     expect(logs[3].category).toEqual('D');
 
     addLogs(['A']);
-    jest.runAllImmediates();
 
     // Expect `A` to be added to the end of the registry.
     logs = registry();
@@ -256,40 +260,39 @@ describe('LogBoxData', () => {
     expect(selectedLogIndex()).toBe(-1);
 
     LogBoxData.setSelectedLog(1);
-    flushLogs();
 
     expect(selectedLogIndex()).toBe(1);
   });
 
   it('does not set the selectedLogIndex for warnings', () => {
     addLogs(['A']);
-    flushLogs();
 
     expect(selectedLogIndex()).toBe(-1);
   });
 
   it('does not set the selectedLogIndex for soft errors', () => {
     addSoftErrors(['A']);
-    flushLogs();
 
     expect(selectedLogIndex()).toBe(-1);
   });
 
   it('sets the selectedLogIndex to the first fatal error (after symbolication)', () => {
-    addFatalErrors(['A']);
+    addFatalErrors(['A'], {flush: false});
 
-    // Order maters for symbolication before timeout.
-    flushLogs();
-    jest.runAllTimers();
+    // Order maters for testing symbolication before timeout.
+    jest.runOnlyPendingTimers(); // Trigger appendNewLog.
+    jest.advanceTimersByTime(10); // Trigger symbolication but not timeout.
+    jest.runAllTimers(); // Flush remaining.
 
     expect(selectedLogIndex()).toBe(0);
 
-    addLogs(['B']);
-    addFatalErrors(['C']);
+    addLogs(['B'], {flush: false});
+    addFatalErrors(['C'], {flush: false});
 
-    // Order maters for symbolication before timeout.
-    flushLogs();
-    jest.runAllTimers();
+    // Order maters for testing symbolication before timeout.
+    jest.runOnlyPendingTimers(); // Trigger appendNewLogs.
+    jest.advanceTimersByTime(10); // Trigger symbolication.
+    jest.runAllTimers(); // Flush remaining.
 
     // This should still be 0 (the first fatal exception)
     // becuase it is the most likely source of the error.
@@ -299,20 +302,22 @@ describe('LogBoxData', () => {
   });
 
   it('sets the selectedLogIndex to the first fatal error (hitting timeout limit)', () => {
-    addFatalErrors(['A']);
+    addFatalErrors(['A'], {flush: false});
 
-    // Order maters for timeout before symbolication.
-    jest.runAllTimers();
-    flushLogs();
+    // Order maters for testing timeout before symbolication.
+    jest.runOnlyPendingTimers(); // Trigger appendNewLog.
+    jest.advanceTimersByTime(1001); // Trigger OPTIMISTIC_WAIT_TIME timeout.
+    jest.runAllTimers(); // Flush remaining.
 
     expect(selectedLogIndex()).toBe(0);
 
     addLogs(['B']);
     addFatalErrors(['C']);
 
-    // Order maters for timeout before symbolication.
-    jest.runAllTimers();
-    flushLogs();
+    // Order maters for testing timeout before symbolication.
+    jest.runOnlyPendingTimers(); // Trigger appendNewLogs.
+    jest.advanceTimersByTime(1001); // Trigger OPTIMISTIC_WAIT_TIME timeout.
+    jest.runAllTimers(); // Flush remaining.
 
     // This should still be 0 (the first fatal exception)
     // becuase it is the most likely source of the error.
@@ -323,45 +328,38 @@ describe('LogBoxData', () => {
 
   it('sets the selectedLogIndex to the last syntax error', () => {
     addSyntaxError();
-    flushLogs();
 
     expect(selectedLogIndex()).toBe(0);
 
     addLogs(['B']);
     addSyntaxError();
-    flushLogs();
 
     expect(selectedLogIndex()).toBe(2);
   });
 
   it('keeps selectedLogIndex set to the syntax error even when a new fatal is added', () => {
     addSyntaxError();
-    flushLogs();
 
     expect(selectedLogIndex()).toBe(0);
 
     addLogs(['B']);
     addFatalErrors(['C']);
-    flushLogs();
 
     expect(selectedLogIndex()).toBe(0);
   });
 
   it('keeps selectedLogIndex set to the syntax error even when explicitly changed', () => {
     addSyntaxError();
-    flushLogs();
 
     expect(selectedLogIndex()).toBe(0);
 
     LogBoxData.setSelectedLog(1);
-    flushLogs();
 
     expect(selectedLogIndex()).toBe(0);
   });
 
   it('increments the count of previous log with matching category (logs)', () => {
     addLogs(['A', 'B']);
-    flushLogs();
 
     let logs = registry();
     expect(logs.length).toBe(2);
@@ -371,7 +369,6 @@ describe('LogBoxData', () => {
     expect(logs[1].count).toBe(1);
 
     addLogs(['B']);
-    flushLogs();
 
     // Expect `B` to be rolled into the last log.
     logs = registry();
@@ -384,7 +381,6 @@ describe('LogBoxData', () => {
 
   it('increments the count of previous log with matching category (errors)', () => {
     addFatalErrors(['A', 'B']);
-    flushLogs();
 
     let logs = registry();
     expect(logs.length).toBe(2);
@@ -394,7 +390,6 @@ describe('LogBoxData', () => {
     expect(logs[1].count).toBe(1);
 
     addSoftErrors(['B']);
-    flushLogs();
 
     // Expect `B` to be rolled into the last log.
     logs = registry();
@@ -407,23 +402,40 @@ describe('LogBoxData', () => {
 
   it('increments the count of previous log with matching category (syntax)', () => {
     addSyntaxError();
-    flushLogs();
 
     let logs = registry();
     expect(logs.length).toBe(1);
     expect(logs[0].count).toBe(1);
 
     addSyntaxError();
-    flushLogs();
 
     logs = registry();
     expect(logs.length).toBe(1);
     expect(logs[0].count).toBe(2);
   });
 
+  it('adding same pattern multiple times', () => {
+    expect(LogBoxData.getIgnorePatterns().length).toBe(0);
+    LogBoxData.addIgnorePatterns(['abc']);
+    expect(LogBoxData.getIgnorePatterns().length).toBe(1);
+    LogBoxData.addIgnorePatterns([/abc/]);
+    expect(LogBoxData.getIgnorePatterns().length).toBe(2);
+    LogBoxData.addIgnorePatterns(['abc']);
+    expect(LogBoxData.getIgnorePatterns().length).toBe(2);
+    LogBoxData.addIgnorePatterns([/abc/]);
+    expect(LogBoxData.getIgnorePatterns().length).toBe(2);
+  });
+
+  it('adding duplicated patterns', () => {
+    expect(LogBoxData.getIgnorePatterns().length).toBe(0);
+    LogBoxData.addIgnorePatterns(['abc', /ab/, /abc/, /abc/, 'abc']);
+    expect(LogBoxData.getIgnorePatterns().length).toBe(3);
+    LogBoxData.addIgnorePatterns([/ab/, /abc/]);
+    expect(LogBoxData.getIgnorePatterns().length).toBe(3);
+  });
+
   it('ignores logs matching patterns (logs)', () => {
     addLogs(['A!', 'B?', 'C!']);
-    flushLogs();
 
     expect(filteredRegistry().length).toBe(3);
 
@@ -437,7 +449,6 @@ describe('LogBoxData', () => {
   it('ignores logs matching patterns (errors)', () => {
     addSoftErrors(['A!', 'B?']);
     addFatalErrors(['C!']);
-    flushLogs();
 
     expect(filteredRegistry().length).toBe(3);
 
@@ -450,7 +461,6 @@ describe('LogBoxData', () => {
 
   it('ignores matching regexs or pattern (logs)', () => {
     addLogs(['There are 4 dogs', 'There are 3 cats', 'There are H cats']);
-    flushLogs();
 
     expect(filteredRegistry().length).toBe(3);
 
@@ -467,7 +477,6 @@ describe('LogBoxData', () => {
   it('ignores matching regexs or pattern (errors)', () => {
     addSoftErrors(['There are 4 dogs', 'There are 3 cats']);
     addFatalErrors(['There are H cats']);
-    flushLogs();
 
     expect(filteredRegistry().length).toBe(3);
 
@@ -486,7 +495,6 @@ describe('LogBoxData', () => {
     addSoftErrors(['B?']);
     addFatalErrors(['C!']);
     addSyntaxError();
-    flushLogs();
 
     expect(registry().length).toBe(4);
     expect(disabledState()).toBe(false);
@@ -516,7 +524,7 @@ describe('LogBoxData', () => {
     expect(observer.mock.calls.length).toBe(1);
 
     addLogs(['A']);
-    flushLogs();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(2);
 
     // We expect observers to recieve the same Set object in sequential updates
@@ -541,17 +549,17 @@ describe('LogBoxData', () => {
     expect(observer.mock.calls.length).toBe(1);
 
     addLogs(['A']);
-    flushLogs();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(2);
 
     const lastLog = Array.from(observer.mock.calls[1][0].logs)[0];
     LogBoxData.dismiss(lastLog);
-    jest.runAllImmediates();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(3);
 
     // Does nothing when category does not exist.
     LogBoxData.dismiss(lastLog);
-    jest.runAllImmediates();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(3);
   });
 
@@ -560,16 +568,16 @@ describe('LogBoxData', () => {
     expect(observer.mock.calls.length).toBe(1);
 
     addLogs(['A']);
-    flushLogs();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(2);
 
     LogBoxData.clear();
-    jest.runAllImmediates();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(3);
 
     // Does nothing when already empty.
     LogBoxData.clear();
-    jest.runAllImmediates();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(3);
   });
 
@@ -581,17 +589,16 @@ describe('LogBoxData', () => {
     addSoftErrors(['B']);
     addFatalErrors(['C']);
     addSyntaxError();
-    jest.runAllImmediates();
-    expect(observer.mock.calls.length).toBe(2);
+    expect(observer.mock.calls.length).toBe(5);
 
     LogBoxData.clearWarnings();
-    jest.runAllImmediates();
-    expect(observer.mock.calls.length).toBe(3);
+    flushToObservers();
+    expect(observer.mock.calls.length).toBe(6);
 
     // Does nothing when already empty.
     LogBoxData.clearWarnings();
-    jest.runAllImmediates();
-    expect(observer.mock.calls.length).toBe(3);
+    flushToObservers();
+    expect(observer.mock.calls.length).toBe(6);
   });
 
   it('updates observers when errors cleared', () => {
@@ -602,17 +609,16 @@ describe('LogBoxData', () => {
     addSoftErrors(['B']);
     addFatalErrors(['C']);
     addSyntaxError();
-    jest.runAllImmediates();
-    expect(observer.mock.calls.length).toBe(2);
+    expect(observer.mock.calls.length).toBe(5);
 
     LogBoxData.clearErrors();
-    jest.runAllImmediates();
-    expect(observer.mock.calls.length).toBe(3);
+    flushToObservers();
+    expect(observer.mock.calls.length).toBe(6);
 
     // Does nothing when already empty.
     LogBoxData.clearErrors();
-    jest.runAllImmediates();
-    expect(observer.mock.calls.length).toBe(3);
+    flushToObservers();
+    expect(observer.mock.calls.length).toBe(6);
   });
 
   it('updates observers when an ignore pattern is added', () => {
@@ -620,16 +626,16 @@ describe('LogBoxData', () => {
     expect(observer.mock.calls.length).toBe(1);
 
     LogBoxData.addIgnorePatterns(['?']);
-    jest.runAllImmediates();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(2);
 
     LogBoxData.addIgnorePatterns(['!']);
-    jest.runAllImmediates();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(3);
 
     // Does nothing for an existing ignore pattern.
     LogBoxData.addIgnorePatterns(['!']);
-    jest.runAllImmediates();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(3);
   });
 
@@ -638,50 +644,54 @@ describe('LogBoxData', () => {
     expect(observer.mock.calls.length).toBe(1);
 
     LogBoxData.setDisabled(true);
-    jest.runAllImmediates();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(2);
 
     // Does nothing when already disabled.
     LogBoxData.setDisabled(true);
-    jest.runAllImmediates();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(2);
 
     LogBoxData.setDisabled(false);
-    jest.runAllImmediates();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(3);
 
     // Does nothing when already enabled.
     LogBoxData.setDisabled(false);
-    jest.runAllImmediates();
+    flushToObservers();
     expect(observer.mock.calls.length).toBe(3);
   });
 
   it('reportLogBoxError creates a native redbox with a componentStack', () => {
     LogBoxData.reportLogBoxError(
+      /* $FlowFixMe[class-object-subtyping] added when improving typing for
+       * this parameters */
       new Error('Simulated Error'),
       '    in Component (file.js:1)',
     );
 
     const receivedError = ExceptionsManager.handleException.mock.calls[0][0];
     expect(receivedError.componentStack).toBe('    in Component (file.js:1)');
-    expect(receivedError.forceRedbox).toBe(true);
     expect(receivedError.message).toBe(
       'An error was thrown when attempting to render log messages via LogBox.\n\nSimulated Error',
     );
   });
 
   it('reportLogBoxError creates a native redbox without a componentStack', () => {
+    /* $FlowFixMe[class-object-subtyping] added when improving typing for this
+     * parameters */
     LogBoxData.reportLogBoxError(new Error('Simulated Error'));
 
     const receivedError = ExceptionsManager.handleException.mock.calls[0][0];
     expect(receivedError.componentStack).toBeUndefined();
-    expect(receivedError.forceRedbox).toBe(true);
     expect(receivedError.message).toBe(
       'An error was thrown when attempting to render log messages via LogBox.\n\nSimulated Error',
     );
   });
 
   it('reportLogBoxError creates an error message that is also ignored', () => {
+    /* $FlowFixMe[class-object-subtyping] added when improving typing for this
+     * parameters */
     LogBoxData.reportLogBoxError(new Error('Simulated Error'));
 
     const receivedErrorMessage =

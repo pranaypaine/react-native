@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -122,6 +122,9 @@ class NativeModulePerfLogger {
       const char *moduleName,
       const char *methodName) = 0;
   virtual void asyncMethodCallEnd(
+      const char *moduleName,
+      const char *methodName) = 0;
+  virtual void asyncMethodCallFail(
       const char *moduleName,
       const char *methodName) = 0;
 

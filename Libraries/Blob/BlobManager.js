@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -7,8 +7,6 @@
  * @flow strict-local
  * @format
  */
-
-'use strict';
 
 const Blob = require('./Blob');
 const BlobRegistry = require('./BlobRegistry');
@@ -112,6 +110,7 @@ class BlobManager {
    */
   static createFromOptions(options: BlobData): Blob {
     BlobRegistry.register(options.blobId);
+    // $FlowFixMe[prop-missing]
     return Object.assign(Object.create(Blob.prototype), {
       data:
         // Reuse the collector instance when creating from an existing blob.

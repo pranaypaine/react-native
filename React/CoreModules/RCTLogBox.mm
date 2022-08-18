@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -13,62 +13,16 @@
 #import <React/RCTLog.h>
 #import <React/RCTRedBoxSetEnabled.h>
 #import <React/RCTSurface.h>
-
 #import "CoreModulesPlugins.h"
 
 #if RCT_DEV_MENU
-
-@class RCTLogBoxView;
-
-@interface RCTLogBoxView : UIWindow
-@end
-
-@implementation RCTLogBoxView {
-  RCTSurface *_surface;
-}
-
-- (instancetype)initWithFrame:(CGRect)frame bridge:(RCTBridge *)bridge
-{
-  if ((self = [super initWithFrame:frame])) {
-    self.windowLevel = UIWindowLevelStatusBar - 1;
-    self.backgroundColor = [UIColor clearColor];
-
-    _surface = [[RCTSurface alloc] initWithBridge:bridge moduleName:@"LogBox" initialProperties:@{}];
-
-    [_surface start];
-    [_surface setSize:frame.size];
-
-    if (![_surface synchronouslyWaitForStage:RCTSurfaceStageSurfaceDidInitialMounting timeout:1]) {
-      RCTLogInfo(@"Failed to mount LogBox within 1s");
-    }
-
-    UIViewController *_rootViewController = [UIViewController new];
-    _rootViewController.view = (UIView *)_surface.view;
-    _rootViewController.view.backgroundColor = [UIColor clearColor];
-    _rootViewController.modalPresentationStyle = UIModalPresentationFullScreen;
-    self.rootViewController = _rootViewController;
-  }
-  return self;
-}
-
-- (void)dealloc
-{
-  [RCTSharedApplication().delegate.window makeKeyWindow];
-}
-
-- (void)show
-{
-  [self becomeFirstResponder];
-  [self makeKeyAndVisible];
-}
-
-@end
 
 @interface RCTLogBox () <NativeLogBoxSpec, RCTBridgeModule>
 @end
 
 @implementation RCTLogBox {
   RCTLogBoxView *_view;
+  __weak id<RCTSurfacePresenterStub> _bridgelessSurfacePresenter;
 }
 
 @synthesize bridge = _bridge;
@@ -80,6 +34,11 @@ RCT_EXPORT_MODULE()
   return YES;
 }
 
+- (void)setSurfacePresenter:(id<RCTSurfacePresenterStub>)surfacePresenter
+{
+  _bridgelessSurfacePresenter = surfacePresenter;
+}
+
 RCT_EXPORT_METHOD(show)
 {
   if (RCTRedBoxGetEnabled()) {
@@ -89,10 +48,25 @@ RCT_EXPORT_METHOD(show)
       if (!strongSelf) {
         return;
       }
-      if (!strongSelf->_view) {
-        strongSelf->_view = [[RCTLogBoxView alloc] initWithFrame:[UIScreen mainScreen].bounds bridge:self->_bridge];
+
+      if (strongSelf->_view) {
+        [strongSelf->_view show];
+        return;
       }
-      [strongSelf->_view show];
+
+      if (strongSelf->_bridgelessSurfacePresenter) {
+        strongSelf->_view = [[RCTLogBoxView alloc] initWithWindow:RCTKeyWindow()
+                                                 surfacePresenter:strongSelf->_bridgelessSurfacePresenter];
+        [strongSelf->_view show];
+      } else if (strongSelf->_bridge && strongSelf->_bridge.valid) {
+        if (strongSelf->_bridge.surfacePresenter) {
+          strongSelf->_view = [[RCTLogBoxView alloc] initWithWindow:RCTKeyWindow()
+                                                   surfacePresenter:strongSelf->_bridge.surfacePresenter];
+        } else {
+          strongSelf->_view = [[RCTLogBoxView alloc] initWithWindow:RCTKeyWindow() bridge:strongSelf->_bridge];
+        }
+        [strongSelf->_view show];
+      }
     });
   }
 }
@@ -106,6 +80,7 @@ RCT_EXPORT_METHOD(hide)
       if (!strongSelf) {
         return;
       }
+      [strongSelf->_view setHidden:YES];
       strongSelf->_view = nil;
     });
   }
@@ -115,6 +90,11 @@ RCT_EXPORT_METHOD(hide)
     (const facebook::react::ObjCTurboModule::InitParams &)params
 {
   return std::make_shared<facebook::react::NativeLogBoxSpecJSI>(params);
+}
+
+- (void)setRCTLogBoxView:(RCTLogBoxView *)view
+{
+  self->_view = view;
 }
 
 @end
