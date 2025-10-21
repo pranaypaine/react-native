@@ -4,16 +4,18 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
-import React, {useEffect, useState} from 'react';
-import {Animated, StyleSheet, Text, View} from 'react-native';
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
+import type {AnimatedNode} from 'react-native/Libraries/Animated/AnimatedExports';
 
-import type {Node, Element} from 'react';
+import * as React from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {Animated, Easing, StyleSheet, Text, View} from 'react-native';
 
-function AnimateTansformSingleProp() {
+function AnimateTransformSingleProp() {
   const [theta] = useState(new Animated.Value(45));
   const animate = () => {
     theta.setValue(0);
@@ -46,6 +48,39 @@ function AnimateTansformSingleProp() {
         ]}>
         <Text style={styles.flipText}>This text is flipping great.</Text>
       </Animated.View>
+    </View>
+  );
+}
+
+function TransformOriginExample() {
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 5000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    ).start();
+  }, [rotateAnim]);
+
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <View style={styles.transformOriginWrapper}>
+      <Animated.View
+        style={[
+          styles.transformOriginView,
+          {
+            transform: [{rotate: spin}],
+          },
+        ]}
+      />
     </View>
   );
 }
@@ -104,6 +139,17 @@ function Flip() {
       </Animated.View>
     </View>
   );
+}
+
+function TranslatePercentage() {
+  return <View style={styles.translatePercentageView} />;
+}
+
+function TranslateMatrix2D() {
+  return <View style={styles.translateMatrix2D} />;
+}
+function TranslateMatrix3D() {
+  return <View style={styles.translateMatrix3D} />;
 }
 
 const styles = StyleSheet.create({
@@ -181,7 +227,16 @@ const styles = StyleSheet.create({
     height: 50,
     position: 'absolute',
     top: 0,
-    transform: [{translate: [200, 350]}, {scale: 2.5}, {rotate: '-0.2rad'}],
+    transform: [
+      {
+        translate: [200, 350] as [
+          number | string | AnimatedNode,
+          number | string | AnimatedNode,
+        ],
+      },
+      {scale: 2.5},
+      {rotate: '-0.2rad'},
+    ],
     width: 100,
   },
   box5: {
@@ -193,16 +248,37 @@ const styles = StyleSheet.create({
     width: 50,
   },
   box5Transform: {
-    transform: [{translate: [-50, 35]}, {rotate: '50deg'}, {scale: 2}],
+    transform: [
+      {
+        translate: [-50, 35] as [
+          number | string | AnimatedNode,
+          number | string | AnimatedNode,
+        ],
+      },
+      {rotate: '50deg'},
+      {scale: 2},
+    ],
   },
   box6: {
     backgroundColor: 'salmon',
     alignSelf: 'center',
   },
+  box7: {
+    backgroundColor: 'lightseagreen',
+    height: 50,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 50,
+  },
+  box7Transform: {
+    transform: 'translate(-50px, 35px) rotate(50deg) scale(2)',
+  },
   flipCardContainer: {
     marginVertical: 40,
     flex: 1,
     alignSelf: 'center',
+    zIndex: 0,
   },
   flipCard: {
     width: 200,
@@ -223,6 +299,33 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
+  transformOriginWrapper: {
+    alignItems: 'center',
+  },
+  transformOriginView: {
+    backgroundColor: 'pink',
+    width: 100,
+    height: 100,
+    transformOrigin: 'top left',
+  },
+  translatePercentageView: {
+    transform: 'translate(50%)',
+    padding: 50,
+    alignSelf: 'flex-start',
+    backgroundColor: 'lightblue',
+  },
+  translateMatrix2D: {
+    transform: [{matrix: [1, 0, 0, 0, 1, 0, 0, 0, 1]}],
+    width: 50,
+    height: 50,
+    backgroundColor: 'red',
+  },
+  translateMatrix3D: {
+    transform: [{matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]}],
+    height: 50,
+    width: 50,
+    backgroundColor: 'green',
+  },
 });
 
 exports.title = 'Transforms';
@@ -233,7 +336,7 @@ exports.examples = [
   {
     title: 'Perspective, Rotate, Animation',
     description: 'perspective: 850, rotateX: Animated.timing(0 -> 360)',
-    render(): Element<any> {
+    render(): React.Node {
       return <Flip />;
     },
   },
@@ -241,7 +344,7 @@ exports.examples = [
     title: 'Translate, Rotate, Scale',
     description:
       "translateX: 100, translateY: 50, rotate: '30deg', scaleX: 2, scaleY: 2",
-    render(): Node {
+    render(): React.Node {
       return (
         <View style={styles.container}>
           <View style={styles.box1} />
@@ -253,7 +356,7 @@ exports.examples = [
     title: 'Scale, Translate, Rotate, ',
     description:
       "scaleX: 2, scaleY: 2, translateX: 100, translateY: 50, rotate: '30deg'",
-    render(): Node {
+    render(): React.Node {
       return (
         <View style={styles.container}>
           <View style={styles.box2} />
@@ -264,7 +367,7 @@ exports.examples = [
   {
     title: 'Rotate',
     description: "rotate: '30deg'",
-    render(): Node {
+    render(): React.Node {
       return (
         <View style={styles.container}>
           <View style={styles.box3step1} />
@@ -275,7 +378,7 @@ exports.examples = [
   {
     title: 'Rotate, Scale',
     description: "rotate: '30deg', scaleX: 2, scaleY: 2",
-    render(): Node {
+    render(): React.Node {
       return (
         <View style={styles.container}>
           <View style={styles.box3step2} />
@@ -287,7 +390,7 @@ exports.examples = [
     title: 'Rotate, Scale, Translate ',
     description:
       "rotate: '30deg', scaleX: 2, scaleY: 2, translateX: 100, translateY: 50",
-    render(): Node {
+    render(): React.Node {
       return (
         <View style={styles.container}>
           <View style={styles.box3step3} />
@@ -298,7 +401,7 @@ exports.examples = [
   {
     title: 'Translate, Scale, Rotate',
     description: "translate: [200, 350], scale: 2.5, rotate: '-0.2rad'",
-    render(): Node {
+    render(): React.Node {
       return (
         <View style={styles.container}>
           <View style={styles.box4} />
@@ -309,7 +412,7 @@ exports.examples = [
   {
     title: 'Translate, Rotate, Scale',
     description: "translate: [-50, 35], rotate: '50deg', scale: 2",
-    render(): Node {
+    render(): React.Node {
       return (
         <View style={styles.container}>
           <View style={[styles.box5, styles.box5Transform]} />
@@ -318,10 +421,50 @@ exports.examples = [
     },
   },
   {
-    title: 'Amimate Translate single prop',
+    title: 'Animate Translate single prop',
     description: "rotate: '360deg'",
-    render(): Node {
-      return <AnimateTansformSingleProp />;
+    render(): React.Node {
+      return <AnimateTransformSingleProp />;
     },
   },
-];
+  {
+    title: 'Transform using a string',
+    description: "transform: 'translate(-50px, 35px) rotate(50deg) scale(2)'",
+    render(): React.Node {
+      return (
+        <View style={styles.container}>
+          <View style={[styles.box7, styles.box7Transform]} />
+        </View>
+      );
+    },
+  },
+  {
+    title: 'Transform origin',
+    description: "transformOrigin: 'top left'",
+    render(): React.Node {
+      return <TransformOriginExample />;
+    },
+  },
+  {
+    title: 'Translate Percentage',
+    description: "transform: 'translate(50%)'",
+    render(): React.Node {
+      return <TranslatePercentage />;
+    },
+  },
+  {
+    title: 'Transform Matrix 2D',
+    description: "transform: 'matrix(1, 0, 0, 0, 1, 0, 0, 0, 1)'",
+    render(): React.Node {
+      return <TranslateMatrix2D />;
+    },
+  },
+  {
+    title: 'Transform Matrix 3D',
+    description:
+      "transform: 'matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)'",
+    render(): React.Node {
+      return <TranslateMatrix3D />;
+    },
+  },
+] as Array<RNTesterModuleExample>;

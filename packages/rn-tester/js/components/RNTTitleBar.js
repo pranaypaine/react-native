@@ -4,92 +4,71 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
-import {
-  Text,
-  View,
-  SafeAreaView,
-  Button,
-  Platform,
-  StyleSheet,
-} from 'react-native';
-import * as React from 'react';
 import RNTesterDocumentationURL from './RNTesterDocumentationURL';
 import {type RNTesterTheme} from './RNTesterTheme';
+import * as React from 'react';
+import {Platform, StyleSheet, Text, View} from 'react-native';
 
 const HeaderIOS = ({
-  onBack,
+  children,
   title,
   documentationURL,
   theme,
 }: {
-  onBack?: ?() => mixed,
+  children?: React.Node,
   title: string,
   documentationURL?: string,
   theme: RNTesterTheme,
 }) => {
   return (
-    <SafeAreaView>
-      <View
-        style={[styles.header, {backgroundColor: theme.SystemBackgroundColor}]}>
-        <View style={styles.headerCenter}>
-          <Text style={{...styles.title, ...{color: theme.LabelColor}}}>
-            {title}
-          </Text>
-          {documentationURL && (
-            <RNTesterDocumentationURL documentationURL={documentationURL} />
-          )}
-        </View>
-        {onBack != null && (
-          <View>
-            <Button
-              title="Back"
-              onPress={onBack}
-              color={Platform.select({
-                ios: theme.LinkColor,
-                default: undefined,
-              })}
-            />
-          </View>
+    <View
+      style={[styles.header, {backgroundColor: theme.SystemBackgroundColor}]}>
+      <View style={styles.headerCenter}>
+        <Text style={{...styles.title, color: theme.LabelColor}}>{title}</Text>
+        {documentationURL && (
+          <RNTesterDocumentationURL documentationURL={documentationURL} />
         )}
       </View>
-    </SafeAreaView>
+      {children != null && <View>{children}</View>}
+    </View>
   );
 };
 
 const HeaderAndroid = ({
+  children,
   title,
   documentationURL,
   theme,
 }: {
+  children?: React.Node,
   title: string,
   documentationURL?: string,
   theme: RNTesterTheme,
 }) => {
   return (
-    <SafeAreaView>
-      <View style={[styles.toolbar, {backgroundColor: theme.BackgroundColor}]}>
-        <View style={styles.toolbarCenter}>
-          <Text style={[styles.title, {color: theme.LabelColor}]}>{title}</Text>
-          {documentationURL && (
-            <RNTesterDocumentationURL documentationURL={documentationURL} />
-          )}
-        </View>
+    <View style={[styles.toolbar, {backgroundColor: theme.BackgroundColor}]}>
+      <View style={styles.toolbarCenter}>
+        <Text style={[styles.title, {color: theme.LabelColor}]}>{title}</Text>
+        {documentationURL && (
+          <RNTesterDocumentationURL documentationURL={documentationURL} />
+        )}
       </View>
-    </SafeAreaView>
+      {children != null && <View>{children}</View>}
+    </View>
   );
 };
 
 export default function RNTTitleBar({
-  onBack,
+  children,
   title,
   documentationURL,
   theme,
 }: {
-  onBack?: ?() => mixed,
+  children?: React.Node,
   title: string,
   documentationURL?: string,
   theme: RNTesterTheme,
@@ -99,13 +78,14 @@ export default function RNTTitleBar({
     <HeaderIOS
       documentationURL={documentationURL}
       title={title}
-      onBack={onBack}
+      children={children}
       theme={theme}
     />
   ) : (
     <HeaderAndroid
       documentationURL={documentationURL}
       title={title}
+      children={children}
       theme={theme}
     />
   );
@@ -118,6 +98,7 @@ const styles = StyleSheet.create({
   header: {
     height: 40,
     flexDirection: 'row',
+    marginTop: Platform.OS === 'ios' ? 50 : 0,
   },
   headerCenter: {
     flex: 1,
@@ -134,6 +115,7 @@ const styles = StyleSheet.create({
   },
   toolbar: {
     height: 56,
+    flexDirection: 'row',
   },
   toolbarCenter: {
     flex: 1,

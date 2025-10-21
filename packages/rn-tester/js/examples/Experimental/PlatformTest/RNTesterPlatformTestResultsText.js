@@ -4,12 +4,12 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
+ * @flow strict-local
  * @format
- * @flow
  */
 
-import {Text, StyleSheet} from 'react-native';
 import * as React from 'react';
+import {StyleSheet, Text} from 'react-native';
 
 type Props = $ReadOnly<{
   numPass: number,

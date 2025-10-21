@@ -4,22 +4,23 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
-const React = require('react');
-const {
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
+
+import AnExSet from './AnExSet';
+import React from 'react';
+import {
   Animated,
   LayoutAnimation,
   PanResponder,
   StyleSheet,
   View,
-} = require('react-native');
-
-const AnExSet = require('./AnExSet');
+} from 'react-native';
 
 const CIRCLE_SIZE = 80;
 const CIRCLE_MARGIN = 18;
@@ -111,7 +112,7 @@ class Circle extends React.Component<any, any> {
         },
         onResponderRelease: () => {
           if (!this.state.panResponder) {
-            /* $FlowFixMe[incompatible-call] (>=0.63.0 site=react_native_fb)
+            /* $FlowFixMe[incompatible-type] (>=0.63.0 site=react_native_fb)
              * This comment suppresses an error found when Flow v0.63 was
              * deployed. To see the error delete this comment and run Flow. */
             clearTimeout(this.longTimer);
@@ -189,7 +190,7 @@ class Circle extends React.Component<any, any> {
       </Animated.View>
     );
   }
-  _toggleIsActive = (velocity: void) => {
+  _toggleIsActive = (velocity: ?number) => {
     const config = {tension: 30, friction: 7};
     if (this.state.isActive) {
       Animated.spring(this.props.openVal, {
@@ -393,8 +394,8 @@ exports.description =
 exports.examples = [
   {
     title: 'And example app',
-    render(): React.Element<typeof AnExApp> {
+    render(): React.MixedElement {
       return <AnExApp />;
     },
   },
-];
+] as Array<RNTesterModuleExample>;

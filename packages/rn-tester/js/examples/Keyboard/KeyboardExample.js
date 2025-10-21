@@ -4,8 +4,8 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow strict-local
+ * @format
  */
 
 'use strict';
@@ -14,18 +14,19 @@ import type {
   RNTesterModule,
   RNTesterModuleExample,
 } from '../../types/RNTesterTypes';
-import type {KeyboardEvent} from 'react-native/Libraries/Components/Keyboard/Keyboard';
+import type {KeyboardEvent} from 'react-native';
 
+import RNTesterText from '../../components/RNTesterText';
 import * as React from 'react';
 import {useEffect, useState} from 'react';
-import {Keyboard, StyleSheet, Text, View} from 'react-native';
+import {Keyboard, StyleSheet, View} from 'react-native';
 
-type KeybpardEventViewerProps = {
+type KeyboardEventViewerProps = {
   showEvent: 'keyboardWillShow' | 'keyboardDidShow',
   hideEvent: 'keyboardWillHide' | 'keyboardDidHide',
 };
 
-const KeyboardEventViewer = (props: KeybpardEventViewerProps): React.Node => {
+const KeyboardEventViewer = (props: KeyboardEventViewerProps): React.Node => {
   const {showEvent, hideEvent} = props;
   const [isShown, setIsShown] = useState(false);
   const [lastEvent, setLastEvent] = useState<?KeyboardEvent>();
@@ -48,20 +49,20 @@ const KeyboardEventViewer = (props: KeybpardEventViewerProps): React.Node => {
 
   return (
     <View>
-      <Text>
-        <Text>Keyboard is </Text>
+      <RNTesterText>
+        <RNTesterText>Keyboard is </RNTesterText>
         {isShown ? (
-          <Text style={styles.openText}>open</Text>
+          <RNTesterText style={styles.openText}>open</RNTesterText>
         ) : (
-          <Text style={styles.closeText}>closed</Text>
+          <RNTesterText style={styles.closeText}>closed</RNTesterText>
         )}
-      </Text>
+      </RNTesterText>
       <View style={styles.eventBox}>
-        <Text>
+        <RNTesterText>
           {lastEvent
             ? JSON.stringify(lastEvent, null, 2)
             : 'No events observed'}
-        </Text>
+        </RNTesterText>
       </View>
     </View>
   );

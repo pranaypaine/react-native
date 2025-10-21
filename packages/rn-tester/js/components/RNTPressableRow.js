@@ -4,24 +4,22 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
+ * @flow strict-local
  * @format
- * @flow
  */
 
-import * as React from 'react';
-import {RNTesterThemeContext} from './RNTesterTheme';
 import RNTesterComponentTitle from './RNTesterComponentTitle';
+import {RNTesterThemeContext} from './RNTesterTheme';
+import * as React from 'react';
+import {useContext} from 'react';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
-import {Platform, StyleSheet, Pressable, Text, View} from 'react-native';
-
-type ViewStyleProp = $ElementType<React.ElementConfig<typeof View>, 'style'>;
+type ViewStyleProp = React.ElementConfig<typeof View>['style'];
 type Props = {
   accessibilityLabel?: ?string,
   testID?: ?string,
   onPressIn?: ?() => mixed,
   onPressOut?: ?() => mixed,
-  rightAddOn?: ?React.Node,
-  bottomAddOn?: ?React.Node,
   children?: ?React.Node,
   title: string,
   description?: ?string,
@@ -34,13 +32,11 @@ export default function RNTPressableRow({
   onPressOut,
   title,
   description,
-  rightAddOn,
-  bottomAddOn,
   onPress,
   style,
   accessibilityLabel,
 }: Props): React.Node {
-  const theme = React.useContext(RNTesterThemeContext);
+  const theme = useContext(RNTesterThemeContext);
   const label = accessibilityLabel ?? `${title} ${description ?? ''}`;
   return (
     <Pressable
@@ -58,13 +54,11 @@ export default function RNTPressableRow({
       onPress={onPress}>
       <View style={styles.topRowStyle}>
         <RNTesterComponentTitle>{title}</RNTesterComponentTitle>
-        {rightAddOn}
       </View>
       <Text
         style={[styles.descriptionText, {color: theme.SecondaryLabelColor}]}>
         {description}
       </Text>
-      {bottomAddOn}
     </Pressable>
   );
 }
@@ -72,21 +66,16 @@ export default function RNTPressableRow({
 const styles = StyleSheet.create({
   row: {
     justifyContent: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    marginVertical: Platform.select({ios: 4, android: 8}),
-    marginHorizontal: 15,
-    overflow: 'hidden',
-    elevation: 5,
-    backgroundColor: Platform.select({ios: '#FFFFFF', android: '#F3F8FF'}),
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginVertical: 5,
+    marginHorizontal: 16,
+    boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.25)',
+    borderRadius: 8,
   },
   descriptionText: {
+    marginTop: 6,
     fontSize: 12,
-    lineHeight: 20,
-    marginBottom: 5,
-  },
-  pressed: {
-    elevation: 3,
   },
   topRowStyle: {
     flexDirection: 'row',

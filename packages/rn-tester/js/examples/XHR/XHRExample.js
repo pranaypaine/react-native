@@ -4,19 +4,21 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
-const React = require('react');
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
+
 const XHRExampleAbortController = require('./XHRExampleAbortController');
 const XHRExampleBinaryUpload = require('./XHRExampleBinaryUpload');
 const XHRExampleDownload = require('./XHRExampleDownload');
 const XHRExampleFetch = require('./XHRExampleFetch');
 const XHRExampleHeaders = require('./XHRExampleHeaders');
 const XHRExampleOnTimeOut = require('./XHRExampleOnTimeOut');
+const React = require('react');
 
 exports.framework = 'React';
 exports.title = 'XMLHttpRequest';
@@ -60,4 +62,4 @@ exports.examples = [
       return <XHRExampleAbortController />;
     },
   },
-];
+] as Array<RNTesterModuleExample>;

@@ -4,15 +4,16 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 import type {PlatformTestHarness} from '../PlatformTest/RNTesterPlatformTestTypes';
-import type {ViewProps} from 'react-native/Libraries/Components/View/ViewPropTypes';
-import type {PointerEvent} from 'react-native/Libraries/Types/CoreEventTypes';
+import type {PointerEvent, ViewProps} from 'react-native';
 
+import * as React from 'react';
 import {useMemo} from 'react';
+import {View} from 'react-native';
 
 // These props are not in the specification but are present in the WPT so we keep them
 // but marked as skipped so we don't prioritize them
@@ -120,7 +121,8 @@ export function check_PointerEvent(
     harness.test(
       ({assert_true}) => {
         assert_true(
-          // $FlowFixMe
+          // $FlowFixMe[invalid-computed-prop]
+          // $FlowFixMe[prop-missing]
           idl_type_check[type](nativeEvent[name]),
           name + ' attribute of type ' + type,
         );
@@ -131,7 +133,7 @@ export function check_PointerEvent(
         ' IDL type ' +
         type +
         ' (JS type was ' +
-        // $FlowFixMe
+        // $FlowFixMe[prop-missing]
         typeof nativeEvent[name] +
         ')',
       {skip},
@@ -141,7 +143,7 @@ export function check_PointerEvent(
     if (value !== undefined) {
       harness.test(
         ({assert_equals}) => {
-          // $FlowFixMe
+          // $FlowFixMe[prop-missing]
           assert_equals(nativeEvent[name], value, name + ' attribute value');
         },
         pointerTestName + '.' + name + ' value is ' + String(value) + '.',
@@ -216,7 +218,7 @@ export function useTestEventHandler(
   const eventProps: any = useMemo(() => {
     const handlerFactory = (eventName: string) => (event: any) =>
       handler(event, eventName);
-    const props = {};
+    const props: {[string]: (event: any) => void} = {};
     for (const eventName of eventNames) {
       const eventPropName =
         'on' + eventName[0].toUpperCase() + eventName.slice(1);
@@ -225,4 +227,53 @@ export function useTestEventHandler(
     return props;
   }, [eventNames, handler]);
   return eventProps;
+}
+
+type EventName = 'onClick' | 'onPointerDown' | 'onPointerUp';
+
+export type EventOccurrence = {
+  id: string,
+  eventName: EventName,
+};
+
+export function mkEvent(id: string, eventName: EventName): EventOccurrence {
+  return {
+    id,
+    eventName,
+  };
+}
+
+export type EventTrackerProps = $ReadOnly<{
+  eventsRef?: {current: Array<EventOccurrence>},
+  onAnyEvent?: (EventOccurrence, PointerEvent) => void,
+  eventsToTrack: Array<EventName>,
+  id: string,
+  ...ViewProps,
+}>;
+
+type HandlerFunction = PointerEvent => void;
+
+export function EventTracker(props: EventTrackerProps): React.MixedElement {
+  const {eventsToTrack, eventsRef, id, style, onAnyEvent, ...viewProps} = props;
+  const handlerProps = useMemo(() => {
+    const handlers: {
+      onClick?: HandlerFunction,
+      onPointerDown?: HandlerFunction,
+      onPointerUp?: HandlerFunction,
+    } = {};
+    for (const eventName of eventsToTrack) {
+      handlers[eventName] = (e: PointerEvent) => {
+        const occurrence = {id, eventName};
+        eventsRef?.current.push(occurrence);
+        onAnyEvent?.(occurrence, e);
+      };
+    }
+    return handlers;
+  }, [eventsToTrack, id, eventsRef, onAnyEvent]);
+
+  return (
+    <View {...handlerProps} {...viewProps} style={props.style} id={props.id}>
+      {props.children}
+    </View>
+  );
 }

@@ -4,34 +4,36 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow strict-local
+ * @format
  */
 
 'use strict';
 
-import * as React from 'react';
-import {Text, Pressable, StyleSheet, View} from 'react-native';
-import type {PressEvent} from 'react-native/Libraries/Types/CoreEventTypes';
+import type {GestureResponderEvent} from 'react-native';
 import type {ViewStyleProp} from 'react-native/Libraries/StyleSheet/StyleSheet';
-import {RNTesterThemeContext} from './RNTesterTheme';
 
-type Props = $ReadOnly<{|
+import {RNTesterThemeContext} from './RNTesterTheme';
+import * as React from 'react';
+import {useContext, useState} from 'react';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
+
+type Props = $ReadOnly<{
   testID?: ?string,
   label: string,
-  onPress?: ?(event: PressEvent) => mixed,
+  onPress?: ?(event: GestureResponderEvent) => mixed,
   selected?: ?boolean,
   multiSelect?: ?boolean,
   disabled?: ?boolean,
   style?: ViewStyleProp,
-|}>;
+}>;
 
 /**
  * A reusable toggle button component for RNTester. Highlights when selected.
  */
 export default function RNTOption(props: Props): React.Node {
-  const [pressed, setPressed] = React.useState(false);
-  const theme = React.useContext(RNTesterThemeContext);
+  const [pressed, setPressed] = useState(false);
+  const theme = useContext(RNTesterThemeContext);
 
   return (
     <Pressable
@@ -42,12 +44,13 @@ export default function RNTOption(props: Props): React.Node {
           : props.selected
       }
       hitSlop={4}
-      onPress={props.onPress}
+      onPress={props.disabled === true ? undefined : props.onPress}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       testID={props.testID}>
       <View
         style={[
+          {borderColor: theme.BorderColor},
           styles.container,
           props.selected === true ? styles.selected : null,
           pressed && props.selected !== true ? styles.pressed : null,
@@ -59,7 +62,7 @@ export default function RNTOption(props: Props): React.Node {
             : null,
           props.style,
         ]}>
-        <Text style={styles.label}>{props.label}</Text>
+        <Text style={{color: theme.SecondaryLabelColor}}>{props.label}</Text>
       </View>
     </Pressable>
   );
@@ -69,16 +72,12 @@ const styles = StyleSheet.create({
   pressed: {
     backgroundColor: 'rgba(100,215,255,.3)',
   },
-  label: {
-    color: 'black',
-  },
   selected: {
     backgroundColor: 'rgba(100,215,255,.3)',
     borderColor: 'rgba(100,215,255,.3)',
   },
   disabled: {borderWidth: 0},
   container: {
-    borderColor: 'rgba(0,0,0, 0.1)',
     borderWidth: 1,
     borderRadius: 16,
     padding: 6,

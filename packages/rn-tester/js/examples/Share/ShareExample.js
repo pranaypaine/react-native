@@ -4,17 +4,21 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
-const React = require('react');
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
 
-const {StyleSheet, View, Text, Button, Share} = require('react-native');
+import RNTesterText from '../../components/RNTesterText';
+import React from 'react';
+import {useState} from 'react';
+import {Button, Share, StyleSheet, View} from 'react-native';
 
 const shareMessage = () => {
+  // $FlowFixMe[unused-promise]
   Share.share({
     message:
       ('Our top priority for React Native is to match the expectations people have for each platform. This is why React Native renders to platform primitives. We value native look-and-feel over cross-platform consistency.' +
@@ -23,6 +27,7 @@ const shareMessage = () => {
 };
 
 const shareText = () => {
+  // $FlowFixMe[unused-promise]
   Share.share(
     {
       title: 'Massive Scale',
@@ -43,8 +48,8 @@ const shareText = () => {
 const ShareMessageWithoutTitle = () => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Native Experience</Text>
-      <Text>
+      <RNTesterText style={styles.title}>Native Experience</RNTesterText>
+      <RNTesterText>
         Our top priority for React Native is to match the expectations people
         have for each platform. This is why React Native renders to platform
         primitives. We value native look-and-feel over cross-platform
@@ -53,7 +58,7 @@ const ShareMessageWithoutTitle = () => {
         and keyboard controls work out of the box. By using platform primitives,
         React Native apps are also able to stay up-to-date with design and
         behavior changes from new releases of Android and iOS.
-      </Text>
+      </RNTesterText>
       <Button title="SHARE" onPress={shareMessage} />
     </View>
   );
@@ -62,8 +67,8 @@ const ShareMessageWithoutTitle = () => {
 const ShareMessageWithTitle = () => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Massive Scale</Text>
-      <Text>
+      <RNTesterText style={styles.title}>Massive Scale</RNTesterText>
+      <RNTesterText>
         Hundreds of screens in the Facebook app are implemented with React
         Native. The Facebook app is used by billions of people on a huge range
         of devices. This is why we invest in the most challenging problems at
@@ -72,14 +77,14 @@ const ShareMessageWithTitle = () => {
         improving performance across a broad spectrum of devices from the newest
         iPhone to many older generations of Android devices. This focus informs
         our architecture projects such as Hermes, Fabric, and TurboModules.
-      </Text>
+      </RNTesterText>
       <Button title="SHARE" onPress={shareText} />
     </View>
   );
 };
 
 const SharedAction = () => {
-  const [shared, setShared] = React.useState();
+  const [shared, setShared] = useState<?string>();
 
   const sharedAction = async () => {
     try {
@@ -108,12 +113,12 @@ const SharedAction = () => {
   };
   return (
     <View style={styles.container}>
-      <Text>action: {shared ? shared : 'null'}</Text>
-      <Text style={styles.title}>Create native apps</Text>
-      <Text>
+      <RNTesterText>action: {shared ? shared : 'null'}</RNTesterText>
+      <RNTesterText style={styles.title}>Create native apps</RNTesterText>
+      <RNTesterText>
         React Native combines the best parts of native development with React, a
         best-in-class JavaScript library for building user interfaces.
-      </Text>
+      </RNTesterText>
       <Button title="SHARE" onPress={sharedAction} />
     </View>
   );
@@ -153,4 +158,4 @@ exports.examples = [
       return <SharedAction />;
     },
   },
-];
+] as Array<RNTesterModuleExample>;

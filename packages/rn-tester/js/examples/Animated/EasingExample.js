@@ -9,20 +9,23 @@
  */
 
 import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
-import * as React from 'react';
-import RNTesterButton from '../../components/RNTesterButton';
-import ToggleNativeDriver from './utils/ToggleNativeDriver';
+
 import RNTConfigurationBlock from '../../components/RNTConfigurationBlock';
+import RNTesterButton from '../../components/RNTesterButton';
+import {RNTesterThemeContext} from '../../components/RNTesterTheme';
+import ToggleNativeDriver from './utils/ToggleNativeDriver';
+import * as React from 'react';
+import {useContext, useRef, useState} from 'react';
 import {
-  Text,
-  StyleSheet,
-  View,
   Animated,
-  SectionList,
   Easing,
+  SectionList,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 
-type Props = $ReadOnly<{||}>;
+type Props = $ReadOnly<{}>;
 
 type EasingListItem = {
   title: string,
@@ -84,8 +87,8 @@ function EasingItem({
   item: EasingListItem,
   useNativeDriver: boolean,
 }): React.Node {
-  const opacityAndScale = React.useRef(new Animated.Value(1));
-  const animation = React.useRef(
+  const opacityAndScale = useRef(new Animated.Value(1));
+  const animation = useRef(
     Animated.timing(opacityAndScale.current, {
       toValue: 1,
       duration: 1200,
@@ -102,10 +105,14 @@ function EasingItem({
     },
   ];
 
+  const theme = useContext(RNTesterThemeContext);
+
   return (
     <View style={styles.itemContainer}>
       <View style={styles.itemMeta}>
-        <Text style={styles.itemTitle}>{item.title}</Text>
+        <Text style={[styles.itemTitle, {color: theme.SecondaryLabelColor}]}>
+          {item.title}
+        </Text>
         <RNTesterButton
           onPress={() => {
             opacityAndScale.current.setValue(0);
@@ -122,7 +129,7 @@ function EasingItem({
 }
 
 function EasingExample(props: Props): React.Node {
-  const [useNativeDriver, setUseNativeDriver] = React.useState(false);
+  const [useNativeDriver, setUseNativeDriver] = useState(false);
 
   return (
     <>
@@ -135,7 +142,7 @@ function EasingExample(props: Props): React.Node {
       <SectionList
         sections={easingSections}
         renderItem={info => {
-          const item = (info.item: EasingListItem);
+          const item: EasingListItem = info.item;
 
           return (
             <EasingItem

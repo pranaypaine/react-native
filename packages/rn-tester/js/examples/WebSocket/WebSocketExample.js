@@ -4,24 +4,23 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
+ * @flow strict-local
  * @format
  */
 
-'use strict';
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
 
-/* eslint-env browser */
-
-const React = require('react');
-const {
+import RNTesterText from '../../components/RNTesterText';
+import React from 'react';
+import {
   Image,
   PixelRatio,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
-} = require('react-native');
+} from 'react-native';
 
 const DEFAULT_WS_URL = 'ws://localhost:5555/';
 const DEFAULT_HTTP_URL = 'http://localhost:5556/';
@@ -33,9 +32,17 @@ const WS_STATES = [
   /* 3 */ 'CLOSED',
 ];
 
-class Button extends React.Component {
-  render(): React.Element<any> {
-    const label = <Text style={styles.buttonLabel}>{this.props.label}</Text>;
+class Button extends React.Component<
+  $ReadOnly<{
+    disabled: boolean,
+    label: string,
+    onPress: () => void,
+  }>,
+> {
+  render(): React.Node {
+    const label = (
+      <RNTesterText style={styles.buttonLabel}>{this.props.label}</RNTesterText>
+    );
     if (this.props.disabled) {
       return (
         <View style={[styles.button, styles.disabledButton]}>{label}</View>
@@ -49,21 +56,37 @@ class Button extends React.Component {
   }
 }
 
-class Row extends React.Component {
-  render(): React.Element<any> {
+class Row extends React.Component<
+  $ReadOnly<{
+    children?: React.Node,
+    label: string,
+    value?: ?string,
+  }>,
+> {
+  render(): React.Node {
     return (
       <View style={styles.row}>
-        <Text>{this.props.label}</Text>
-        {this.props.value ? <Text>{this.props.value}</Text> : null}
+        <RNTesterText>{this.props.label}</RNTesterText>
+        {this.props.value == null ? null : (
+          <RNTesterText>{this.props.value}</RNTesterText>
+        )}
         {this.props.children}
       </View>
     );
   }
 }
 
-class WebSocketImage extends React.Component {
+type WebSocketImageState = $ReadOnly<{
+  blob: ?Blob,
+}>;
+
+class WebSocketImage extends React.Component<
+  $ReadOnly<{url: string}>,
+  WebSocketImageState,
+> {
   ws: ?WebSocket = null;
-  state: {blob: ?Blob} = {blob: null};
+  state: WebSocketImageState = {blob: null};
+
   componentDidMount() {
     let ws = (this.ws = new WebSocket(this.props.url));
     ws.binaryType = 'blob';
@@ -80,13 +103,15 @@ class WebSocketImage extends React.Component {
       ws.send('getImage');
     };
   }
+
   componentUnmount() {
     if (this.state.blob) {
       this.state.blob.close();
     }
     this.ws && this.ws.close();
   }
-  render() {
+
+  render(): React.Node {
     if (!this.state.blob) {
       return <View />;
     }
@@ -99,7 +124,7 @@ class WebSocketImage extends React.Component {
   }
 }
 
-function showValue(value) {
+function showValue(value: $FlowFixMe): string {
   if (value === undefined || value === null) {
     return '(no value)';
   }
@@ -113,7 +138,7 @@ function showValue(value) {
   return value;
 }
 
-type State = {
+type WebSocketExampleState = {
   url: string,
   httpUrl: string,
   fetchStatus: ?string,
@@ -124,8 +149,11 @@ type State = {
   outgoingMessage: string,
 };
 
-class WebSocketExample extends React.Component<any, any, State> {
-  state: State = {
+class WebSocketExample extends React.Component<
+  $ReadOnly<{}>,
+  WebSocketExampleState,
+> {
+  state: WebSocketExampleState = {
     url: DEFAULT_WS_URL,
     httpUrl: DEFAULT_HTTP_URL,
     fetchStatus: null,
@@ -153,11 +181,13 @@ class WebSocketExample extends React.Component<any, any, State> {
   };
 
   _onSocketEvent = (event: MessageEvent) => {
-    const state: any = {
+    const state: Partial<WebSocketExampleState> = {
+      // $FlowFixMe[prop-missing]
       socketState: event.target.readyState,
       lastSocketEvent: event.type,
     };
     if (event.type === 'message') {
+      // $FlowFixMe[incompatible-type]
       state.lastMessage = event.data;
     }
     this.setState(state);
@@ -175,7 +205,7 @@ class WebSocketExample extends React.Component<any, any, State> {
     this.setState({
       fetchStatus: 'fetching',
     });
-    fetch(this.state.httpUrl).then(response => {
+    void fetch(this.state.httpUrl).then(response => {
       if (response.status >= 200 && response.status < 400) {
         this.setState({
           fetchStatus: 'OK',
@@ -192,27 +222,27 @@ class WebSocketExample extends React.Component<any, any, State> {
     ) {
       return;
     }
-    const {outgoingMessage} = this.state;
+    const {outgoingMessage, socket} = this.state;
     const buffer = new Uint8Array(outgoingMessage.length);
     for (let i = 0; i < outgoingMessage.length; i++) {
       buffer[i] = outgoingMessage.charCodeAt(i);
     }
-    this.state.socket.send(buffer);
+    socket.send(buffer);
     this.setState({outgoingMessage: ''});
   };
 
-  render(): React.Element<any> {
-    const socketState = WS_STATES[this.state.socketState || -1];
+  render(): React.Node {
+    const socketState = WS_STATES[this.state.socketState ?? -1];
     const canConnect =
       !this.state.socket || this.state.socket.readyState >= WebSocket.CLOSING;
     const canSend = socketState === 'OPEN';
     return (
       <ScrollView style={styles.container}>
         <View style={styles.note}>
-          <Text>To start the WS test server:</Text>
-          <Text style={styles.monospace}>
+          <RNTesterText>To start the WS test server:</RNTesterText>
+          <RNTesterText style={styles.monospace}>
             ./RNTester/js/examples/WebSocket/websocket_test_server.js
-          </Text>
+          </RNTesterText>
         </View>
         <Row label="Current WebSocket state" value={showValue(socketState)} />
         <Row
@@ -265,10 +295,10 @@ class WebSocketExample extends React.Component<any, any, State> {
           />
         </View>
         <View style={styles.note}>
-          <Text>To start the HTTP test server:</Text>
-          <Text style={styles.monospace}>
+          <RNTesterText>To start the HTTP test server:</RNTesterText>
+          <RNTesterText style={styles.monospace}>
             ./RNTester/js/examples/WebSocket/http_test_server.js
-          </Text>
+          </RNTesterText>
         </View>
         <TextInput
           style={styles.textInput}
@@ -285,11 +315,11 @@ class WebSocketExample extends React.Component<any, any, State> {
           />
         </View>
         <View style={styles.note}>
-          <Text>
+          <RNTesterText>
             {this.state.fetchStatus === 'OK'
               ? 'Done. Check your WS server console to see if the next WS requests include the cookie (should be "wstest=OK")'
               : '-'}
-          </Text>
+          </RNTesterText>
         </View>
       </ScrollView>
     );
@@ -303,7 +333,6 @@ const styles = StyleSheet.create({
   note: {
     padding: 8,
     margin: 4,
-    backgroundColor: 'white',
   },
   monospace: {
     fontFamily: 'courier',
@@ -312,7 +341,6 @@ const styles = StyleSheet.create({
   row: {
     height: 40,
     padding: 4,
-    backgroundColor: 'white',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -350,8 +378,8 @@ exports.description = 'WebSocket API';
 exports.examples = [
   {
     title: 'Basic websocket',
-    render(): React.Element<typeof WebSocketExample> {
+    render(): React.Node {
       return <WebSocketExample />;
     },
   },
-];
+] as Array<RNTesterModuleExample>;

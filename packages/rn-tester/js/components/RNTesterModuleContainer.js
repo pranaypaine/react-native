@@ -8,18 +8,19 @@
  * @format
  */
 
-import * as React from 'react';
-const RNTesterBlock = require('./RNTesterBlock');
-const RNTesterExampleFilter = require('./RNTesterExampleFilter');
-import RNTPressableRow from './RNTPressableRow';
-import {RNTesterThemeContext, type RNTesterTheme} from './RNTesterTheme';
-import {View, Text, StyleSheet, Platform} from 'react-native';
-import RNTTestDetails from './RNTTestDetails';
-
 import type {
   RNTesterModule,
   RNTesterModuleExample,
 } from '../types/RNTesterTypes';
+
+import {type RNTesterTheme, RNTesterThemeContext} from './RNTesterTheme';
+import RNTPressableRow from './RNTPressableRow';
+import * as React from 'react';
+import {useContext} from 'react';
+import {Platform, ScrollView, StyleSheet, Text, View} from 'react-native';
+
+const RNTesterBlock = require('./RNTesterBlock');
+const RNTesterExampleFilter = require('./RNTesterExampleFilter');
 
 type Props = {
   module: RNTesterModule,
@@ -33,7 +34,7 @@ function getExampleTitle(title: $FlowFixMe, platform: $FlowFixMe) {
 
 export default function RNTesterModuleContainer(props: Props): React.Node {
   const {module, example, onExampleCardPress} = props;
-  const theme = React.useContext(RNTesterThemeContext);
+  const theme = useContext(RNTesterThemeContext);
   const renderExample = (e: $FlowFixMe, i: $FlowFixMe) => {
     // Filter platform-specific es
     const {title, description, platform, render: ExampleComponent} = e;
@@ -61,40 +62,33 @@ export default function RNTesterModuleContainer(props: Props): React.Node {
     );
   };
 
-  // TODO remove this case
-  if (module.examples.length === 1) {
-    const description = module.examples[0].description ?? module.description;
-    const ModuleSingleExample = module.examples[0].render;
-    return (
-      <>
-        <Header description={description} theme={theme} />
-        <ModuleSingleExample />
-      </>
-    );
-  }
-
   const filter = ({example: e, filterRegex}: $FlowFixMe) =>
     filterRegex.test(e.title);
 
+  const removeHiddenExamples = (ex: RNTesterModuleExample) =>
+    ex.hidden !== true;
   const sections = [
     {
-      data: module.examples,
+      data: module.examples.filter(removeHiddenExamples),
       title: 'EXAMPLES',
       key: 'e',
     },
   ];
 
-  return module.showIndividualExamples === true && example != null ? (
+  const singleModule =
+    example ?? (module.examples.length === 1 ? module.examples[0] : null);
+
+  return singleModule != null ? (
     <>
-      <RNTTestDetails
-        title={example.title}
-        description={example.description}
-        expect={example.expect}
-        theme={theme}
-      />
-      <View style={styles.examplesContainer}>
-        <example.render />
-      </View>
+      {singleModule.scrollable === true ? (
+        <ScrollView style={styles.examplesContainer} testID="example-container">
+          <singleModule.render />
+        </ScrollView>
+      ) : (
+        <View style={styles.examplesContainer} testID="example-container">
+          <singleModule.render />
+        </View>
+      )}
     </>
   ) : (
     <>
@@ -107,7 +101,13 @@ export default function RNTesterModuleContainer(props: Props): React.Node {
           sections={sections}
           filter={filter}
           render={({filteredSections}) =>
-            filteredSections[0].data.map(renderExample)
+            module.showIndividualExamples === true ? (
+              filteredSections[0].data.map(renderExample)
+            ) : (
+              <View style={styles.sectionContainer}>
+                {filteredSections[0].data.map(renderExample)}
+              </View>
+            )
           }
         />
       </View>
@@ -132,7 +132,9 @@ function Header(props: {
               : props.theme.BackgroundColor,
         },
       ]}>
-      <Text style={styles.headerDescription}>{props.description}</Text>
+      <Text style={[styles.headerDescription, {color: props.theme.LabelColor}]}>
+        {props.description}
+      </Text>
     </View>
   );
 }
@@ -159,5 +161,9 @@ const styles = StyleSheet.create({
       android: 0,
     }),
     marginHorizontal: 15,
+  },
+  sectionContainer: {
+    rowGap: 30,
+    paddingVertical: 30,
   },
 });

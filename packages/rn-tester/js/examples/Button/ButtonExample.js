@@ -4,16 +4,17 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow strict-local
+ * @format
  */
 
 'use strict';
 
-const React = require('react');
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
 
-const {Alert, Button, View, StyleSheet} = require('react-native');
 const {RNTesterThemeContext} = require('../../components/RNTesterTheme');
+const React = require('react');
+const {Alert, Button, StyleSheet, View} = require('react-native');
 
 function onButtonPress(buttonName: string) {
   Alert.alert(`Your application has been ${buttonName}!`);
@@ -177,6 +178,28 @@ exports.examples = [
     },
   },
   {
+    title: 'Button with aria-label="label"',
+    description: ('Note: This prop changes the text that a screen ' +
+      'reader announces (there are no visual differences).': string),
+    render: function (): React.Node {
+      return (
+        <RNTesterThemeContext.Consumer>
+          {theme => {
+            return (
+              <Button
+                onPress={() => onButtonPress('submitted')}
+                testID="aria_label_button"
+                color={theme.LinkColor}
+                title="Submit Application"
+                aria-label="Press to submit your application!"
+              />
+            );
+          }}
+        </RNTesterThemeContext.Consumer>
+      );
+    },
+  },
+  {
     title: 'Button with accessibilityState={{disabled: true}}',
     description:
       ('Note: This prop will announce on TalkBack that the button is disabled. ' +
@@ -200,7 +223,7 @@ exports.examples = [
       );
     },
   },
-];
+] as Array<RNTesterModuleExample>;
 
 const styles = StyleSheet.create({
   container: {

@@ -4,19 +4,19 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
+ * @flow strict-local
  * @format
- * @flow
  */
-
-import * as React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
 
 import type {ViewStyleProp} from 'react-native/Libraries/StyleSheet/StyleSheet';
 
-type Props = $ReadOnly<{|
+import * as React from 'react';
+import {StyleSheet, Text, View} from 'react-native';
+
+type Props = $ReadOnly<{
   instructions?: $ReadOnlyArray<string>,
   style?: ?ViewStyleProp,
-|}>;
+}>;
 export default function RNTesterPlatformTestInstructions({
   instructions,
   style,

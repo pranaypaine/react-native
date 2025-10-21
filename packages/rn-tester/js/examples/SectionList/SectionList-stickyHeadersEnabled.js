@@ -4,19 +4,19 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
+ * @flow strict-local
  * @format
- * @flow
  */
 
 'use strict';
+
 import SectionListBaseExample from './SectionListBaseExample';
 import * as React from 'react';
+import {useState} from 'react';
 
 export function SectionList_stickySectionHeadersEnabled(): React.Node {
-  const [output, setOutput] = React.useState(
-    'stickySectionHeadersEnabled false',
-  );
-  const [exampleProps, setExampleProps] = React.useState({
+  const [output, setOutput] = useState('stickySectionHeadersEnabled false');
+  const [exampleProps, setExampleProps] = useState({
     stickySectionHeadersEnabled: false,
   });
 
@@ -43,11 +43,9 @@ export function SectionList_stickySectionHeadersEnabled(): React.Node {
 
 export default {
   title: 'SectionList Sticky Headers Enabled',
-  name: 'SectionList-stickyHeadersEnabled',
+  name: 'stickyHeadersEnabled',
   description: 'Toggle sticky headers on/off',
-  render: function (): React.Element<
-    typeof SectionList_stickySectionHeadersEnabled,
-  > {
+  render: function (): React.MixedElement {
     return <SectionList_stickySectionHeadersEnabled />;
   },
 };

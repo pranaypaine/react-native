@@ -4,14 +4,16 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
-const React = require('react');
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
+
 const SampleTurboModuleExample = require('./SampleTurboModuleExample');
+const React = require('react');
 
 exports.displayName = (undefined: ?string);
 exports.title = 'TurboModule';
@@ -20,8 +22,8 @@ exports.description = 'Usage of TurboModule';
 exports.examples = [
   {
     title: 'SampleTurboModule',
-    render: function (): React.Element<any> {
+    render: function (): React.MixedElement {
       return <SampleTurboModuleExample />;
     },
   },
-];
+] as Array<RNTesterModuleExample>;

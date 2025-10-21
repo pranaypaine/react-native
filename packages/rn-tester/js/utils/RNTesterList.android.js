@@ -4,17 +4,27 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
-import type {RNTesterModuleInfo} from '../types/RNTesterTypes';
+import type {RNTesterModule, RNTesterModuleInfo} from '../types/RNTesterTypes';
 
-import ReactNativeFeatureFlags from 'react-native/Libraries/ReactNative/ReactNativeFeatureFlags';
+import * as RNTesterListFbInternal from './RNTesterListFbInternal';
 
 const Components: Array<RNTesterModuleInfo> = [
+  {
+    key: 'DrawerLayoutAndroid',
+    category: 'UI',
+    module: require('../examples/DrawerLayoutAndroid/DrawerLayoutAndroidExample'),
+  },
+  {
+    key: 'PopupMenuAndroidExample',
+    category: 'UI',
+    module: require('../examples/PopupMenuAndroid/PopupMenuAndroidExample'),
+  },
   {
     key: 'ActivityIndicatorExample',
     category: 'UI',
@@ -29,12 +39,16 @@ const Components: Array<RNTesterModuleInfo> = [
     key: 'FlatListExampleIndex',
     module: require('../examples/FlatList/FlatListExampleIndex').default,
     category: 'ListView',
-    supportsTVOS: true,
   },
   {
     key: 'ImageExample',
     category: 'Basic',
     module: require('../examples/Image/ImageExample'),
+  },
+  {
+    key: 'LayoutConformanceExample',
+    module: require('../examples/LayoutConformance/LayoutConformanceExample')
+      .default,
   },
   {
     key: 'JSResponderHandlerExample',
@@ -119,16 +133,22 @@ const Components: Array<RNTesterModuleInfo> = [
   {
     key: 'ViewExample',
     category: 'Basic',
-    module: require('../examples/View/ViewExample'),
+    module: require('../examples/View/ViewExample').default,
   },
   {
     key: 'NewArchitectureExample',
     category: 'UI',
     module: require('../examples/NewArchitecture/NewArchitectureExample'),
   },
+  {
+    key: 'PerformanceComparisonExample',
+    category: 'Basic',
+    module: require('../examples/Performance/PerformanceComparisonExample'),
+  },
+  ...RNTesterListFbInternal.Components,
 ];
 
-const APIs: Array<RNTesterModuleInfo> = [
+const APIs: Array<RNTesterModuleInfo> = ([
   {
     key: 'AccessibilityExample',
     category: 'Basic',
@@ -165,9 +185,19 @@ const APIs: Array<RNTesterModuleInfo> = [
     module: require('../examples/AppState/AppStateExample'),
   },
   {
+    key: 'ContentURLAndroid',
+    category: 'Android',
+    module: require('../examples/ContentURLAndroid/ContentURLAndroid'),
+  },
+  {
+    key: 'URLExample',
+    category: 'Basic',
+    module: require('../examples/Urls/UrlExample'),
+  },
+  {
     key: 'BorderExample',
     category: 'UI',
-    module: require('../examples/Border/BorderExample'),
+    module: require('../examples/Border/BorderExample').default,
   },
   {
     key: 'CrashExample',
@@ -183,6 +213,21 @@ const APIs: Array<RNTesterModuleInfo> = [
     key: 'Dimensions',
     category: 'UI',
     module: require('../examples/Dimensions/DimensionsExample'),
+  },
+  {
+    key: 'DisplayContentsExample',
+    category: 'UI',
+    module: require('../examples/DisplayContents/DisplayContentsExample')
+      .default,
+  },
+  {
+    key: 'FocusEventsExample',
+    module: require('../examples/FocusEventsExample/FocusEventsExample')
+      .default,
+  },
+  {
+    key: 'InvalidPropsExample',
+    module: require('../examples/InvalidProps/InvalidPropsExample'),
   },
   {
     key: 'Keyboard',
@@ -225,6 +270,11 @@ const APIs: Array<RNTesterModuleInfo> = [
     module: require('../examples/PanResponder/PanResponderExample'),
   },
   {
+    key: 'PixelRatio',
+    category: 'UI',
+    module: require('../examples/PixelRatio/PixelRatioExample'),
+  },
+  {
     key: 'PermissionsExampleAndroid',
     category: 'Android',
     module: require('../examples/PermissionsAndroid/PermissionsExample'),
@@ -265,6 +315,26 @@ const APIs: Array<RNTesterModuleInfo> = [
     module: require('../examples/Transform/TransformExample'),
   },
   {
+    key: 'FilterExample',
+    category: 'UI',
+    module: require('../examples/Filter/FilterExample'),
+  },
+  {
+    key: 'LinearGradientExample',
+    category: 'UI',
+    module: require('../examples/LinearGradient/LinearGradientExample'),
+  },
+  {
+    key: 'RadialGradientExample',
+    category: 'UI',
+    module: require('../examples/RadialGradient/RadialGradientExample'),
+  },
+  {
+    key: 'MixBlendModeExample',
+    category: 'UI',
+    module: require('../examples/MixBlendMode/MixBlendModeExample'),
+  },
+  {
     key: 'VibrationExample',
     category: 'Basic',
     module: require('../examples/Vibration/VibrationExample'),
@@ -279,27 +349,43 @@ const APIs: Array<RNTesterModuleInfo> = [
     category: 'Basic',
     module: require('../examples/XHR/XHRExample'),
   },
-];
-
-if (global.__turboModuleProxy) {
-  APIs.push({
+  {
     key: 'TurboModuleExample',
     category: 'Basic',
     module: require('../examples/TurboModule/TurboModuleExample'),
-  });
-}
+  },
+  {
+    key: 'LegacyModuleExample',
+    module: require('../examples/TurboModule/LegacyModuleExample'),
+  },
+  {
+    key: 'TurboCxxModuleExample',
+    category: 'Basic',
+    module: require('../examples/TurboModule/TurboCxxModuleExample'),
+  },
+  // Basic check to detect the availability of the modern Performance API.
+  ...(typeof performance.getEntries === 'function'
+    ? [
+        {
+          key: 'PerformanceApiExample',
+          category: 'Basic',
+          module: require('../examples/Performance/PerformanceApiExample'),
+        },
+      ]
+    : []),
+  ...RNTesterListFbInternal.APIs,
+]: Array<?RNTesterModuleInfo>).filter(Boolean);
 
-if (ReactNativeFeatureFlags.shouldEmitW3CPointerEvents()) {
-  APIs.push({
-    key: 'W3C PointerEvents',
-    category: 'Experimental',
-    module: require('../examples/Experimental/W3CPointerEventsExample').default,
-  });
-}
+const Playgrounds: Array<RNTesterModuleInfo> = [
+  {
+    key: 'PlaygroundExample',
+    module: require('../examples/Playground/PlaygroundExample'),
+  },
+];
 
-const Modules: any = {};
+const Modules: {[key: string]: RNTesterModule} = {};
 
-APIs.concat(Components).forEach(Example => {
+[...APIs, ...Components, ...Playgrounds].forEach(Example => {
   Modules[Example.key] = Example.module;
 });
 

@@ -4,14 +4,16 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
-import * as React from 'react';
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
+
 import MyNativeView from '../../../NativeComponentExample/js/MyNativeView';
+import * as React from 'react';
 
 exports.title = 'New Architecture Examples';
 exports.description =
@@ -20,7 +22,7 @@ exports.examples = [
   {
     title: 'New Architecture Renderer',
     description: 'Click to change background and opacity',
-    render(): React.Element<any> {
+    render(): React.MixedElement {
       return (
         <>
           <MyNativeView />
@@ -28,4 +30,4 @@ exports.examples = [
       );
     },
   },
-];
+] as Array<RNTesterModuleExample>;

@@ -4,18 +4,32 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
-const React = require('react');
-const ReactNative = require('react-native');
-import Platform from 'react-native/Libraries/Utilities/Platform';
-const {DynamicColorIOS, PlatformColor, StyleSheet, Text, View} = ReactNative;
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
+import type {ColorValue} from 'react-native';
+
+import RNTesterText from '../../components/RNTesterText';
+import React from 'react';
+import {
+  Appearance,
+  Button,
+  DynamicColorIOS,
+  Platform,
+  PlatformColor,
+  StyleSheet,
+  View,
+  useColorScheme,
+} from 'react-native';
 
 function PlatformColorsExample() {
   function createTable() {
-    let colors: Array<{color: $Call<typeof PlatformColor>, label: string}> = [];
+    let colors: Array<{
+      color: ReturnType<typeof PlatformColor>,
+      label: string,
+    }> = [];
     if (Platform.OS === 'ios') {
       colors = [
         // https://developer.apple.com/documentation/uikit/uicolor/ui_element_colors
@@ -171,7 +185,7 @@ function PlatformColorsExample() {
     for (let color of colors) {
       table.push(
         <View style={styles.row} key={color.label}>
-          <Text style={styles.labelCell}>{color.label}</Text>
+          <RNTesterText style={styles.labelCell}>{color.label}</RNTesterText>
           <View
             style={{
               ...styles.colorCell,
@@ -188,7 +202,7 @@ function PlatformColorsExample() {
 }
 
 function FallbackColorsExample() {
-  let color = {};
+  let color: {label?: string, color?: ColorValue} = {};
   if (Platform.OS === 'ios') {
     color = {
       label: "PlatformColor('bogus', 'systemGreenColor')",
@@ -209,11 +223,12 @@ function FallbackColorsExample() {
   return (
     <View style={styles.column}>
       <View style={styles.row}>
-        <Text style={styles.labelCell}>{color.label}</Text>
+        <RNTesterText style={styles.labelCell}>{color.label}</RNTesterText>
         <View
           style={{
             ...styles.colorCell,
             backgroundColor: color.color,
+            borderColor: color.color,
           }}
         />
       </View>
@@ -225,11 +240,11 @@ function DynamicColorsExample() {
   return Platform.OS === 'ios' ? (
     <View style={styles.column}>
       <View style={styles.row}>
-        <Text style={styles.labelCell}>
+        <RNTesterText style={styles.labelCell}>
           DynamicColorIOS({'{\n'}
           {'  '}light: 'red', dark: 'blue'{'\n'}
           {'}'})
-        </Text>
+        </RNTesterText>
         <View
           style={{
             ...styles.colorCell,
@@ -238,11 +253,11 @@ function DynamicColorsExample() {
         />
       </View>
       <View style={styles.row}>
-        <Text style={styles.labelCell}>
+        <RNTesterText style={styles.labelCell}>
           DynamicColorIOS({'{\n'}
           {'  '}light: 'red', dark: 'blue'{'\n'}
           {'}'})
-        </Text>
+        </RNTesterText>
         <View
           style={{
             ...styles.colorCell,
@@ -252,12 +267,12 @@ function DynamicColorsExample() {
         />
       </View>
       <View style={styles.row}>
-        <Text style={styles.labelCell}>
+        <RNTesterText style={styles.labelCell}>
           DynamicColorIOS({'{\n'}
           {'  '}light: PlatformColor('systemBlueColor'),{'\n'}
           {'  '}dark: PlatformColor('systemRedColor'),{'\n'}
           {'}'})
-        </Text>
+        </RNTesterText>
         <View
           style={{
             ...styles.colorCell,
@@ -270,7 +285,9 @@ function DynamicColorsExample() {
       </View>
     </View>
   ) : (
-    <Text style={styles.labelCell}>Not applicable on this platform</Text>
+    <RNTesterText style={styles.labelCell}>
+      Not applicable on this platform
+    </RNTesterText>
   );
 }
 
@@ -278,13 +295,13 @@ function VariantColorsExample() {
   return (
     <View style={styles.column}>
       <View style={styles.row}>
-        <Text style={styles.labelCell}>
+        <RNTesterText style={styles.labelCell}>
           {Platform.select({
             ios: "DynamicColorIOS({light: 'red', dark: 'blue'})",
             android: "PlatformColor('?attr/colorAccent')",
             default: 'Unexpected Platform.OS: ' + Platform.OS,
           })}
-        </Text>
+        </RNTesterText>
         <View
           style={{
             ...styles.colorCell,
@@ -292,11 +309,53 @@ function VariantColorsExample() {
               Platform.OS === 'ios'
                 ? DynamicColorIOS({light: 'red', dark: 'blue'})
                 : Platform.OS === 'android'
-                ? PlatformColor('?attr/colorAccent')
-                : 'red',
+                  ? PlatformColor('?attr/colorAccent')
+                  : 'red',
           }}
         />
       </View>
+    </View>
+  );
+}
+
+function ReactsToAppearanceChangesExample() {
+  const theme = useColorScheme();
+  const key = Platform.select({
+    android: theme ?? '',
+    default: undefined,
+  });
+
+  return (
+    // using a key here forces the component to unmount and remount
+    // which is necessary to trigger the appearance change
+    <View style={styles.column} key={key}>
+      <View style={styles.row}>
+        <RNTesterText style={styles.labelCell}>
+          {Platform.select({
+            ios: "DynamicColorIOS({light: 'red', dark: 'blue'})",
+            android: "PlatformColor('?attr/colorAccent')",
+            default: 'Unexpected Platform.OS: ' + Platform.OS,
+          })}
+        </RNTesterText>
+        <View
+          style={{
+            ...styles.colorCell,
+            backgroundColor:
+              Platform.OS === 'ios'
+                ? DynamicColorIOS({light: 'red', dark: 'blue'})
+                : Platform.OS === 'android'
+                  ? PlatformColor('?attr/colorAccent')
+                  : 'red',
+          }}
+        />
+      </View>
+      <View style={styles.separator} />
+      <Button
+        title="Change Appearance"
+        onPress={() => {
+          Appearance.setColorScheme(theme === 'dark' ? 'light' : 'dark');
+        }}
+      />
     </View>
   );
 }
@@ -309,10 +368,10 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     ...Platform.select({
       ios: {color: PlatformColor('labelColor')},
-      default: {color: 'black'},
     }),
   },
   colorCell: {flex: 0.25, alignItems: 'stretch'},
+  separator: {height: 8},
 });
 
 exports.title = 'PlatformColor';
@@ -323,26 +382,32 @@ exports.description =
 exports.examples = [
   {
     title: 'Platform Colors',
-    render(): React.Element<any> {
+    render(): React.MixedElement {
       return <PlatformColorsExample />;
     },
   },
   {
     title: 'Fallback Colors',
-    render(): React.Element<any> {
+    render(): React.MixedElement {
       return <FallbackColorsExample />;
     },
   },
   {
     title: 'iOS Dynamic Colors',
-    render(): React.Element<any> {
+    render(): React.MixedElement {
       return <DynamicColorsExample />;
     },
   },
   {
     title: 'Variant Colors',
-    render(): React.Element<any> {
+    render(): React.MixedElement {
       return <VariantColorsExample />;
     },
   },
-];
+  {
+    title: 'Reacts to Appearance Changes',
+    render(): React.MixedElement {
+      return <ReactsToAppearanceChangesExample />;
+    },
+  },
+] as Array<RNTesterModuleExample>;

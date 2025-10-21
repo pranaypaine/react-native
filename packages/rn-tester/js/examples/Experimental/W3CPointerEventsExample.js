@@ -4,110 +4,33 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
+ * @flow strict-local
  * @format
- * @flow
  */
 
-import type {PointerEvent} from 'react-native/Libraries/Types/CoreEventTypes';
-import {Button, StyleSheet, ScrollView, View, Text} from 'react-native';
-import * as React from 'react';
-import type {ViewProps} from 'react-native/Libraries/Components/View/ViewPropTypes';
-
-import PointerEventAttributesHoverablePointers from './W3CPointerEventPlatformTests/PointerEventAttributesHoverablePointers';
-import PointerEventPointerMove from './W3CPointerEventPlatformTests/PointerEventPointerMove';
 import CompatibilityAnimatedPointerMove from './Compatibility/CompatibilityAnimatedPointerMove';
-import PointerEventPrimaryTouchPointer from './W3CPointerEventPlatformTests/PointerEventPrimaryTouchPointer';
+import CompatibilityNativeGestureHandling from './Compatibility/CompatibilityNativeGestureHandling';
+import ManyPointersPropertiesExample from './Compatibility/ManyPointersPropertiesExample';
+import PointerEventAccessibility from './W3CPointerEventPlatformTests/PointerEventAccessibility';
+import PointerEventAttributesHoverablePointers from './W3CPointerEventPlatformTests/PointerEventAttributesHoverablePointers';
 import PointerEventAttributesNoHoverPointers from './W3CPointerEventPlatformTests/PointerEventAttributesNoHoverPointers';
-
-function EventfulView(props: {|
-  name: string,
-  emitByDefault?: boolean,
-  onLeave?: boolean,
-  onLeaveCapture?: boolean,
-  onEnter?: boolean,
-  onEnterCapture?: boolean,
-  onDown?: boolean,
-  onDownCapture?: boolean,
-  onUp?: boolean,
-  onOver?: boolean,
-  onOverCapture?: boolean,
-  onOut?: boolean,
-  onOutCapture?: boolean,
-  onUpCapture?: boolean,
-  onMove?: boolean,
-  onMoveCapture?: boolean,
-  log: string => void,
-  ...ViewProps,
-|}) {
-  const ref = React.useRef<?React.ElementRef<typeof View>>();
-  React.useEffect(() => {
-    // $FlowFixMe[prop-missing] Using private property
-    setTag(ref.current?._nativeTag);
-  }, [ref]);
-
-  const {
-    log,
-    name,
-    children,
-    emitByDefault,
-    onLeave,
-    onLeaveCapture,
-    onEnter,
-    onEnterCapture,
-    onDown,
-    onDownCapture,
-    onUp,
-    onUpCapture,
-    onMove,
-    onMoveCapture,
-    onOut,
-    onOutCapture,
-    onOver,
-    onOverCapture,
-    ...restProps
-  } = props;
-  const [tag, setTag] = React.useState('');
-
-  const eventLog =
-    (eventName: string, handler: ?(e: PointerEvent) => void) =>
-    (event: PointerEvent) => {
-      // $FlowFixMe Using private property
-      log(`${name} - ${eventName} - target: ${event.target._nativeTag}`);
-      handler?.(event);
-    };
-
-  const listeners = {
-    onPointerUp: onUp ? eventLog('up') : null,
-    onPointerUpCapture: onUpCapture ? eventLog('up capture') : null,
-    onPointerDown: onDown ? eventLog('down') : null,
-    onPointerDownCapture: onDownCapture ? eventLog('down capture') : null,
-    onPointerLeave: onLeave ? eventLog('leave') : null,
-    onPointerLeaveCapture: onLeaveCapture ? eventLog('leave capture') : null,
-    onPointerEnter: onEnter ? eventLog('enter') : null,
-    onPointerEnterCapture: onEnterCapture ? eventLog('enter capture') : null,
-    onPointerMove: onMove ? eventLog('move') : null,
-    onPointerMoveCapture: onMoveCapture ? eventLog('move capture') : null,
-    onPointerOut: onOut ? eventLog('out') : null,
-    onPointerOutCapture: onOutCapture ? eventLog('out capture') : null,
-    onPointerOver: onOver ? eventLog('over') : null,
-    onPointerOverCapture: onOverCapture ? eventLog('over capture') : null,
-  };
-
-  const listeningTo = Object.keys(listeners)
-    .filter(listenerName => listeners[listenerName] != null)
-    .join(', ');
-
-  return (
-    <View ref={ref} {...listeners} {...restProps}>
-      <View style={styles.row}>
-        <Text>
-          {props.name}, {tag}, {listeningTo}
-        </Text>
-      </View>
-      {props.children}
-    </View>
-  );
-}
+import PointerEventCaptureMouse from './W3CPointerEventPlatformTests/PointerEventCaptureMouse';
+import PointerEventClickTouch from './W3CPointerEventPlatformTests/PointerEventClickTouch';
+import PointerEventClickTouchHierarchy from './W3CPointerEventPlatformTests/PointerEventClickTouchHierarchy';
+import PointerEventClickTouchHierarchyPointerEvents from './W3CPointerEventPlatformTests/PointerEventClickTouchHierarchyPointerEvents';
+import PointerEventLayoutChangeShouldFirePointerOver from './W3CPointerEventPlatformTests/PointerEventLayoutChangeShouldFirePointerOver';
+import PointerEventPointerCancelTouch from './W3CPointerEventPlatformTests/PointerEventPointerCancelTouch';
+import PointerEventPointerMove from './W3CPointerEventPlatformTests/PointerEventPointerMove';
+import PointerEventPointerMoveAcross from './W3CPointerEventPlatformTests/PointerEventPointerMoveAcross';
+import PointerEventPointerMoveBetween from './W3CPointerEventPlatformTests/PointerEventPointerMoveBetween';
+import PointerEventPointerMoveEventOrder from './W3CPointerEventPlatformTests/PointerEventPointerMoveEventOrder';
+import PointerEventPointerMoveOnChordedMouseButton from './W3CPointerEventPlatformTests/PointerEventPointerMoveOnChordedMouseButton';
+import PointerEventPointerOverOut from './W3CPointerEventPlatformTests/PointerEventPointerOverOut';
+import PointerEventPrimaryTouchPointer from './W3CPointerEventPlatformTests/PointerEventPrimaryTouchPointer';
+import EventfulView from './W3CPointerEventsEventfulView';
+import * as React from 'react';
+import {useState} from 'react';
+import {Button, ScrollView, StyleSheet, Text, View} from 'react-native';
 
 function AbsoluteChildExample({log}: {log: string => void}) {
   return (
@@ -181,9 +104,9 @@ function RelativeChildExample({log}: {log: string => void}) {
 function PointerEventScaffolding({
   Example,
 }: {
-  Example: React.AbstractComponent<{log: string => void}>,
+  Example: component(log: (string) => void),
 }) {
-  const [eventsLog, setEventsLog] = React.useState('');
+  const [eventsLog, setEventsLog] = useState('');
   const clear = () => setEventsLog('');
   const log = (eventStr: string) => {
     setEventsLog(currentEventsLog => `${eventStr}\n${currentEventsLog}`);
@@ -236,6 +159,124 @@ export default {
   showIndividualExamples: true,
   examples: [
     {
+      name: 'pointerevent_attributes_hoverable_pointers',
+      description: 'Requires physical device + mouse',
+      title: 'WPT 1: Pointer Events hoverable pointer attributes test',
+      render(): React.Node {
+        return <PointerEventAttributesHoverablePointers />;
+      },
+    },
+    {
+      name: 'pointerevent_attributes_nohover_pointers',
+      title: 'WPT 2: Pointer Events no-hover pointer attributes test',
+      render(): React.Node {
+        return <PointerEventAttributesNoHoverPointers />;
+      },
+    },
+    {
+      name: 'pointerevent_pointermove',
+      title: 'WPT 3: PointerMove test',
+      render(): React.Node {
+        return <PointerEventPointerMove />;
+      },
+    },
+    {
+      name: 'pointerevent_primary_touch_pointer',
+      description: 'Requires multi-touch (difficult on emulator)',
+      title: 'WPT 4: Pointer Event primary touch pointer test',
+      render(): React.Node {
+        return <PointerEventPrimaryTouchPointer />;
+      },
+    },
+    {
+      name: 'pointerevent_pointermove_on_chorded_mouse_button',
+      description: 'Requires physical device + mouse',
+      title: 'WPT 5: PointerEvents pointermove on button state changes',
+      render(): React.Node {
+        return <PointerEventPointerMoveOnChordedMouseButton />;
+      },
+    },
+    {
+      name: 'pointerevent_pointermove_across',
+      description:
+        'Works best with a mouse, can be done with touch if you start outside the indicated elements',
+      title: 'WPT 6: Pointermove handling across elements',
+      render(): React.Node {
+        return <PointerEventPointerMoveAcross />;
+      },
+    },
+    {
+      name: 'pointerevent_pointermove_event_order',
+      title: 'WPT 7: PointerEvent - pointermove event order',
+      render(): React.Node {
+        return <PointerEventPointerMoveEventOrder />;
+      },
+    },
+    {
+      name: 'pointerevent_pointermove_between',
+      title: 'WPT 8: Pointermove handling between elements',
+      render(): React.Node {
+        return <PointerEventPointerMoveBetween />;
+      },
+    },
+    {
+      name: 'pointerevent_pointerover_out',
+      title: 'WPT 9: PointerOver/PointerOut handling',
+      render(): React.Node {
+        return <PointerEventPointerOverOut />;
+      },
+    },
+    {
+      name: 'pointerevent_layout_change_should_fire_pointerover',
+      description: 'Currently expected to fail',
+      title: 'WPT 10: Layout change should fire pointerover',
+      render(): React.Node {
+        return <PointerEventLayoutChangeShouldFirePointerOver />;
+      },
+    },
+    {
+      name: 'pointerevent_pointercancel_touch',
+      title: 'WPT 11: Pointer Events pointercancel Tests',
+      render(): React.Node {
+        return <PointerEventPointerCancelTouch />;
+      },
+    },
+    {
+      name: 'pointerevent_caapture_mouse',
+      title: 'WPT 12: Pointer Events capture test',
+      render(): React.Node {
+        return <PointerEventCaptureMouse />;
+      },
+    },
+    {
+      name: 'pointerevent_click_touch',
+      title: 'Pointer Events: basic click test',
+      render(): React.Node {
+        return <PointerEventClickTouch />;
+      },
+    },
+    {
+      name: 'pointerevent_click_touch_hierarchy',
+      title: 'Pointer Events: hierarchy click test',
+      render(): React.Node {
+        return <PointerEventClickTouchHierarchy />;
+      },
+    },
+    {
+      name: 'pointerevent_click_touch_hierarchy_pointerEvents',
+      title: 'Pointer Events: hierarchy click test with pointerEvents',
+      render(): React.Node {
+        return <PointerEventClickTouchHierarchyPointerEvents />;
+      },
+    },
+    {
+      name: 'pointerevent_click_touch_accessibility',
+      title: 'Pointer Events: accessibility click testbed',
+      render(): React.Node {
+        return <PointerEventAccessibility />;
+      },
+    },
+    {
       name: 'relative',
       description: 'Children laid out using relative positioning',
       title: 'Relative Child',
@@ -251,38 +292,8 @@ export default {
         return <PointerEventScaffolding Example={AbsoluteChildExample} />;
       },
     },
-    {
-      name: 'pointerevent_attributes_hoverable_pointers',
-      description: '',
-      title: 'Pointer Events hoverable pointer attributes test',
-      render(): React.Node {
-        return <PointerEventAttributesHoverablePointers />;
-      },
-    },
-    {
-      name: 'pointerevent_attributes_nohover_pointers',
-      description: '',
-      title: 'Pointer Events no-hover pointer attributes test',
-      render(): React.Node {
-        return <PointerEventAttributesNoHoverPointers />;
-      },
-    },
-    {
-      name: 'pointerevent_pointermove',
-      description: '',
-      title: 'PointerMove test',
-      render(): React.Node {
-        return <PointerEventPointerMove />;
-      },
-    },
-    {
-      name: 'pointerevent_primary_touch_pointer',
-      description: '',
-      title: 'Pointer Event primary touch pointer test',
-      render(): React.Node {
-        return <PointerEventPrimaryTouchPointer />;
-      },
-    },
     CompatibilityAnimatedPointerMove,
+    CompatibilityNativeGestureHandling,
+    ManyPointersPropertiesExample,
   ],
 };

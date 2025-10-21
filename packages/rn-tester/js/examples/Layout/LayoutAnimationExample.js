@@ -4,29 +4,31 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
-const React = require('react');
-const {
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
+
+import RNTesterText from '../../components/RNTesterText';
+import React from 'react';
+import {
   LayoutAnimation,
   StyleSheet,
-  Text,
-  View,
   TouchableOpacity,
-} = require('react-native');
+  View,
+} from 'react-native';
 
-type ExampleViewSpec = {|
+type ExampleViewSpec = {
   key: number,
-|};
+};
 
-type AddRemoveExampleState = {|
+type AddRemoveExampleState = {
   views: Array<ExampleViewSpec>,
   nextKey: number,
-|};
+};
 
 function shuffleArray(array: Array<ExampleViewSpec>) {
   var currentIndex: number = array.length,
@@ -102,39 +104,45 @@ class AddRemoveExample extends React.Component<{...}, AddRemoveExampleState> {
         key={key}
         style={styles.view}
         onLayout={evt => console.log('Box onLayout')}>
-        <Text>{key}</Text>
+        <RNTesterText>{key}</RNTesterText>
       </View>
     ));
     return (
       <View style={styles.container}>
         <TouchableOpacity onPress={this._onPressAddViewAnimated}>
           <View style={styles.button}>
-            <Text>Add view</Text>
+            <RNTesterText style={styles.buttonText}>Add view</RNTesterText>
           </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={this._onPressRemoveViewAnimated}>
           <View style={styles.button}>
-            <Text>Remove view</Text>
+            <RNTesterText style={styles.buttonText}>Remove view</RNTesterText>
           </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={this._onPressReorderViewsAnimated}>
           <View style={styles.button}>
-            <Text>Reorder Views</Text>
+            <RNTesterText style={styles.buttonText}>Reorder Views</RNTesterText>
           </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={this._onPressAddView}>
           <View style={styles.button}>
-            <Text>Add view (no animation)</Text>
+            <RNTesterText style={styles.buttonText}>
+              Add view (no animation)
+            </RNTesterText>
           </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={this._onPressRemoveView}>
           <View style={styles.button}>
-            <Text>Remove view (no animation)</Text>
+            <RNTesterText style={styles.buttonText}>
+              Remove view (no animation)
+            </RNTesterText>
           </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={this._onPressReorderViews}>
           <View style={styles.button}>
-            <Text>Reorder Views (no animation)</Text>
+            <RNTesterText style={styles.buttonText}>
+              Reorder Views (no animation)
+            </RNTesterText>
           </View>
         </TouchableOpacity>
         <View style={styles.viewContainer}>{views}</View>
@@ -143,9 +151,9 @@ class AddRemoveExample extends React.Component<{...}, AddRemoveExampleState> {
   }
 }
 
-type ReparentingExampleState = {|
+type ReparentingExampleState = {
   hasBorder: boolean,
-|};
+};
 
 class ReparentingExample extends React.Component<
   {...},
@@ -181,12 +189,14 @@ class ReparentingExample extends React.Component<
       <View style={styles.container}>
         <TouchableOpacity onPress={this._onPressToggleAnimated}>
           <View style={styles.button}>
-            <Text>Toggle</Text>
+            <RNTesterText style={styles.buttonText}>Toggle</RNTesterText>
           </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={this._onPressToggle}>
           <View style={styles.button}>
-            <Text>Toggle (no animation)</Text>
+            <RNTesterText style={styles.buttonText}>
+              Toggle (no animation)
+            </RNTesterText>
           </View>
         </TouchableOpacity>
         <View style={parentStyle}>
@@ -199,19 +209,19 @@ class ReparentingExample extends React.Component<
 
 const GreenSquare = () => (
   <View style={styles.greenSquare}>
-    <Text>Green square</Text>
+    <RNTesterText style={styles.squareText}>Green square</RNTesterText>
   </View>
 );
 
 const BlueSquare = () => (
   <View style={styles.blueSquare}>
-    <Text>Blue square</Text>
+    <RNTesterText style={styles.squareText}>Blue square</RNTesterText>
   </View>
 );
 
-type CrossFadeExampleState = {|
+type CrossFadeExampleState = {
   toggled: boolean,
-|};
+};
 
 class CrossFadeExample extends React.Component<{...}, CrossFadeExampleState> {
   state: CrossFadeExampleState = {
@@ -230,7 +240,7 @@ class CrossFadeExample extends React.Component<{...}, CrossFadeExampleState> {
       <View style={styles.container}>
         <TouchableOpacity onPress={this._onPressToggle}>
           <View style={styles.button}>
-            <Text>Toggle</Text>
+            <RNTesterText style={styles.buttonText}>Toggle</RNTesterText>
           </View>
         </TouchableOpacity>
         <View style={styles.viewContainer}>
@@ -241,10 +251,10 @@ class CrossFadeExample extends React.Component<{...}, CrossFadeExampleState> {
   }
 }
 
-type LayoutUpdateExampleState = {|
+type LayoutUpdateExampleState = {
   width: number,
   height: number,
-|};
+};
 
 class LayoutUpdateExample extends React.Component<
   {...},
@@ -255,7 +265,7 @@ class LayoutUpdateExample extends React.Component<
     height: 100,
   };
 
-  timeout = null;
+  timeout: TimeoutID | null = null;
 
   componentWillUnmount() {
     this._clearTimeout();
@@ -292,13 +302,15 @@ class LayoutUpdateExample extends React.Component<
       <View style={styles.container}>
         <TouchableOpacity onPress={this._onPressToggle}>
           <View style={styles.button}>
-            <Text>Make box square</Text>
+            <RNTesterText style={styles.buttonText}>
+              Make box square
+            </RNTesterText>
           </View>
         </TouchableOpacity>
         <View style={[styles.view, {width, height}]}>
-          <Text>
+          <RNTesterText style={styles.squareText}>
             {width}x{height}
-          </Text>
+          </RNTesterText>
         </View>
       </View>
     );
@@ -314,6 +326,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#eeeeee',
     padding: 10,
     marginBottom: 10,
+  },
+  buttonText: {
+    color: 'black',
   },
   viewContainer: {
     flex: 1,
@@ -342,6 +357,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  squareText: {
+    color: '#fff',
+  },
 });
 
 exports.title = 'Layout Animation';
@@ -351,26 +369,26 @@ exports.description = 'Layout animation';
 exports.examples = [
   {
     title: 'Add and remove views',
-    render(): React.Element<any> {
+    render(): React.MixedElement {
       return <AddRemoveExample />;
     },
   },
   {
     title: 'Animate Reparenting Update',
-    render(): React.Element<any> {
+    render(): React.MixedElement {
       return <ReparentingExample />;
     },
   },
   {
     title: 'Cross fade views',
-    render(): React.Element<any> {
+    render(): React.MixedElement {
       return <CrossFadeExample />;
     },
   },
   {
     title: 'Layout update during animation',
-    render(): React.Element<any> {
+    render(): React.MixedElement {
       return <LayoutUpdateExample />;
     },
   },
-];
+] as Array<RNTesterModuleExample>;

@@ -4,16 +4,17 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
-const React = require('react');
+import type {RNTesterModule} from '../types/RNTesterTypes';
 
 import RNTesterModuleContainer from './RNTesterModuleContainer';
-import type {RNTesterModule} from '../types/RNTesterTypes';
+
+const React = require('react');
 
 const createExamplePage = function (
   title: ?string,

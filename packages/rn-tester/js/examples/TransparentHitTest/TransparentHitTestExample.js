@@ -4,14 +4,16 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
+
 const React = require('react');
-const {Text, View, TouchableOpacity, Alert} = require('react-native');
+const {Alert, Text, TouchableOpacity, View} = require('react-native');
 
 class TransparentHitTestExample extends React.Component<{...}> {
   render(): React.Node {
@@ -44,8 +46,8 @@ exports.description = 'Transparent view receiving touch events';
 exports.examples = [
   {
     title: 'TransparentHitTestExample',
-    render(): React.Element<any> {
+    render(): React.MixedElement {
       return <TransparentHitTestExample />;
     },
   },
-];
+] as Array<RNTesterModuleExample>;

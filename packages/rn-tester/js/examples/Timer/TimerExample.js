@@ -4,24 +4,26 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
-const RNTesterButton = require('../../components/RNTesterButton');
-const React = require('react');
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
 
-const {Alert, Platform, ToastAndroid, Text, View} = require('react-native');
+import RNTesterButton from '../../components/RNTesterButton';
+import RNTesterText from '../../components/RNTesterText';
+import React from 'react';
+import {Alert, Platform, ToastAndroid, View} from 'react-native';
 
 function burnCPU(milliseconds: number) {
   const start = global.performance.now();
   while (global.performance.now() < start + milliseconds) {}
 }
 
-type RequestIdleCallbackTesterProps = $ReadOnly<{||}>;
-type RequestIdleCallbackTesterState = {|message: string|};
+type RequestIdleCallbackTesterProps = $ReadOnly<{}>;
+type RequestIdleCallbackTesterState = {message: string};
 
 class RequestIdleCallbackTester extends React.Component<
   RequestIdleCallbackTesterProps,
@@ -68,7 +70,7 @@ class RequestIdleCallbackTester extends React.Component<
           Stop background task
         </RNTesterButton>
 
-        <Text>{this.state.message}</Text>
+        <RNTesterText>{this.state.message}</RNTesterText>
       </View>
     );
   }
@@ -87,7 +89,7 @@ class RequestIdleCallbackTester extends React.Component<
         message = 'Burned CPU for 10ms,';
       }
       this.setState({
-        message: `${message} ${deadline.timeRemaining()}ms remaining in frame`,
+        message: `${message} ${deadline.timeRemaining()}ms remaining in frame (timeout: ${String(deadline.didTimeout)})`,
       });
     });
   }
@@ -144,10 +146,10 @@ class RequestIdleCallbackTester extends React.Component<
   };
 }
 
-type TimerTesterProps = $ReadOnly<{|
-  dt?: number,
+type TimerTesterProps = $ReadOnly<{
+  dt?: any,
   type: string,
-|}>;
+}>;
 
 class TimerTester extends React.Component<TimerTesterProps> {
   _ii = 0;
@@ -269,10 +271,10 @@ class TimerTester extends React.Component<TimerTesterProps> {
 }
 
 class IntervalExample extends React.Component<
-  $ReadOnly<{||}>,
-  {|
+  $ReadOnly<{}>,
+  {
     showTimer: boolean,
-  |},
+  },
 > {
   state: {showTimer: boolean} = {
     showTimer: true,
@@ -329,6 +331,8 @@ exports.examples = [
           <TimerTester type="setTimeout" dt={0} />
           <TimerTester type="setTimeout" dt={1} />
           <TimerTester type="setTimeout" dt={100} />
+          <TimerTester type="setTimeout" dt={{valueOf: () => 200}} />
+          <TimerTester type="setTimeout" dt={'500'} />
         </View>
       );
     },
@@ -374,4 +378,4 @@ exports.examples = [
       return <IntervalExample />;
     },
   },
-];
+] as Array<RNTesterModuleExample>;

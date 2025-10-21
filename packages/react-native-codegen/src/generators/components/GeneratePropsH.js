@@ -9,34 +9,25 @@
  */
 
 'use strict';
-import type {
-  StringTypeAnnotation,
-  ReservedPropTypeAnnotation,
-  ObjectTypeAnnotation,
-  Int32TypeAnnotation,
-  FloatTypeAnnotation,
-  DoubleTypeAnnotation,
-  ComponentShape,
-  BooleanTypeAnnotation,
-} from '../../CodegenSchema';
-
-const {
-  convertDefaultTypeToString,
-  getCppTypeForAnnotation,
-  getEnumMaskName,
-  getEnumName,
-  toSafeCppString,
-  generateStructName,
-  getImports,
-  toIntEnumValueName,
-} = require('./CppHelpers.js');
-
+import type {ComponentShape} from '../../CodegenSchema';
 import type {
   ExtendsPropsShape,
   NamedShape,
   PropTypeAnnotation,
   SchemaType,
 } from '../../CodegenSchema';
+
+const {getEnumName, toSafeCppString} = require('../Utils');
+const {
+  getLocalImports,
+  getNativeTypeFromAnnotation,
+} = require('./ComponentsGeneratorUtils.js');
+const {
+  generateStructName,
+  getDefaultInitializerString,
+  getEnumMaskName,
+  toIntEnumValueName,
+} = require('./CppHelpers.js');
 
 // File path -> contents
 type FilesOutput = Map<string, string>;
@@ -61,13 +52,11 @@ const FileTemplate = ({
 
 ${imports}
 
-namespace facebook {
-namespace react {
+namespace facebook::react {
 
 ${componentClasses}
 
-} // namespace react
-} // namespace facebook
+} // namespace facebook::react
 `;
 
 const ClassTemplate = ({
@@ -76,17 +65,23 @@ const ClassTemplate = ({
   className,
   props,
   extendClasses,
+  includeGetDebugPropsImplementation,
 }: {
   enums: string,
   structs: string,
   className: string,
   props: string,
   extendClasses: string,
-}) =>
-  `
+  includeGetDebugPropsImplementation: boolean,
+}) => {
+  const getDebugPropsString = `#if RN_DEBUG_STRING_CONVERTIBLE
+  SharedDebugStringConvertibleList getDebugProps() const override;
+  #endif`;
+
+  return `
 ${enums}
 ${structs}
-class JSI_EXPORT ${className} final${extendClasses} {
+class ${className} final${extendClasses} {
  public:
   ${className}() = default;
   ${className}(const PropsParserContext& context, const ${className} &sourceProps, const RawProps &rawProps);
@@ -94,8 +89,17 @@ class JSI_EXPORT ${className} final${extendClasses} {
 #pragma mark - Props
 
   ${props}
+
+  #ifdef RN_SERIALIZABLE_STATE
+  ComponentName getDiffPropsImplementationTarget() const override;
+
+  folly::dynamic getDiffProps(const Props* prevProps) const override;
+  #endif
+
+  ${includeGetDebugPropsImplementation ? getDebugPropsString : ''}
 };
 `.trim();
+};
 
 const EnumTemplate = ({
   enumName,
@@ -122,6 +126,12 @@ static inline std::string toString(const ${enumName} &value) {
     ${toCases}
   }
 }
+
+#ifdef RN_SERIALIZABLE_STATE
+static inline folly::dynamic toDynamic(const ${enumName} &value) {
+  return toString(value);
+}
+#endif
 `.trim();
 
 const IntEnumTemplate = ({
@@ -129,11 +139,13 @@ const IntEnumTemplate = ({
   values,
   fromCases,
   toCases,
+  toDynamicCases,
 }: {
   enumName: string,
   values: string,
   fromCases: string,
   toCases: string,
+  toDynamicCases: string,
 }) =>
   `
 enum class ${enumName} { ${values} };
@@ -151,23 +163,44 @@ static inline std::string toString(const ${enumName} &value) {
     ${toCases}
   }
 }
+
+#ifdef RN_SERIALIZABLE_STATE
+static inline folly::dynamic toDynamic(const ${enumName} &value) {
+  switch (value) {
+    ${toDynamicCases}
+  }
+}
+#endif
 `.trim();
 
 const StructTemplate = ({
   structName,
   fields,
   fromCases,
+  toDynamicCases,
 }: {
   structName: string,
   fields: string,
   fromCases: string,
+  toDynamicCases: string,
 }) =>
   `struct ${structName} {
   ${fields}
+
+
+#ifdef RN_SERIALIZABLE_STATE
+  bool operator==(const ${structName}&) const = default;
+
+  folly::dynamic toDynamic() const {
+    folly::dynamic result = folly::dynamic::object();
+    ${toDynamicCases}
+    return result;
+  }
+#endif
 };
 
 static inline void fromRawValue(const PropsParserContext& context, const RawValue &value, ${structName} &result) {
-  auto map = (butter::map<std::string, RawValue>)value;
+  auto map = (std::unordered_map<std::string, RawValue>)value;
 
   ${fromCases}
 }
@@ -175,6 +208,12 @@ static inline void fromRawValue(const PropsParserContext& context, const RawValu
 static inline std::string toString(const ${structName} &value) {
   return "[Object ${structName}]";
 }
+
+#ifdef RN_SERIALIZABLE_STATE
+static inline folly::dynamic toDynamic(const ${structName} &value) {
+  return value.toDynamic();
+}
+#endif
 `.trim();
 
 const ArrayConversionFunctionTemplate = ({
@@ -225,6 +264,10 @@ const ArrayEnumTemplate = ({
   `
 using ${enumMask} = uint32_t;
 
+struct ${enumMask}Wrapped {
+  ${enumMask} value;
+};
+
 enum class ${enumName}: ${enumMask} {
   ${values}
 };
@@ -247,7 +290,7 @@ constexpr void operator|=(
   lhs = lhs | static_cast<${enumMask}>(rhs);
 }
 
-static inline void fromRawValue(const PropsParserContext& context, const RawValue &value, ${enumMask} &result) {
+static inline void fromRawValue(const PropsParserContext& context, const RawValue &value, ${enumMask}Wrapped &wrapped) {
   auto items = std::vector<std::string>{value};
   for (const auto &item : items) {
     ${fromCases}
@@ -255,7 +298,7 @@ static inline void fromRawValue(const PropsParserContext& context, const RawValu
   }
 }
 
-static inline std::string toString(const ${enumMask} &value) {
+static inline std::string toString(const ${enumMask}Wrapped &wrapped) {
     auto result = std::string{};
     auto separator = std::string{", "};
 
@@ -294,101 +337,6 @@ function getClassExtendString(component: ComponentShape): string {
   return extendString;
 }
 
-function getNativeTypeFromAnnotation(
-  componentName: string,
-  prop:
-    | NamedShape<PropTypeAnnotation>
-    | {
-        name: string,
-        typeAnnotation:
-          | $FlowFixMe
-          | DoubleTypeAnnotation
-          | FloatTypeAnnotation
-          | BooleanTypeAnnotation
-          | Int32TypeAnnotation
-          | StringTypeAnnotation
-          | ObjectTypeAnnotation<PropTypeAnnotation>
-          | ReservedPropTypeAnnotation
-          | {
-              +default: string,
-              +options: $ReadOnlyArray<string>,
-              +type: 'StringEnumTypeAnnotation',
-            }
-          | {
-              +elementType: ObjectTypeAnnotation<PropTypeAnnotation>,
-              +type: 'ArrayTypeAnnotation',
-            },
-      },
-  nameParts: $ReadOnlyArray<string>,
-): string {
-  const typeAnnotation = prop.typeAnnotation;
-
-  switch (typeAnnotation.type) {
-    case 'BooleanTypeAnnotation':
-    case 'StringTypeAnnotation':
-    case 'Int32TypeAnnotation':
-    case 'DoubleTypeAnnotation':
-    case 'FloatTypeAnnotation':
-      return getCppTypeForAnnotation(typeAnnotation.type);
-    case 'ReservedPropTypeAnnotation':
-      switch (typeAnnotation.name) {
-        case 'ColorPrimitive':
-          return 'SharedColor';
-        case 'ImageSourcePrimitive':
-          return 'ImageSource';
-        case 'PointPrimitive':
-          return 'Point';
-        case 'EdgeInsetsPrimitive':
-          return 'EdgeInsets';
-        default:
-          (typeAnnotation.name: empty);
-          throw new Error('Received unknown ReservedPropTypeAnnotation');
-      }
-    case 'ArrayTypeAnnotation': {
-      const arrayType = typeAnnotation.elementType.type;
-      if (arrayType === 'ArrayTypeAnnotation') {
-        return `std::vector<${getNativeTypeFromAnnotation(
-          componentName,
-          {typeAnnotation: typeAnnotation.elementType, name: ''},
-          nameParts.concat([prop.name]),
-        )}>`;
-      }
-      if (arrayType === 'ObjectTypeAnnotation') {
-        const structName = generateStructName(
-          componentName,
-          nameParts.concat([prop.name]),
-        );
-        return `std::vector<${structName}>`;
-      }
-      if (arrayType === 'StringEnumTypeAnnotation') {
-        const enumName = getEnumName(componentName, prop.name);
-        return getEnumMaskName(enumName);
-      }
-      const itemAnnotation = getNativeTypeFromAnnotation(
-        componentName,
-        {
-          typeAnnotation: typeAnnotation.elementType,
-          name: componentName,
-        },
-        nameParts.concat([prop.name]),
-      );
-      return `std::vector<${itemAnnotation}>`;
-    }
-    case 'ObjectTypeAnnotation': {
-      return generateStructName(componentName, nameParts.concat([prop.name]));
-    }
-    case 'StringEnumTypeAnnotation':
-      return getEnumName(componentName, prop.name);
-    case 'Int32EnumTypeAnnotation':
-      return getEnumName(componentName, prop.name);
-    default:
-      (typeAnnotation: empty);
-      throw new Error(
-        `Received invalid typeAnnotation for ${componentName} prop ${prop.name}, received ${typeAnnotation.type}`,
-      );
-  }
-}
-
 function convertValueToEnumOption(value: string): string {
   return toSafeCppString(value);
 }
@@ -408,7 +356,7 @@ function generateArrayEnumString(
     .map(
       option =>
         `if (item == "${option}") {
-      result |= ${enumName}::${toSafeCppString(option)};
+      wrapped.value |= ${enumName}::${toSafeCppString(option)};
       continue;
     }`,
     )
@@ -417,7 +365,7 @@ function generateArrayEnumString(
   const toCases = options
     .map(
       option =>
-        `if (value & ${enumName}::${toSafeCppString(option)}) {
+        `if (wrapped.value & ${enumName}::${toSafeCppString(option)}) {
       result += "${option}" + separator;
     }`,
     )
@@ -499,6 +447,16 @@ function generateIntEnum(
       )
       .join('\n' + '    ');
 
+    const toDynamicCases = values
+      .map(
+        value =>
+          `case ${enumName}::${toIntEnumValueName(
+            prop.name,
+            value,
+          )}: return ${value};`,
+      )
+      .join('\n' + '    ');
+
     const valueVariables = values
       .map(val => `${toIntEnumValueName(prop.name, val)} = ${val}`)
       .join(', ');
@@ -508,6 +466,7 @@ function generateIntEnum(
       values: valueVariables,
       fromCases,
       toCases,
+      toDynamicCases,
     });
   }
 
@@ -562,13 +521,21 @@ function generateEnumString(
 function generatePropsString(
   componentName: string,
   props: $ReadOnlyArray<NamedShape<PropTypeAnnotation>>,
+  nameParts: $ReadOnlyArray<string>,
 ) {
   return props
     .map(prop => {
-      const nativeType = getNativeTypeFromAnnotation(componentName, prop, []);
-      const defaultValue = convertDefaultTypeToString(componentName, prop);
+      const nativeType = getNativeTypeFromAnnotation(
+        componentName,
+        prop,
+        nameParts,
+      );
+      const defaultInitializer = getDefaultInitializerString(
+        componentName,
+        prop,
+      );
 
-      return `${nativeType} ${prop.name}{${defaultValue}};`;
+      return `${nativeType} ${prop.name}${defaultInitializer};`;
     })
     .join('\n' + '  ');
 }
@@ -579,7 +546,7 @@ function getExtendsImports(
   const imports: Set<string> = new Set();
 
   imports.add('#include <react/renderer/core/PropsParserContext.h>');
-  imports.add('#include <jsi/jsi.h>');
+  imports.add('#include <react/renderer/debug/DebugStringConvertible.h>');
 
   extendsProps.forEach(extendProps => {
     switch (extendProps.type) {
@@ -597,85 +564,6 @@ function getExtendsImports(
       default:
         (extendProps.type: empty);
         throw new Error('Invalid extended type');
-    }
-  });
-
-  return imports;
-}
-
-function getLocalImports(
-  properties: $ReadOnlyArray<NamedShape<PropTypeAnnotation>>,
-): Set<string> {
-  const imports: Set<string> = new Set();
-
-  function addImportsForNativeName(
-    name:
-      | 'ColorPrimitive'
-      | 'EdgeInsetsPrimitive'
-      | 'ImageSourcePrimitive'
-      | 'PointPrimitive',
-  ) {
-    switch (name) {
-      case 'ColorPrimitive':
-        imports.add('#include <react/renderer/graphics/Color.h>');
-        return;
-      case 'ImageSourcePrimitive':
-        imports.add('#include <react/renderer/imagemanager/primitives.h>');
-        return;
-      case 'PointPrimitive':
-        imports.add('#include <react/renderer/graphics/Geometry.h>');
-        return;
-      case 'EdgeInsetsPrimitive':
-        imports.add('#include <react/renderer/graphics/Geometry.h>');
-        return;
-      default:
-        (name: empty);
-        throw new Error(`Invalid ReservedPropTypeAnnotation name, got ${name}`);
-    }
-  }
-
-  properties.forEach(prop => {
-    const typeAnnotation = prop.typeAnnotation;
-
-    if (typeAnnotation.type === 'ReservedPropTypeAnnotation') {
-      addImportsForNativeName(typeAnnotation.name);
-    }
-
-    if (typeAnnotation.type === 'ArrayTypeAnnotation') {
-      imports.add('#include <vector>');
-      if (typeAnnotation.elementType.type === 'StringEnumTypeAnnotation') {
-        imports.add('#include <cinttypes>');
-      }
-    }
-
-    if (
-      typeAnnotation.type === 'ArrayTypeAnnotation' &&
-      typeAnnotation.elementType.type === 'ReservedPropTypeAnnotation'
-    ) {
-      addImportsForNativeName(typeAnnotation.elementType.name);
-    }
-
-    if (
-      typeAnnotation.type === 'ArrayTypeAnnotation' &&
-      typeAnnotation.elementType.type === 'ObjectTypeAnnotation'
-    ) {
-      const objectProps = typeAnnotation.elementType.properties;
-      const objectImports = getImports(objectProps);
-      const localImports = getLocalImports(objectProps);
-      // $FlowFixMe[method-unbinding] added when improving typing for this parameters
-      objectImports.forEach(imports.add, imports);
-      // $FlowFixMe[method-unbinding] added when improving typing for this parameters
-      localImports.forEach(imports.add, imports);
-    }
-
-    if (typeAnnotation.type === 'ObjectTypeAnnotation') {
-      imports.add('#include <react/renderer/core/propsConversions.h>');
-      const objectImports = getImports(typeAnnotation.properties);
-      const localImports = getLocalImports(typeAnnotation.properties);
-      // $FlowFixMe[method-unbinding] added when improving typing for this parameters
-      objectImports.forEach(imports.add, imports);
-      // $FlowFixMe[method-unbinding] added when improving typing for this parameters
-      localImports.forEach(imports.add, imports);
     }
   });
 
@@ -815,16 +703,11 @@ function generateStruct(
 ): void {
   const structNameParts = nameParts;
   const structName = generateStructName(componentName, structNameParts);
-
-  const fields = properties
-    .map(property => {
-      return `${getNativeTypeFromAnnotation(
-        componentName,
-        property,
-        structNameParts,
-      )} ${property.name};`;
-    })
-    .join('\n' + '  ');
+  const fields = generatePropsString(
+    componentName,
+    properties,
+    structNameParts,
+  );
 
   properties.forEach((property: NamedShape<PropTypeAnnotation>) => {
     const name = property.name;
@@ -847,8 +730,6 @@ function generateStruct(
         return;
       case 'Int32EnumTypeAnnotation':
         return;
-      case 'DoubleTypeAnnotation':
-        return;
       case 'ObjectTypeAnnotation':
         const props = property.typeAnnotation.properties;
         if (props == null) {
@@ -857,6 +738,8 @@ function generateStruct(
           );
         }
         generateStruct(structs, componentName, nameParts.concat([name]), props);
+        return;
+      case 'MixedTypeAnnotation':
         return;
       default:
         (property.typeAnnotation.type: empty);
@@ -876,12 +759,30 @@ function generateStruct(
     })
     .join('\n  ');
 
+  const toDynamicCases = properties
+    .map((property: NamedShape<PropTypeAnnotation>) => {
+      const name = property.name;
+      switch (property.typeAnnotation.type) {
+        case 'BooleanTypeAnnotation':
+        case 'StringTypeAnnotation':
+        case 'Int32TypeAnnotation':
+        case 'DoubleTypeAnnotation':
+        case 'FloatTypeAnnotation':
+        case 'MixedTypeAnnotation':
+          return `result["${name}"] = ${name};`;
+        default:
+          return `result["${name}"] = ::facebook::react::toDynamic(${name});`;
+      }
+    })
+    .join('\n    ');
+
   structs.set(
     structName,
     StructTemplate({
       structName,
       fields,
       fromCases,
+      toDynamicCases,
     }),
   );
 }
@@ -892,6 +793,8 @@ module.exports = {
     schema: SchemaType,
     packageName?: string,
     assumeNonnull: boolean = false,
+    headerPrefix?: string,
+    includeGetDebugPropsImplementation?: boolean = false,
   ): FilesOutput {
     const fileName = 'Props.h';
 
@@ -923,6 +826,7 @@ module.exports = {
             const propsString = generatePropsString(
               componentName,
               component.props,
+              [],
             );
             const extendString = getClassExtendString(component);
             const extendsImports = getExtendsImports(component.extendsProps);
@@ -939,6 +843,7 @@ module.exports = {
               className: newName,
               extendClasses: extendString,
               props: propsString,
+              includeGetDebugPropsImplementation,
             });
 
             return replacedTemplate;

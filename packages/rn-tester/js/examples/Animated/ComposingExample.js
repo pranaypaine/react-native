@@ -11,20 +11,23 @@
 import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
 import type {CompositeAnimation} from 'react-native/Libraries/Animated/AnimatedMock';
 import type AnimatedValue from 'react-native/Libraries/Animated/nodes/AnimatedValue';
-import * as React from 'react';
-import RNTesterButton from '../../components/RNTesterButton';
-import ToggleNativeDriver from './utils/ToggleNativeDriver';
+
 import RNTConfigurationBlock from '../../components/RNTConfigurationBlock';
+import RNTesterButton from '../../components/RNTesterButton';
+import {RNTesterThemeContext} from '../../components/RNTesterTheme';
+import ToggleNativeDriver from './utils/ToggleNativeDriver';
+import * as React from 'react';
+import {useContext, useMemo, useRef, useState} from 'react';
 import {
-  Text,
-  StyleSheet,
-  View,
   Animated,
   FlatList,
+  StyleSheet,
+  Text,
+  View,
   useWindowDimensions,
 } from 'react-native';
 
-type Props = $ReadOnly<{||}>;
+type Props = $ReadOnly<{}>;
 const boxSize = 12;
 const padding = 8;
 const leftToRightTimingConfig = (useNativeDriver: boolean) => ({
@@ -144,18 +147,19 @@ function ComposingExampleItem({
   // Figure out how far along the x axis we should translate the box by taking into
   // account the window width, box size, and padding
   const maxXTranslation = windowWidth - boxSize - 4 * padding;
-  const boxIndexes = React.useMemo(() => [0, 1, 2, 3, 4], []);
-  const xTranslations = React.useRef(
-    boxIndexes.map(() => new Animated.Value(0)),
-  );
-  const animation = React.useRef(
+  const boxIndexes = useMemo(() => [0, 1, 2, 3, 4], []);
+  const xTranslations = useRef(boxIndexes.map(() => new Animated.Value(0)));
+  const animation = useRef(
     compositeAnimation(xTranslations.current, useNativeDriver),
   );
+  const theme = useContext(RNTesterThemeContext);
 
   return (
     <View style={styles.itemContainer}>
-      <Text style={styles.itemTitle}>{title}</Text>
-      <Text>{description}</Text>
+      <Text style={[styles.itemTitle, {color: theme.SecondaryLabelColor}]}>
+        {title}
+      </Text>
+      <Text style={{color: theme.SecondaryLabelColor}}>{description}</Text>
       <View style={styles.boxesContainer}>
         {boxIndexes.map(boxIndex => {
           const translateX = xTranslations.current[boxIndex].interpolate({
@@ -203,7 +207,7 @@ function ComposingExampleItem({
 }
 
 function ComposingExample(props: Props): React.Node {
-  const [useNativeDriver, setUseNativeDriver] = React.useState(false);
+  const [useNativeDriver, setUseNativeDriver] = useState(false);
 
   return (
     <>

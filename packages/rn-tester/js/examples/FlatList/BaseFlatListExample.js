@@ -8,17 +8,17 @@
  * @format
  */
 
-import type {RenderItemProps} from 'react-native/Libraries/Lists/VirtualizedList';
+import type {ListRenderItemInfo} from 'react-native';
+
+import * as React from 'react';
 import {
-  Pressable,
   Button,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-
-import * as React from 'react';
 
 const DATA = [
   'Pizza',
@@ -31,10 +31,10 @@ const DATA = [
   'Coke',
   'Beer',
   'Cheesecake',
-  'Ice Cream',
+  'Brownie',
 ];
 
-const Item = ({item, separators}: RenderItemProps<string>) => {
+const Item = ({item, separators}: ListRenderItemInfo<string>) => {
   return (
     <Pressable
       onPressIn={() => {
@@ -59,15 +59,18 @@ const Item = ({item, separators}: RenderItemProps<string>) => {
   );
 };
 
-type Props = {
-  exampleProps: $Shape<React.ElementConfig<typeof FlatList>>,
+type Props = $ReadOnly<{
+  exampleProps: Partial<React.ElementConfig<typeof FlatList>>,
   onTest?: ?() => void,
   testLabel?: ?string,
   testOutput?: ?string,
   children?: ?React.Node,
-};
+}>;
 
-const BaseFlatListExample = React.forwardRef((props: Props, ref) => {
+const BaseFlatListExample: component(
+  ref?: React.RefSetter<FlatList<string>>,
+  ...props: Props
+) = ({ref, ...props}: {ref: React.RefSetter<FlatList<string>>, ...Props}) => {
   return (
     <View style={styles.container}>
       {props.testOutput != null ? (
@@ -87,56 +90,44 @@ const BaseFlatListExample = React.forwardRef((props: Props, ref) => {
       {props.children}
       <FlatList
         {...props.exampleProps}
+        // $FlowFixMe[incompatible-type]
         ref={ref}
         testID="flat_list"
+        // $FlowFixMe[incompatible-type]
         data={DATA}
         keyExtractor={(item, index) => item + index}
         style={styles.list}
+        // $FlowFixMe[incompatible-type]
         renderItem={Item}
       />
     </View>
   );
-});
+};
 
-export default (BaseFlatListExample: React.AbstractComponent<
-  Props,
-  FlatList<string>,
->);
+export default BaseFlatListExample;
+
+const ITEM_INNER_HEIGHT = 70;
+const ITEM_MARGIN = 8;
+export const ITEM_HEIGHT: number = ITEM_INNER_HEIGHT + ITEM_MARGIN * 2;
 
 const styles = StyleSheet.create({
+  container: {flex: 1},
+  header: {
+    backgroundColor: 'white',
+    fontSize: 32,
+  },
   item: {
     backgroundColor: 'pink',
-    padding: 20,
-    marginVertical: 8,
+    height: ITEM_INNER_HEIGHT,
+    justifyContent: 'center',
+    marginVertical: ITEM_MARGIN,
+    paddingHorizontal: 20,
   },
-  header: {
-    fontSize: 32,
-    backgroundColor: 'white',
+  list: {
+    flex: 1,
   },
-  title: {
-    fontSize: 24,
-  },
-  titleContainer: {
-    position: 'absolute',
-    top: 45,
-    left: 0,
-    right: 0,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    backgroundColor: 'gray',
-    zIndex: 1,
-  },
-  titleText: {
-    fontSize: 24,
-    lineHeight: 44,
-    fontWeight: 'bold',
-  },
-  testContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#f2f2f7ff',
-    height: 40,
+  offScreen: {
+    height: 1000,
   },
   output: {
     fontSize: 12,
@@ -144,14 +135,32 @@ const styles = StyleSheet.create({
   separator: {
     height: 12,
   },
-  separtorText: {
+  separatorText: {
     fontSize: 10,
   },
-  list: {
-    flex: 1,
+  testContainer: {
+    alignItems: 'center',
+    backgroundColor: '#f2f2f7ff',
+    flexDirection: 'row',
+    height: 40,
+    justifyContent: 'space-between',
   },
-  container: {flex: 1},
-  offScreen: {
-    height: 1000,
+  title: {
+    fontSize: 24,
+  },
+  titleContainer: {
+    alignItems: 'center',
+    backgroundColor: 'gray',
+    justifyContent: 'flex-end',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 45,
+    zIndex: 1,
+  },
+  titleText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    lineHeight: 44,
   },
 });

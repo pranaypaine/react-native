@@ -4,9 +4,11 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
+
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
 
 import * as React from 'react';
 import {Alert, Button, DevSettings} from 'react-native';
@@ -18,7 +20,7 @@ exports.description = 'Customize the development settings';
 exports.examples = [
   {
     title: 'Add dev menu item',
-    render(): React.Element<any> {
+    render(): React.MixedElement {
       return (
         <Button
           title="Add"
@@ -33,7 +35,7 @@ exports.examples = [
   },
   {
     title: 'Reload the app',
-    render(): React.Element<any> {
+    render(): React.MixedElement {
       return (
         <Button
           title="Reload"
@@ -44,4 +46,4 @@ exports.examples = [
       );
     },
   },
-];
+] as Array<RNTesterModuleExample>;

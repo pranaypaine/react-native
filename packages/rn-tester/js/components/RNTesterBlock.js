@@ -4,22 +4,23 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
-import * as React from 'react';
 import {RNTesterThemeContext} from './RNTesterTheme';
+import * as React from 'react';
+import {useContext} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 
-type Props = $ReadOnly<{|
+type Props = $ReadOnly<{
   children?: React.Node,
   title?: ?string,
   description?: ?string,
-|}>;
+}>;
 
 const RNTesterBlock = ({description, title, children}: Props): React.Node => {
-  const theme = React.useContext(RNTesterThemeContext);
+  const theme = useContext(RNTesterThemeContext);
   return (
     <View
       style={[
@@ -30,16 +31,21 @@ const RNTesterBlock = ({description, title, children}: Props): React.Node => {
         },
       ]}>
       <View style={[styles.titleContainer]}>
-        <Text style={[styles.titleText, {color: theme.LabelColor}]}>
-          {title}
-        </Text>
-        <Text
-          style={[
-            styles.descriptionText,
-            {color: theme.LabelColor, marginTop: description ? 10 : 0},
-          ]}>
-          {description}
-        </Text>
+        {title && (
+          <Text style={[styles.titleText, {color: theme.LabelColor}]}>
+            {title}
+          </Text>
+        )}
+        {description && (
+          <Text
+            style={[
+              styles.descriptionText,
+              // $FlowFixMe[constant-condition]
+              {color: theme.LabelColor, marginTop: description ? 10 : 0},
+            ]}>
+            {description}
+          </Text>
+        )}
       </View>
       <View style={styles.children}>{children}</View>
     </View>
@@ -50,7 +56,6 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 0,
     borderWidth: 1,
-    marginTop: 30,
     marginHorizontal: 20,
   },
   titleText: {

@@ -8,12 +8,14 @@
  * @format
  */
 
-import * as React from 'react';
-import RNTesterButton from '../../components/RNTesterButton';
-import {Text, StyleSheet, View, Animated} from 'react-native';
 import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
+
 import RNTConfigurationBlock from '../../components/RNTConfigurationBlock';
+import RNTesterButton from '../../components/RNTesterButton';
 import ToggleNativeDriver from './utils/ToggleNativeDriver';
+import * as React from 'react';
+import {useState} from 'react';
+import {Animated, StyleSheet, Text, View} from 'react-native';
 
 const styles = StyleSheet.create({
   content: {
@@ -90,7 +92,7 @@ function TransformBounceView({useNativeDriver}: {useNativeDriver: boolean}) {
 }
 
 function TransformBounceExample(): React.Node {
-  const [useNativeDriver, setUseNativeDriver] = React.useState(false);
+  const [useNativeDriver, setUseNativeDriver] = useState(false);
 
   return (
     <View>

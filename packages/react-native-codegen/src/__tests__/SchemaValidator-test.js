@@ -4,17 +4,16 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @emails oncall+react_native
  * @flow strict-local
  * @format
  */
 
 'use strict';
 
+import type {SchemaType} from '../CodegenSchema.js';
+
 const fixtures = require('../generators/components/__test_fixtures__/fixtures.js');
 const schemaValidator = require('../SchemaValidator.js');
-
-import type {SchemaType} from '../CodegenSchema.js';
 
 const simpleProp = {
   name: 'disabled',
@@ -29,6 +28,8 @@ describe('SchemaValidator', () => {
   it('fails on components across modules with same name', () => {
     const fixture: SchemaType = {
       modules: {
+        /* $FlowFixMe[incompatible-type] Natural Inference rollout. See
+         * https://fburl.com/workplace/6291gfvu */
         Module1: {
           type: 'Component',
           components: {
@@ -45,6 +46,8 @@ describe('SchemaValidator', () => {
             },
           },
         },
+        /* $FlowFixMe[incompatible-type] Natural Inference rollout. See
+         * https://fburl.com/workplace/6291gfvu */
         Module2: {
           type: 'Component',
           components: {

@@ -4,6 +4,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
+ * @noflow
  * @format
  */
 
@@ -12,38 +13,81 @@
 module.exports = {
   root: true,
 
-  extends: ['@react-native-community'],
+  extends: ['@react-native'],
 
-  plugins: ['@react-native/eslint-plugin-specs'],
+  plugins: ['@react-native/monorepo', '@react-native/specs'],
 
   overrides: [
-    // overriding the JS config from eslint-config-react-native-community config to ensure
+    // overriding the JS config from @react-native/eslint-config to ensure
     // that we use hermes-eslint for all js files
     {
-      files: ['*.js'],
+      files: ['*.js', '*.js.flow', '*.jsx'],
       parser: 'hermes-eslint',
       rules: {
+        '@react-native/monorepo/sort-imports': 'warn',
+        'eslint-comments/no-unlimited-disable': 'off',
+        'ft-flow/require-valid-file-annotation': ['error', 'always'],
+        'no-extra-boolean-cast': 'off',
+        'no-void': 'off',
         // These rules are not required with hermes-eslint
-        'ft-flow/define-flow-type': 0,
-        'ft-flow/use-flow-type': 0,
-        // flow handles this check for us, so it's not required
-        'no-undef': 0,
-      },
-    },
-
-    {
-      files: ['Libraries/**/*.js'],
-      rules: {
-        '@react-native-community/no-haste-imports': 2,
-        '@react-native-community/error-subclass-name': 2,
-        '@react-native-community/platform-colors': 2,
-        '@react-native/specs/react-native-modules': 2,
+        'ft-flow/define-flow-type': 'off',
+        'ft-flow/use-flow-type': 'off',
+        // Flow handles these checks for us, so they aren't required
+        'no-undef': 'off',
+        'no-unreachable': 'off',
       },
     },
     {
-      files: ['flow-typed/**/*.js'],
+      files: ['*.js', '*.jsx', '*.ts', '*.tsx'],
       rules: {
-        quotes: 0,
+        '@react-native/no-deep-imports': 'off',
+      },
+    },
+    {
+      files: [
+        './packages/react-native/Libraries/**/*.{js,flow}',
+        './packages/react-native/src/**/*.{js,flow}',
+        './packages/assets/registry.js',
+      ],
+      parser: 'hermes-eslint',
+      rules: {
+        '@react-native/monorepo/no-commonjs-exports': 'warn',
+      },
+    },
+    {
+      files: ['package.json'],
+      parser: 'jsonc-eslint-parser',
+    },
+    {
+      files: ['package.json'],
+      rules: {
+        '@react-native/monorepo/react-native-manifest': 'error',
+      },
+    },
+    {
+      files: ['flow-typed/**/*.js', 'packages/react-native/flow/**/*'],
+      rules: {
+        '@react-native/monorepo/valid-flow-typed-signature': 'error',
+        'ft-flow/require-valid-file-annotation': 'off',
+        'no-shadow': 'off',
+        'no-unused-vars': 'off',
+        quotes: 'off',
+      },
+    },
+    {
+      files: [
+        'packages/react-native/Libraries/**/*.js',
+        'packages/react-native/src/**/*.js',
+      ],
+      rules: {
+        '@react-native/monorepo/no-haste-imports': 'error',
+        '@react-native/monorepo/no-react-default-imports': 'error',
+        '@react-native/monorepo/no-react-named-type-imports': 'error',
+        '@react-native/monorepo/no-react-native-imports': 'error',
+        '@react-native/monorepo/no-react-node-imports': 'error',
+        '@react-native/monorepo/require-extends-error': 'error',
+        '@react-native/platform-colors': 'error',
+        '@react-native/specs/react-native-modules': 'error',
       },
     },
     {
@@ -51,7 +95,7 @@ module.exports = {
         '**/__fixtures__/**/*.js',
         '**/__mocks__/**/*.js',
         '**/__tests__/**/*.js',
-        'jest/**/*.js',
+        'packages/react-native/jest/**/*.js',
         'packages/rn-tester/**/*.js',
       ],
       globals: {
@@ -69,6 +113,35 @@ module.exports = {
       env: {
         jasmine: true,
         jest: true,
+      },
+    },
+    {
+      files: ['**/*.{ts,tsx}'],
+      parser: '@typescript-eslint/parser',
+      plugins: ['@typescript-eslint/eslint-plugin'],
+      rules: {
+        '@typescript-eslint/no-unused-vars': 'off',
+        'react-native/no-inline-styles': 'off',
+        '@typescript-eslint/no-shadow': 'off',
+        'no-self-compare': 'off',
+        'react/self-closing-comp': 'off',
+      },
+    },
+    {
+      files: ['**/*.d.ts'],
+      plugins: ['redundant-undefined'],
+      rules: {
+        'no-dupe-class-members': 'off',
+        'redundant-undefined/redundant-undefined': [
+          'error',
+          {followExactOptionalPropertyTypes: true},
+        ],
+      },
+    },
+    {
+      files: ['**/__tests__/**'],
+      rules: {
+        '@react-native/monorepo/no-react-native-imports': 'off',
       },
     },
   ],

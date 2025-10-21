@@ -4,18 +4,17 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
+ * @flow strict-local
  * @format
- * @flow
  */
 
 import type {ViewStyleProp} from 'react-native/Libraries/StyleSheet/StyleSheet';
 
 import RNTesterPlatformTestResultsText from './RNTesterPlatformTestResultsText';
-
 import * as React from 'react';
-import {View, Text, StyleSheet, TouchableHighlight} from 'react-native';
+import {StyleSheet, Text, TouchableHighlight, View} from 'react-native';
 
-type Props = $ReadOnly<{|
+type Props = $ReadOnly<{
   numFail: number,
   numError: number,
   numPass: number,
@@ -23,7 +22,7 @@ type Props = $ReadOnly<{|
   numSkipped: number,
   onPress?: () => void,
   style?: ?ViewStyleProp,
-|}>;
+}>;
 export default function RNTesterPlatformTestMinimizedResultView({
   numFail,
   numError,

@@ -4,22 +4,23 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow strict-local
+ * @format
  */
 
 'use strict';
 
-const React = require('react');
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
 
-const {
+import RNTesterText from '../../components/RNTesterText';
+import React from 'react';
+import {
+  Modal,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableHighlight,
   View,
-  Modal,
-} = require('react-native');
+} from 'react-native';
 
 const colors = ['#ff0000', '#00ff00', '#0000ff', 'rgba(0, 0, 0, 0.4)'];
 
@@ -31,7 +32,7 @@ function getValue<T>(values: Array<T>, index: number): T {
   return values[index % values.length];
 }
 
-class StatusBarHiddenExample extends React.Component<{...}, $FlowFixMeState> {
+class StatusBarHiddenExample extends React.Component<{...}, $FlowFixMe> {
   state:
     | $FlowFixMe
     | {animated: boolean, hidden: boolean, showHideTransition: string} = {
@@ -73,26 +74,28 @@ class StatusBarHiddenExample extends React.Component<{...}, $FlowFixMeState> {
           style={styles.wrapper}
           onPress={this._onChangeHidden}>
           <View style={styles.button}>
-            <Text>hidden: {this.state.hidden ? 'true' : 'false'}</Text>
+            <RNTesterText style={styles.buttonText}>
+              hidden: {this.state.hidden ? 'true' : 'false'}
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <TouchableHighlight
           style={styles.wrapper}
           onPress={this._onChangeAnimated}>
           <View style={styles.button}>
-            <Text>
+            <RNTesterText style={styles.buttonText}>
               animated (ios only): {this.state.animated ? 'true' : 'false'}
-            </Text>
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <TouchableHighlight
           style={styles.wrapper}
           onPress={this._onChangeTransition}>
           <View style={styles.button}>
-            <Text>
+            <RNTesterText style={styles.buttonText}>
               showHideTransition (ios only): '
               {getValue(showHideTransitions, this._showHideTransitionIndex)}'
-            </Text>
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <ModalExample />
@@ -101,7 +104,7 @@ class StatusBarHiddenExample extends React.Component<{...}, $FlowFixMeState> {
   }
 }
 
-class StatusBarStyleExample extends React.Component<{...}, $FlowFixMeState> {
+class StatusBarStyleExample extends React.Component<{...}, $FlowFixMe> {
   _barStyleIndex = 0;
 
   _onChangeBarStyle = () => {
@@ -130,57 +133,23 @@ class StatusBarStyleExample extends React.Component<{...}, $FlowFixMeState> {
           style={styles.wrapper}
           onPress={this._onChangeBarStyle}>
           <View style={styles.button}>
-            <Text>style: '{getValue(barStyles, this._barStyleIndex)}'</Text>
+            <RNTesterText style={styles.buttonText}>
+              style: '{getValue(barStyles, this._barStyleIndex)}'
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <View style={styles.wrapper}>
-          <Text>(default is dark for iOS, light for Android)</Text>
+          <RNTesterText>
+            (default is dark for iOS, light for Android)
+          </RNTesterText>
         </View>
         <TouchableHighlight
           style={styles.wrapper}
           onPress={this._onChangeAnimated}>
           <View style={styles.button}>
-            <Text>
+            <RNTesterText style={styles.buttonText}>
               animated (ios only): {this.state.animated ? 'true' : 'false'}
-            </Text>
-          </View>
-        </TouchableHighlight>
-      </View>
-    );
-  }
-}
-
-class StatusBarNetworkActivityExample extends React.Component<
-  {...},
-  $FlowFixMeState,
-> {
-  state: $FlowFixMe | {networkActivityIndicatorVisible: boolean} = {
-    networkActivityIndicatorVisible: false,
-  };
-
-  _onChangeNetworkIndicatorVisible = () => {
-    this.setState({
-      networkActivityIndicatorVisible:
-        !this.state.networkActivityIndicatorVisible,
-    });
-  };
-
-  render(): React.Node {
-    return (
-      <View>
-        <StatusBar
-          networkActivityIndicatorVisible={
-            this.state.networkActivityIndicatorVisible
-          }
-        />
-        <TouchableHighlight
-          style={styles.wrapper}
-          onPress={this._onChangeNetworkIndicatorVisible}>
-          <View style={styles.button}>
-            <Text>
-              networkActivityIndicatorVisible:
-              {this.state.networkActivityIndicatorVisible ? 'true' : 'false'}
-            </Text>
+            </RNTesterText>
           </View>
         </TouchableHighlight>
       </View>
@@ -190,7 +159,7 @@ class StatusBarNetworkActivityExample extends React.Component<
 
 class StatusBarBackgroundColorExample extends React.Component<
   {...},
-  $FlowFixMeState,
+  $FlowFixMe,
 > {
   state: $FlowFixMe | {animated: boolean, backgroundColor: string} = {
     animated: true,
@@ -219,14 +188,18 @@ class StatusBarBackgroundColorExample extends React.Component<
           style={styles.wrapper}
           onPress={this._onChangeBackgroundColor}>
           <View style={styles.button}>
-            <Text>backgroundColor: '{getValue(colors, this._colorIndex)}'</Text>
+            <RNTesterText style={styles.buttonText}>
+              backgroundColor: '{getValue(colors, this._colorIndex)}'
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <TouchableHighlight
           style={styles.wrapper}
           onPress={this._onChangeAnimated}>
           <View style={styles.button}>
-            <Text>animated: {this.state.animated ? 'true' : 'false'}</Text>
+            <RNTesterText style={styles.buttonText}>
+              animated: {this.state.animated ? 'true' : 'false'}
+            </RNTesterText>
           </View>
         </TouchableHighlight>
       </View>
@@ -234,10 +207,7 @@ class StatusBarBackgroundColorExample extends React.Component<
   }
 }
 
-class StatusBarTranslucentExample extends React.Component<
-  {...},
-  $FlowFixMeState,
-> {
+class StatusBarTranslucentExample extends React.Component<{...}, $FlowFixMe> {
   state: $FlowFixMe | {translucent: boolean} = {
     translucent: false,
   };
@@ -256,9 +226,9 @@ class StatusBarTranslucentExample extends React.Component<
           style={styles.wrapper}
           onPress={this._onChangeTranslucent}>
           <View style={styles.button}>
-            <Text>
+            <RNTesterText style={styles.buttonText}>
               translucent: {this.state.translucent ? 'true' : 'false'}
-            </Text>
+            </RNTesterText>
           </View>
         </TouchableHighlight>
       </View>
@@ -276,7 +246,9 @@ class StatusBarStaticIOSExample extends React.Component<{...}> {
             StatusBar.setHidden(true, 'slide');
           }}>
           <View style={styles.button}>
-            <Text>setHidden(true, 'slide')</Text>
+            <RNTesterText style={styles.buttonText}>
+              setHidden(true, 'slide')
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <TouchableHighlight
@@ -285,7 +257,9 @@ class StatusBarStaticIOSExample extends React.Component<{...}> {
             StatusBar.setHidden(false, 'fade');
           }}>
           <View style={styles.button}>
-            <Text>setHidden(false, 'fade')</Text>
+            <RNTesterText style={styles.buttonText}>
+              setHidden(false, 'fade')
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <TouchableHighlight
@@ -294,11 +268,15 @@ class StatusBarStaticIOSExample extends React.Component<{...}> {
             StatusBar.setBarStyle('default', true);
           }}>
           <View style={styles.button}>
-            <Text>setBarStyle('default', true)</Text>
+            <RNTesterText style={styles.buttonText}>
+              setBarStyle('default', true)
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <View style={styles.wrapper}>
-          <Text>(default is dark for iOS, light for Android)</Text>
+          <RNTesterText>
+            (default is dark for iOS, light for Android)
+          </RNTesterText>
         </View>
         <TouchableHighlight
           style={styles.wrapper}
@@ -306,25 +284,9 @@ class StatusBarStaticIOSExample extends React.Component<{...}> {
             StatusBar.setBarStyle('light-content', true);
           }}>
           <View style={styles.button}>
-            <Text>setBarStyle('light-content', true)</Text>
-          </View>
-        </TouchableHighlight>
-        <TouchableHighlight
-          style={styles.wrapper}
-          onPress={() => {
-            StatusBar.setNetworkActivityIndicatorVisible(true);
-          }}>
-          <View style={styles.button}>
-            <Text>setNetworkActivityIndicatorVisible(true)</Text>
-          </View>
-        </TouchableHighlight>
-        <TouchableHighlight
-          style={styles.wrapper}
-          onPress={() => {
-            StatusBar.setNetworkActivityIndicatorVisible(false);
-          }}>
-          <View style={styles.button}>
-            <Text>setNetworkActivityIndicatorVisible(false)</Text>
+            <RNTesterText style={styles.buttonText}>
+              setBarStyle('light-content', true)
+            </RNTesterText>
           </View>
         </TouchableHighlight>
       </View>
@@ -342,7 +304,9 @@ class StatusBarStaticAndroidExample extends React.Component<{...}> {
             StatusBar.setHidden(true);
           }}>
           <View style={styles.button}>
-            <Text>setHidden(true)</Text>
+            <RNTesterText style={styles.buttonText}>
+              setHidden(true)
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <TouchableHighlight
@@ -351,7 +315,9 @@ class StatusBarStaticAndroidExample extends React.Component<{...}> {
             StatusBar.setHidden(false);
           }}>
           <View style={styles.button}>
-            <Text>setHidden(false)</Text>
+            <RNTesterText style={styles.buttonText}>
+              setHidden(false)
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <TouchableHighlight
@@ -360,7 +326,9 @@ class StatusBarStaticAndroidExample extends React.Component<{...}> {
             StatusBar.setBarStyle('light-content');
           }}>
           <View style={styles.button}>
-            <Text>setBarStyle('light-content')</Text>
+            <RNTesterText style={styles.buttonText}>
+              setBarStyle('light-content')
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <TouchableHighlight
@@ -369,7 +337,9 @@ class StatusBarStaticAndroidExample extends React.Component<{...}> {
             StatusBar.setBarStyle('dark-content');
           }}>
           <View style={styles.button}>
-            <Text>setBarStyle('dark-content')</Text>
+            <RNTesterText style={styles.buttonText}>
+              setBarStyle('dark-content')
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <TouchableHighlight
@@ -378,11 +348,15 @@ class StatusBarStaticAndroidExample extends React.Component<{...}> {
             StatusBar.setBarStyle('default');
           }}>
           <View style={styles.button}>
-            <Text>setBarStyle('default')</Text>
+            <RNTesterText style={styles.buttonText}>
+              setBarStyle('default')
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <View style={styles.wrapper}>
-          <Text>(default is dark for iOS, light for Android)</Text>
+          <RNTesterText>
+            (default is dark for iOS, light for Android)
+          </RNTesterText>
         </View>
         <TouchableHighlight
           style={styles.wrapper}
@@ -390,7 +364,9 @@ class StatusBarStaticAndroidExample extends React.Component<{...}> {
             StatusBar.setBackgroundColor('#ff00ff', true);
           }}>
           <View style={styles.button}>
-            <Text>setBackgroundColor('#ff00ff', true)</Text>
+            <RNTesterText style={styles.buttonText}>
+              setBackgroundColor('#ff00ff', true)
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <TouchableHighlight
@@ -399,7 +375,9 @@ class StatusBarStaticAndroidExample extends React.Component<{...}> {
             StatusBar.setBackgroundColor('#00ff00', true);
           }}>
           <View style={styles.button}>
-            <Text>setBackgroundColor('#00ff00', true)</Text>
+            <RNTesterText style={styles.buttonText}>
+              setBackgroundColor('#00ff00', true)
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <TouchableHighlight
@@ -409,10 +387,10 @@ class StatusBarStaticAndroidExample extends React.Component<{...}> {
             StatusBar.setBackgroundColor('rgba(0, 0, 0, 0.4)', true);
           }}>
           <View style={styles.button}>
-            <Text>
+            <RNTesterText style={styles.buttonText}>
               setTranslucent(true) and setBackgroundColor('rgba(0, 0, 0, 0.4)',
               true)
-            </Text>
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <TouchableHighlight
@@ -422,9 +400,9 @@ class StatusBarStaticAndroidExample extends React.Component<{...}> {
             StatusBar.setBackgroundColor('black', true);
           }}>
           <View style={styles.button}>
-            <Text>
+            <RNTesterText style={styles.buttonText}>
               setTranslucent(false) and setBackgroundColor('black', true)
-            </Text>
+            </RNTesterText>
           </View>
         </TouchableHighlight>
       </View>
@@ -432,7 +410,7 @@ class StatusBarStaticAndroidExample extends React.Component<{...}> {
   }
 }
 
-class ModalExample extends React.Component<{...}, $FlowFixMeState> {
+class ModalExample extends React.Component<{...}, $FlowFixMe> {
   state: $FlowFixMe | {modalVisible: boolean} = {
     modalVisible: false,
   };
@@ -448,7 +426,9 @@ class ModalExample extends React.Component<{...}, $FlowFixMeState> {
           style={styles.wrapper}
           onPress={this._onChangeModalVisible}>
           <View style={styles.button}>
-            <Text>modal visible: {this.state.hidden ? 'true' : 'false'}</Text>
+            <RNTesterText style={styles.buttonText}>
+              modal visible: {this.state.hidden ? 'true' : 'false'}
+            </RNTesterText>
           </View>
         </TouchableHighlight>
         <Modal
@@ -457,12 +437,14 @@ class ModalExample extends React.Component<{...}, $FlowFixMeState> {
           onRequestClose={this._onChangeModalVisible}>
           <View style={[styles.container]}>
             <View style={[styles.innerContainer]}>
-              <Text>This modal was presented!</Text>
+              <RNTesterText style={styles.modalText}>
+                This modal was presented!
+              </RNTesterText>
               <TouchableHighlight
                 onPress={this._onChangeModalVisible}
                 style={styles.modalButton}>
                 <View style={styles.button}>
-                  <Text>Close</Text>
+                  <RNTesterText style={styles.buttonText}>Close</RNTesterText>
                 </View>
               </TouchableHighlight>
             </View>
@@ -490,13 +472,6 @@ exports.examples = [
     render(): React.Node {
       return <StatusBarStyleExample />;
     },
-  },
-  {
-    title: 'StatusBar network activity indicator',
-    render(): React.Node {
-      return <StatusBarNetworkActivityExample />;
-    },
-    platform: 'ios',
   },
   {
     title: 'StatusBar background color',
@@ -531,13 +506,15 @@ exports.examples = [
     render(): React.Node {
       return (
         <View>
-          <Text>Height (Android only): {StatusBar.currentHeight} pts</Text>
+          <RNTesterText>
+            Height (Android only): {StatusBar.currentHeight} pts
+          </RNTesterText>
         </View>
       );
     },
     platform: 'android',
   },
-];
+] as Array<RNTesterModuleExample>;
 
 const styles = StyleSheet.create({
   container: {
@@ -559,7 +536,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#eeeeee',
     padding: 10,
   },
+  buttonText: {
+    color: 'black',
+  },
   modalButton: {
     marginTop: 10,
+  },
+  modalText: {
+    color: 'black',
   },
 });

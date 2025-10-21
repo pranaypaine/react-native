@@ -4,19 +4,24 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
-const React = require('react');
-const TextAncestor = require('react-native/Libraries/Text/TextAncestor');
-const TextInlineView = require('../../components/TextInlineView');
-import TextLegend from '../../components/TextLegend';
+import type {RNTesterModule} from '../../types/RNTesterTypes';
 
+import hotdog from '../../assets/hotdog.jpg';
+import RNTesterText from '../../components/RNTesterText';
+import TextLegend from '../../components/TextLegend';
+import TextSharedExamples from './TextSharedExamples';
+
+const TextInlineView = require('../../components/TextInlineView');
+const React = require('react');
 const {
   Button,
+  Image,
   LayoutAnimation,
   Platform,
   Text,
@@ -24,22 +29,9 @@ const {
   View,
 } = require('react-native');
 
-// TODO: Is there a cleaner way to flip the TextAncestor value to false? I
-//   suspect apps won't even be able to leverage this workaround because
-//   TextAncestor is not public.
-/* $FlowFixMe[missing-local-annot] The type annotation(s) required by Flow's
- * LTI update could not be added via codemod */
-function InlineView(props) {
-  return (
-    <TextAncestor.Provider value={false}>
-      <View {...props} />
-    </TextAncestor.Provider>
-  );
-}
-
-type TextAlignExampleRTLState = {|
+type TextAlignExampleRTLState = {
   isRTL: boolean,
-|};
+};
 
 class TextAlignRTLExample extends React.Component<
   {},
@@ -57,7 +49,9 @@ class TextAlignRTLExample extends React.Component<
     const {isRTL} = this.state;
     const toggleRTL = () => this.setState({isRTL: !isRTL});
     return (
-      <View style={{direction: isRTL ? 'rtl' : 'ltr'}}>
+      <View
+        style={{direction: isRTL ? 'rtl' : 'ltr'}}
+        testID="text-align-example">
         <Text>auto (default) - english LTR</Text>
         <Text>
           {'\u0623\u062D\u0628 \u0627\u0644\u0644\u063A\u0629 ' +
@@ -89,7 +83,7 @@ class TextAlignRTLExample extends React.Component<
   }
 }
 
-class Entity extends React.Component<$FlowFixMeProps> {
+class Entity extends React.Component<$FlowFixMe> {
   render(): React.Node {
     return (
       <Text style={{fontWeight: '500', color: '#527fe4'}}>
@@ -99,7 +93,7 @@ class Entity extends React.Component<$FlowFixMeProps> {
   }
 }
 
-class AttributeToggler extends React.Component<{...}, $FlowFixMeState> {
+class AttributeToggler extends React.Component<{...}, $FlowFixMe> {
   state: any | {fontSize: number, fontWeight: string} = {
     fontWeight: 'bold',
     fontSize: 15,
@@ -123,7 +117,7 @@ class AttributeToggler extends React.Component<{...}, $FlowFixMeState> {
       fontSize: this.state.fontSize,
     };
     return (
-      <View>
+      <View testID="text-with-toggle-attributes">
         {/* $FlowFixMe[incompatible-type] */}
         <Text style={curStyle}>
           Tap the controls below to change attributes.
@@ -136,12 +130,14 @@ class AttributeToggler extends React.Component<{...}, $FlowFixMeState> {
         </Text>
         <Text
           style={{backgroundColor: '#ffaaaa', marginTop: 5}}
-          onPress={this.toggleWeight}>
+          onPress={this.toggleWeight}
+          testID="toggle-weight">
           Toggle Weight
         </Text>
         <Text
           style={{backgroundColor: '#aaaaff', marginTop: 5}}
-          onPress={this.increaseSize}>
+          onPress={this.increaseSize}
+          testID="increase-size">
           Increase Size
         </Text>
       </View>
@@ -149,12 +145,12 @@ class AttributeToggler extends React.Component<{...}, $FlowFixMeState> {
   }
 }
 
-type AdjustingFontSizeProps = $ReadOnly<{||}>;
+type AdjustingFontSizeProps = $ReadOnly<{}>;
 
-type AdjustingFontSizeState = {|
+type AdjustingFontSizeState = {
   dynamicText: string,
   shouldRender: boolean,
-|};
+};
 
 class AdjustingFontSize extends React.Component<
   AdjustingFontSizeProps,
@@ -291,6 +287,8 @@ class TextBaseLineLayoutExample extends React.Component<{}, mixed> {
 
     return (
       <View>
+        {/* $FlowFixMe[incompatible-type] Natural Inference rollout. See
+         * https://fburl.com/workplace/6291gfvu */}
         <Text style={subtitleStyle}>{'Nested <Text/>s:'}</Text>
         <View style={{flexDirection: 'row', alignItems: 'baseline'}}>
           {marker}
@@ -298,6 +296,8 @@ class TextBaseLineLayoutExample extends React.Component<{}, mixed> {
           {marker}
         </View>
 
+        {/* $FlowFixMe[incompatible-type] Natural Inference rollout. See
+         * https://fburl.com/workplace/6291gfvu */}
         <Text style={subtitleStyle}>{'Array of <Text/>s in <View>:'}</Text>
         <View style={{flexDirection: 'row', alignItems: 'baseline'}}>
           {marker}
@@ -305,9 +305,8 @@ class TextBaseLineLayoutExample extends React.Component<{}, mixed> {
           {marker}
         </View>
 
-        {/* iOS-only because it relies on inline views being able to size to content.
-         * Android's implementation requires that a width and height be specified
-         * on the inline view. */}
+        {/* $FlowFixMe[incompatible-type] Natural Inference rollout. See
+         * https://fburl.com/workplace/6291gfvu */}
         <Text style={subtitleStyle}>{'Interleaving <View> and <Text>:'}</Text>
         <View style={{flexDirection: 'row', alignItems: 'baseline'}}>
           {marker}
@@ -327,6 +326,8 @@ class TextBaseLineLayoutExample extends React.Component<{}, mixed> {
           {marker}
         </View>
 
+        {/* $FlowFixMe[incompatible-type] Natural Inference rollout. See
+         * https://fburl.com/workplace/6291gfvu */}
         <Text style={subtitleStyle}>
           {'Multi-line interleaved <View> and <Text>:'}
         </Text>
@@ -344,6 +345,27 @@ class TextBaseLineLayoutExample extends React.Component<{}, mixed> {
           </Text>
         </View>
 
+        {/* $FlowFixMe[incompatible-type] Natural Inference rollout. See
+         * https://fburl.com/workplace/6291gfvu */}
+        <Text style={subtitleStyle}>{'Multi-line <Text> alignment'}</Text>
+        <View style={{flexDirection: 'row', alignItems: 'baseline'}}>
+          <View style={{width: 50, height: 50, backgroundColor: 'gray'}} />
+          <View style={{width: 125, backgroundColor: '#eee'}}>
+            <Text style={{fontSize: 15}}>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </Text>
+          </View>
+          <View style={{width: 125, backgroundColor: '#eee'}}>
+            <Text style={{fontSize: 10}}>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </Text>
+          </View>
+        </View>
+
+        {/* $FlowFixMe[incompatible-type] Natural Inference rollout. See
+         * https://fburl.com/workplace/6291gfvu */}
         <Text style={subtitleStyle}>{'<TextInput/>:'}</Text>
         <View style={{flexDirection: 'row', alignItems: 'baseline'}}>
           {marker}
@@ -351,6 +373,8 @@ class TextBaseLineLayoutExample extends React.Component<{}, mixed> {
           {marker}
         </View>
 
+        {/* $FlowFixMe[incompatible-type] Natural Inference rollout. See
+         * https://fburl.com/workplace/6291gfvu */}
         <Text style={subtitleStyle}>{'<TextInput multiline/>:'}</Text>
         <View style={{flexDirection: 'row', alignItems: 'baseline'}}>
           {marker}
@@ -453,7 +477,7 @@ class TextRenderInfoExample extends React.Component<
                 this.setState({textMetrics: lines[lines.length - 1]});
               }
             }}>
-            {new Array(this.state.numberOfTextBlocks)
+            {new Array<string>(this.state.numberOfTextBlocks)
               .fill('A tiny block of text.')
               .join(' ')}
           </Text>
@@ -546,12 +570,35 @@ class TextWithCapBaseBox extends React.Component<
   }
 }
 
-exports.title = 'Text';
-exports.documentationURL = 'https://reactnative.dev/docs/text';
-exports.category = 'Basic';
-exports.description = 'Base component for rendering styled text.';
-exports.displayName = 'TextExample';
-exports.examples = [
+const examples = [
+  {
+    title: 'iOS System Font Families (iOS only)',
+    name: 'iOSSystemFontFamilies',
+    description:
+      ('Shows system font families including system-ui/ui-sans-serif, ui-serif, ui-monospace, and ui-rounded': string),
+    render: function (): React.Node {
+      const baseTextStyle = {fontSize: 20};
+      return (
+        <View testID={'ios-font-families'} style={{gap: 10}}>
+          <Text style={{...baseTextStyle, fontFamily: 'system-ui'}}>
+            system-ui (same as ui-sans-serif)
+          </Text>
+          <Text style={{...baseTextStyle, fontFamily: 'ui-sans-serif'}}>
+            ui-sans-serif (same as system-ui)
+          </Text>
+          <Text style={{...baseTextStyle, fontFamily: 'ui-serif'}}>
+            ui-serif
+          </Text>
+          <Text style={{...baseTextStyle, fontFamily: 'ui-monospace'}}>
+            ui-monospace
+          </Text>
+          <Text style={{...baseTextStyle, fontFamily: 'ui-rounded'}}>
+            ui-rounded
+          </Text>
+        </View>
+      );
+    },
+  },
   {
     title: 'Wrap',
     render: function (): React.Node {
@@ -579,6 +626,68 @@ exports.examples = [
             Another text in a (inline) red box (which is inside the gray box).
           </Text>
         </Text>
+      );
+    },
+  },
+  {
+    title: 'Background Color and Border Width',
+    name: 'background-border-width',
+    render: function (): React.Node {
+      return (
+        <View testID="background-border-width">
+          <Text
+            style={{
+              backgroundColor: '#F000F0',
+              padding: 10,
+            }}>
+            Text with background color only
+          </Text>
+          <Text
+            style={{
+              backgroundColor: '#F000F0',
+              borderRadius: 10,
+              padding: 10,
+              marginTop: 10,
+            }}>
+            Text with background color and uniform borderRadii
+          </Text>
+          <Text
+            style={{
+              backgroundColor: '#F000F0',
+              borderTopRightRadius: 10,
+              borderTopLeftRadius: 20,
+              borderBottomRightRadius: 20,
+              borderBottomLeftRadius: 10,
+              padding: 10,
+              marginTop: 10,
+            }}>
+            Text with background color and non-uniform borders
+          </Text>
+          <Text
+            style={{
+              borderWidth: 1,
+              borderColor: 'red',
+              borderTopRightRadius: 10,
+              borderTopLeftRadius: 20,
+              borderBottomRightRadius: 20,
+              borderBottomLeftRadius: 10,
+              padding: 10,
+              marginTop: 10,
+            }}>
+            Text with borderWidth
+          </Text>
+          <Text
+            style={{
+              backgroundColor: '#00AA00',
+              borderWidth: 2,
+              borderColor: 'blue',
+              borderRadius: 10,
+              padding: 10,
+              marginTop: 10,
+            }}>
+            Text with background AND borderWidth
+          </Text>
+        </View>
       );
     },
   },
@@ -639,6 +748,10 @@ exports.examples = [
             }}>
             Verdana bold
           </Text>
+          <Text style={{fontFamily: 'SystemCondensed'}}>SystemCondensed</Text>
+          <Text style={{fontFamily: 'Unknown Font Family'}}>
+            Unknown Font Family
+          </Text>
         </View>
       );
     },
@@ -681,6 +794,15 @@ exports.examples = [
           <Text style={{fontWeight: '300'}}>FONT WEIGHT 300</Text>
           <Text style={{fontWeight: '200'}}>FONT WEIGHT 200</Text>
           <Text style={{fontWeight: '100'}}>FONT WEIGHT 100</Text>
+          <Text style={{fontWeight: 900}}>FONT WEIGHT 900</Text>
+          <Text style={{fontWeight: 800}}>FONT WEIGHT 800</Text>
+          <Text style={{fontWeight: 700}}>FONT WEIGHT 700</Text>
+          <Text style={{fontWeight: 600}}>FONT WEIGHT 600</Text>
+          <Text style={{fontWeight: 500}}>FONT WEIGHT 500</Text>
+          <Text style={{fontWeight: 400}}>FONT WEIGHT 400</Text>
+          <Text style={{fontWeight: 300}}>FONT WEIGHT 300</Text>
+          <Text style={{fontWeight: 200}}>FONT WEIGHT 200</Text>
+          <Text style={{fontWeight: 100}}>FONT WEIGHT 100</Text>
         </View>
       );
     },
@@ -925,17 +1047,9 @@ exports.examples = [
     },
   },
   {
-    title: 'Empty Text',
-    description: "It's ok to have Text with zero or null children.",
-    render: function (): React.Node {
-      return <Text />;
-    },
-  },
-  {
     title: 'Toggling Attributes',
-    render: function (): React.Element<any> {
-      return <AttributeToggler />;
-    },
+    name: 'togglingAttributes',
+    render: AttributeToggler,
   },
   {
     title: 'backgroundColor attribute',
@@ -966,9 +1080,10 @@ exports.examples = [
   },
   {
     title: 'numberOfLines attribute',
+    name: 'numberOfLines',
     render: function (): React.Node {
       return (
-        <View>
+        <View testID="number-of-lines">
           <Text numberOfLines={1}>
             Maximum of one line, no matter how much I write here. If I keep
             writing, it{"'"}ll just truncate after one line.
@@ -976,6 +1091,14 @@ exports.examples = [
           <Text numberOfLines={2} style={{marginTop: 20}}>
             Maximum of two lines, no matter how much I write here. If I keep
             writing, it{"'"}ll just truncate after two lines.
+          </Text>
+          <Text numberOfLines={1} style={{marginTop: 20}}>
+            The hotdog should be truncated. The hotdog should be truncated. The
+            hotdog should be truncated. The hotdog should be truncated. The
+            hotdog should be truncated. The hotdog should be truncated. The
+            hotdog should be truncated. The hotdog should be truncated. The
+            hotdog should be truncated. The hotdog should be truncated.
+            <Image source={hotdog} style={{height: 12}} />
           </Text>
           <Text style={{marginTop: 20}}>
             No maximum lines specified, no matter how much I write here. If I
@@ -1034,6 +1157,62 @@ exports.examples = [
               This text also won't scale because it inherits "allowFontScaling"
               from its parent.
             </Text>
+          </Text>
+        </View>
+      );
+    },
+  },
+  {
+    title: 'maxFontSizeMultiplier attribute',
+    name: 'maxFontSizeMultiplier',
+    render(): React.Node {
+      return (
+        <View testID={'max-font-size-multiplier'}>
+          <Text>
+            When allowFontScaling is enabled, you can use the
+            maxFontSizeMultiplier prop to set an upper limit on how much the
+            font size will be scaled.
+          </Text>
+          <Text
+            allowFontScaling={true}
+            maxFontSizeMultiplier={1}
+            style={{marginTop: 10}}>
+            This text will not scale up (max 1x)
+          </Text>
+          <Text allowFontScaling={true} maxFontSizeMultiplier={1.5}>
+            This text will scale up (max 1.5x)
+          </Text>
+          <Text allowFontScaling={true} maxFontSizeMultiplier={1}>
+            <Text>Inherit max (max 1x)</Text>
+          </Text>
+          <Text allowFontScaling={true} maxFontSizeMultiplier={1}>
+            <Text maxFontSizeMultiplier={1.5}>
+              Override inherited max (max 1.5x)
+            </Text>
+          </Text>
+          <Text allowFontScaling={true} maxFontSizeMultiplier={1}>
+            <Text maxFontSizeMultiplier={0}>Ignore inherited max (no max)</Text>
+          </Text>
+          <Text
+            allowFontScaling={true}
+            style={{fontSize: 22}}
+            dynamicTypeRamp="title2">
+            This text will scale with 'title2' dynamic type ramp (no max)
+          </Text>
+          <Text
+            allowFontScaling={true}
+            style={{fontSize: 22}}
+            dynamicTypeRamp="title2"
+            maxFontSizeMultiplier={1.2}>
+            This text will scale with 'title2' dynamic type ramp (max 1.2x)
+          </Text>
+          <Text
+            allowFontScaling={true}
+            style={{fontSize: 22}}
+            dynamicTypeRamp="title2"
+            maxFontSizeMultiplier={1}>
+            This text uses 'title2' dynamic type ramp but will not scale up (max
+            1x)
           </Text>
         </View>
       );
@@ -1141,20 +1320,20 @@ exports.examples = [
       return (
         <Text>
           This text has a view
-          <InlineView style={{borderColor: 'red', borderWidth: 1}}>
+          <View style={{borderColor: 'red', borderWidth: 1}}>
             <Text style={{borderColor: 'blue', borderWidth: 1}}>which has</Text>
             <Text style={{borderColor: 'green', borderWidth: 1}}>
               another text inside.
             </Text>
             <Text style={{borderColor: 'yellow', borderWidth: 1}}>
               And moreover, it has another view
-              <InlineView style={{borderColor: 'red', borderWidth: 1}}>
+              <View style={{borderColor: 'red', borderWidth: 1}}>
                 <Text style={{borderColor: 'blue', borderWidth: 1}}>
                   with another text inside!
                 </Text>
-              </InlineView>
+              </View>
             </Text>
-          </InlineView>
+          </View>
           Because we need to go deeper.
         </Text>
       );
@@ -1162,12 +1341,13 @@ exports.examples = [
   },
   {
     title: 'Dynamic Font Size Adjustment',
-    render: function (): React.Element<any> {
+    render: function (): React.MixedElement {
       return <AdjustingFontSize />;
     },
   },
   {
     title: 'Text Align with RTL',
+    name: 'textAlign',
     render: function (): React.Node {
       return <TextAlignRTLExample />;
     },
@@ -1227,4 +1407,181 @@ exports.examples = [
       );
     },
   },
+  {
+    title: 'Selectable Text',
+    render: function (): React.Node {
+      return (
+        <View>
+          <Text style={{userSelect: 'auto'}}>Text element is selectable</Text>
+        </View>
+      );
+    },
+  },
+  {
+    title: 'Line Break Strategy',
+    render: function (): React.Node {
+      const lineBreakStrategy = [
+        'none',
+        'standard',
+        'hangul-word',
+        'push-out',
+      ] as const;
+      const textByCode = {
+        en: 'lineBreakStrategy lineBreakStrategy lineBreakStrategy lineBreakStrategy',
+        ko: '한글개행 한글개행 한글개행 한글개행 한글개행 한글개행 한글개행 한글개행',
+        ja: 'かいぎょう かいぎょう かいぎょう かいぎょう かいぎょう かいぎょう',
+        cn: '改行 改行 改行 改行 改行 改行 改行 改行 改行 改行 改行 改行',
+      };
+
+      return (
+        <View>
+          {lineBreakStrategy.map(strategy => {
+            return (
+              <View key={strategy} style={{marginBottom: 12}}>
+                <Text
+                  style={{
+                    backgroundColor: 'lightgrey',
+                  }}>{`Strategy: ${strategy}`}</Text>
+                {Object.keys(textByCode).map(code => {
+                  return (
+                    <View key={code}>
+                      <Text style={{fontWeight: 'bold'}}>{`[${code}]`}</Text>
+                      <RNTesterText lineBreakStrategyIOS={strategy}>
+                        {textByCode[code]}
+                      </RNTesterText>
+                    </View>
+                  );
+                })}
+              </View>
+            );
+          })}
+        </View>
+      );
+    },
+  },
+  {
+    title: 'Dynamic Type (iOS only)',
+    render: function (): React.Node {
+      const boldStyle = {fontWeight: 'bold'};
+      const boxStyle = {
+        borderWidth: 1,
+        padding: 8,
+        margin: 8,
+      };
+      return (
+        <View style={{marginTop: 10, marginBottom: 10}}>
+          <Text>
+            Adjust text size in Accessibility settings and watch how the font
+            sizes change relative to each other.
+          </Text>
+          <View style={boxStyle}>
+            {/* $FlowFixMe[incompatible-type] Natural Inference rollout. See
+             * https://fburl.com/workplace/6291gfvu */}
+            <Text style={boldStyle}>With `dynamicTypeRamp`:</Text>
+            <Text style={{fontSize: 34}} dynamicTypeRamp="largeTitle">
+              Large Title
+            </Text>
+            <Text style={{fontSize: 28}} dynamicTypeRamp="title1">
+              Title
+            </Text>
+            <Text style={{fontSize: 22}} dynamicTypeRamp="title2">
+              Title 2
+            </Text>
+            <Text style={{fontSize: 20}} dynamicTypeRamp="title3">
+              Title 3
+            </Text>
+            <Text style={{fontSize: 17}} dynamicTypeRamp="headline">
+              Headline
+            </Text>
+            <Text style={{fontSize: 17}} dynamicTypeRamp="body">
+              Body
+            </Text>
+            <Text style={{fontSize: 16}} dynamicTypeRamp="callout">
+              Callout
+            </Text>
+            <Text style={{fontSize: 15}} dynamicTypeRamp="subheadline">
+              Subheadline
+            </Text>
+            <Text style={{fontSize: 13}} dynamicTypeRamp="footnote">
+              Footnote
+            </Text>
+            <Text style={{fontSize: 12}} dynamicTypeRamp="caption1">
+              Caption
+            </Text>
+            <Text style={{fontSize: 11}} dynamicTypeRamp="caption2">
+              Caption 2
+            </Text>
+          </View>
+          <View style={boxStyle}>
+            {/* $FlowFixMe[incompatible-type] Natural Inference rollout. See
+             * https://fburl.com/workplace/6291gfvu */}
+            <Text style={boldStyle}>Without `dynamicTypeRamp`:</Text>
+            <Text style={{fontSize: 34}}>Large Title</Text>
+            <Text style={{fontSize: 28}}>Title</Text>
+            <Text style={{fontSize: 22}}>Title 2</Text>
+            <Text style={{fontSize: 20}}>Title 3</Text>
+            <Text style={{fontSize: 17}}>Headline</Text>
+            <Text style={{fontSize: 17}}>Body</Text>
+            <Text style={{fontSize: 16}}>Callout</Text>
+            <Text style={{fontSize: 15}}>Subheadline</Text>
+            <Text style={{fontSize: 13}}>Footnote</Text>
+            <Text style={{fontSize: 12}}>Caption</Text>
+            <Text style={{fontSize: 11}}>Caption 2</Text>
+          </View>
+        </View>
+      );
+    },
+  },
+  {
+    title: 'Clipping',
+    name: 'clipping',
+    render: function (): React.Node {
+      return (
+        <View>
+          <Text
+            testID="text-clipping"
+            style={{
+              borderRadius: 50,
+              padding: 0,
+              borderColor: 'red',
+              borderWidth: 5,
+              overflow: 'hidden',
+              fontSize: 16,
+            }}>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+            eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          </Text>
+        </View>
+      );
+    },
+  },
+  {
+    title: 'Box Shadow',
+    name: 'boxShadow',
+    render: function (): React.Node {
+      return (
+        <View>
+          <Text
+            testID="text-box-shadow"
+            style={{
+              borderRadius: 10,
+              boxShadow: '0 0 10px red',
+            }}>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+            eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          </Text>
+        </View>
+      );
+    },
+  },
+  ...TextSharedExamples,
 ];
+
+module.exports = ({
+  title: 'Text',
+  documentationURL: 'https://reactnative.dev/docs/text',
+  category: 'Basic',
+  description: 'Base component for rendering styled text.',
+  displayName: 'TextExample',
+  examples,
+}: RNTesterModule);

@@ -4,20 +4,18 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
-const React = require('react');
+import type {NativeSyntheticEvent, ViewProps} from 'react-native';
 
+const React = require('react');
 const {NativeModules, StyleSheet, UIManager, View} = require('react-native');
 
 const {TestModule} = NativeModules;
-
-import type {SyntheticEvent} from 'react-native/Libraries/Types/CoreEventTypes';
-import type {ViewProps} from 'react-native/Libraries/Components/View/ViewPropTypes';
 
 // Verify that RCTSnapshot is part of the UIManager since it is only loaded
 // if you have linked against RCTTest like in tests, otherwise we will have
@@ -26,15 +24,15 @@ const RCTSnapshot = UIManager.hasViewManagerConfig('RCTSnapshot')
   ? require('../../../RCTTest/RCTSnapshotNativeComponent')
   : View;
 
-type SnapshotReadyEvent = SyntheticEvent<
+type SnapshotReadyEvent = NativeSyntheticEvent<
   $ReadOnly<{testIdentifier: string, ...}>,
 >;
 
-type Props = $ReadOnly<{|
+type Props = $ReadOnly<{
   ...ViewProps,
   onSnapshotReady?: ?(event: SnapshotReadyEvent) => mixed,
   testIdentifier?: ?string,
-|}>;
+}>;
 
 class SnapshotViewIOS extends React.Component<Props> {
   onDefaultAction: (event: SnapshotReadyEvent) => void = (
@@ -47,7 +45,7 @@ class SnapshotViewIOS extends React.Component<Props> {
     const testIdentifier = this.props.testIdentifier || 'test';
     const onSnapshotReady = this.props.onSnapshotReady || this.onDefaultAction;
     return (
-      // $FlowFixMe[prop-missing] - Typing ReactNativeComponent revealed errors
+      // $FlowFixMe[incompatible-type] - Typing ReactNativeComponent revealed errors
       <RCTSnapshot
         style={style.snapshot}
         {...this.props}

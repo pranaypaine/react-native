@@ -4,25 +4,24 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
+ * @flow strict-local
  * @format
- * @flow
  */
 
 import type {PlatformTestComponentBaseProps} from './RNTesterPlatformTestTypes';
 
-import * as React from 'react';
-import {StyleSheet, View, Text} from 'react-native';
-
 import RNTesterPlatformTestInstructions from './RNTesterPlatformTestInstructions';
-import usePlatformTestHarness from './usePlatformTestHarness';
 import RNTesterPlatformTestResultView from './RNTesterPlatformTestResultView';
+import usePlatformTestHarness from './usePlatformTestHarness';
+import * as React from 'react';
+import {StyleSheet, Text, View} from 'react-native';
 
-type Props = $ReadOnly<{|
+type Props = $ReadOnly<{
   title: string,
   description: string,
   instructions?: $ReadOnlyArray<string>,
   component: React.ComponentType<PlatformTestComponentBaseProps>,
-|}>;
+}>;
 
 export default function RNTesterPlatformTest(props: Props): React.MixedElement {
   const {
@@ -39,9 +38,11 @@ export default function RNTesterPlatformTest(props: Props): React.MixedElement {
     <View style={styles.root}>
       <View style={styles.testcaseContainer}>
         <Text style={[styles.textBlock, styles.title]}>{title}</Text>
-        <Text style={[styles.textBlock, styles.description]}>
-          {description}
-        </Text>
+        {description !== '' ? (
+          <Text style={[styles.textBlock, styles.description]}>
+            {description}
+          </Text>
+        ) : null}
         <RNTesterPlatformTestInstructions
           instructions={instructions}
           style={[styles.instructions, styles.block]}

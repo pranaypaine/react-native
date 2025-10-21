@@ -9,8 +9,20 @@
  */
 
 import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
+
+import {RNTesterThemeContext} from '../../components/RNTesterTheme';
 import * as React from 'react';
+import {useContext} from 'react';
 import {Text} from 'react-native';
+
+function AnimatedContinuousInteractionsExample(): React.Node {
+  const theme = useContext(RNTesterThemeContext);
+  return (
+    <Text style={{color: theme.SecondaryLabelColor}}>
+      Checkout the Gratuitous Animation App!
+    </Text>
+  );
+}
 
 export default ({
   title: 'Continuous Interactions',
@@ -18,5 +30,7 @@ export default ({
   description: ('Gesture events, chaining, 2D ' +
     'values, interrupting and transitioning ' +
     'animations, etc.': string),
-  render: (): React.Node => <Text>Checkout the Gratuitous Animation App!</Text>,
+  render() {
+    return <AnimatedContinuousInteractionsExample />;
+  },
 }: RNTesterModuleExample);

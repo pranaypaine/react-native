@@ -4,14 +4,15 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
-const React = require('react');
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
 
+const React = require('react');
 const {
   ScrollView,
   StyleSheet,
@@ -30,7 +31,7 @@ class ScrollViewSimpleExample extends React.Component<{...}> {
     for (let i = 0; i < nItems; i++) {
       items[i] = (
         <TouchableOpacity key={i} style={styles}>
-          <Text>{'Item ' + i}</Text>
+          <Text testID="scroll_view_item">{'Item ' + i}</Text>
         </TouchableOpacity>
       );
     }
@@ -138,8 +139,8 @@ exports.description =
 exports.examples = [
   {
     title: 'Simple scroll view',
-    render: function (): React.Element<typeof ScrollViewSimpleExample> {
+    render(): React.MixedElement {
       return <ScrollViewSimpleExample />;
     },
   },
-];
+] as Array<RNTesterModuleExample>;

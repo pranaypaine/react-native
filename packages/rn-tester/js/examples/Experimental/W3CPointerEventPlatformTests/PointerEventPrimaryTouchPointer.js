@@ -4,17 +4,17 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
+ * @flow strict-local
  * @format
- * @flow
  */
 
 import type {PlatformTestComponentBaseProps} from '../PlatformTest/RNTesterPlatformTestTypes';
-import type {PointerEvent} from 'react-native/Libraries/Types/CoreEventTypes';
+import type {PointerEvent} from 'react-native';
 
-import {useTestEventHandler} from './PointerEventSupport';
 import RNTesterPlatformTest from '../PlatformTest/RNTesterPlatformTest';
+import {useTestEventHandler} from './PointerEventSupport';
 import * as React from 'react';
-import {useRef, useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {StyleSheet, View} from 'react-native';
 
 const styles = StyleSheet.create({
@@ -45,7 +45,7 @@ function PointerEventPrimaryTouchPointerTestCase(
 ) {
   const {harness} = props;
 
-  const detected_eventsRef = useRef({});
+  const detected_eventsRef = useRef(({}: {[string]: boolean}));
 
   const handleIncomingPointerEvent = useCallback(
     (boxLabel: string, eventType: string, isPrimary: boolean) => {
@@ -62,23 +62,28 @@ function PointerEventPrimaryTouchPointerTestCase(
         expectedOrder[Object.keys(detected_events).length];
       detected_events[pointerEventIdentifier] = true;
 
-      harness.test(({assert_equals}) => {
-        assert_equals(
-          boxLabel,
-          expectedBoxLabel,
-          'event should be coming from the correct box',
-        );
-        assert_equals(
-          eventType,
-          expectedEventType.toLowerCase(),
-          'event should have the right type',
-        );
-        assert_equals(
-          isPrimary,
-          expectedIsPrimary,
-          'event should be correctly primary',
-        );
-      }, `${expectedBoxLabel} box's ${expectedEventType} should${!expectedIsPrimary ? ' not' : ''} be marked as the primary pointer`);
+      harness.test(
+        ({assert_equals}) => {
+          assert_equals(
+            boxLabel,
+            expectedBoxLabel,
+            'event should be coming from the correct box',
+          );
+          assert_equals(
+            eventType,
+            expectedEventType.toLowerCase(),
+            'event should have the right type',
+          );
+          assert_equals(
+            isPrimary,
+            expectedIsPrimary,
+            'event should be correctly primary',
+          );
+        },
+        `${expectedBoxLabel} box's ${expectedEventType} should${
+          !expectedIsPrimary ? ' not' : ''
+        } be marked as the primary pointer`,
+      );
     },
     [harness],
   );

@@ -4,14 +4,13 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
 const React = require('react');
-
 const {Alert, Button, View} = require('react-native');
 
 class XHRExampleAbortController extends React.Component<{...}, {...}> {

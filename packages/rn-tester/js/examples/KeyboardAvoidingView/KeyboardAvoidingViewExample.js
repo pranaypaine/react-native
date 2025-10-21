@@ -4,27 +4,27 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @format
  * @flow
+ * @format
  */
 
 'use strict';
 
-const React = require('react');
-const {
+import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
+
+import React, {useState} from 'react';
+import {
   Alert,
+  Button,
   KeyboardAvoidingView,
   Modal,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
-  Button,
-  Pressable,
   TouchableOpacity,
   View,
-} = require('react-native');
-
-const {useState} = require('react');
+} from 'react-native';
 
 const onButtonPress = () => {
   Alert.alert('Successfully Registered!');
@@ -37,7 +37,11 @@ const TextInputForm = () => {
       <TextInput placeholder="Username" style={styles.textInput} />
       <TextInput placeholder="Password" style={styles.textInput} />
       <TextInput placeholder="Confirm Password" style={styles.textInput} />
-      <Button title="Register" onPress={onButtonPress} />
+      <Button
+        testID="register_button"
+        title="Register"
+        onPress={onButtonPress}
+      />
     </View>
   );
 };
@@ -56,7 +60,7 @@ const CloseButton = (
       <Pressable
         onPress={() => props.setModalOpen(false)}
         style={styles.closeButton}>
-        <Text>Close</Text>
+        <Text style={styles.touchableText}>Close</Text>
       </Pressable>
     </View>
   );
@@ -68,6 +72,8 @@ const KeyboardAvoidingViewBehaviour = () => {
   return (
     <View style={styles.outerContainer}>
       <Modal animationType="fade" visible={modalOpen}>
+        {/* $FlowFixMe[incompatible-type] Natural Inference rollout. See
+         * https://fburl.com/workplace/6291gfvu */}
         <KeyboardAvoidingView behavior={behavior} style={styles.container}>
           <View
             style={{
@@ -114,7 +120,11 @@ const KeyboardAvoidingViewBehaviour = () => {
       </Modal>
       <View>
         <Pressable onPress={() => setModalOpen(true)}>
-          <Text>Open Example</Text>
+          <Text
+            style={styles.touchableText}
+            testID="keyboard_avoiding_view_behaviors_open">
+            Open Example
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -136,7 +146,7 @@ const KeyboardAvoidingDisabled = () => {
       </Modal>
       <View>
         <Pressable onPress={() => setModalOpen(true)}>
-          <Text>Open Example</Text>
+          <Text style={styles.touchableText}>Open Example</Text>
         </Pressable>
       </View>
     </View>
@@ -158,7 +168,7 @@ const KeyboardAvoidingVerticalOffset = () => {
       </Modal>
       <View>
         <Pressable onPress={() => setModalOpen(true)}>
-          <Text>Open Example</Text>
+          <Text style={styles.touchableText}>Open Example</Text>
         </Pressable>
       </View>
     </View>
@@ -181,7 +191,7 @@ const KeyboardAvoidingContentContainerStyle = () => {
       </Modal>
       <View>
         <Pressable onPress={() => setModalOpen(true)}>
-          <Text>Open Example</Text>
+          <Text style={styles.touchableText}>Open Example</Text>
         </Pressable>
       </View>
     </View>
@@ -228,6 +238,10 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     padding: 10,
   },
+  touchableText: {
+    fontWeight: '500',
+    color: 'blue',
+  },
 });
 
 exports.title = 'KeyboardAvoidingView';
@@ -264,4 +278,4 @@ exports.examples = [
       return <KeyboardAvoidingContentContainerStyle />;
     },
   },
-];
+] as Array<RNTesterModuleExample>;
